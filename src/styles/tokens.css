@@ -1,0 +1,52 @@
+/* Escuchar's look: ink and coral. Every colour is a token, defined for both themes. */
+:root,
+:root[data-theme="dark"] {
+  --bg: #0b0a10;
+  --surface: #15131d;
+  --surface-2: #1e1b29;
+  --surface-3: #2a2638;
+  --text: #f5f3fa;
+  --muted: #a29db3;
+  --subtle: #6f6a80;
+  --accent: #ff7a59;
+  --accent-strong: #ff8f72;
+  --accent-ink: #1a0f0b;
+  --accent-soft: rgba(255, 122, 89, 0.16);
+  --danger: #ff5c7a;
+  --line: rgba(255, 255, 255, 0.08);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --head-fade: rgba(21, 19, 29, 0);
+  --chart: #e85f3c; /* validated against --surface (dataviz validator, dark band) */
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #e9e6f0;
+  --surface: #ffffff;
+  --surface-2: #f4f2f8;
+  --surface-3: #e7e4ee;
+  --text: #17141f;
+  --muted: #5f5a6e;
+  --subtle: #8d889c;
+  --accent: #d9502e;
+  --accent-strong: #c2441f;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(217, 80, 46, 0.12);
+  --danger: #c8264a;
+  --line: rgba(0, 0, 0, 0.08);
+  --shadow: 0 12px 32px rgba(40, 30, 60, 0.18);
+  --head-fade: rgba(255, 255, 255, 0);
+  --chart: #d9502e; /* validated against --surface (dataviz validator, light band) */
+  color-scheme: light;
+}
+
+:root {
+  --radius: 14px;
+  --radius-sm: 8px;
+  --sidebar-w: 300px;
+  --panel-w: 320px;
+  --player-h: 88px;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

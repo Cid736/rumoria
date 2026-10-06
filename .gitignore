@@ -1,0 +1,15 @@
+node_modules/
+dist/
+release/
+bin/
+.data/
+*.log
+.env
+.DS_Store
+
+# Never commit private data by accident
+cookies.txt
+settings.json
+*.pem
+*.pfx
+*.p12
