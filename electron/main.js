@@ -1,4 +1,4 @@
-// Escuchar's desktop shell: one window, a local server only it can talk to,
+// CLMusic's desktop shell: one window, a local server only it can talk to,
 // and yt-dlp kept up to date. The page runs sandboxed with no Node access;
 // the few things it may ask for (pick the music folder, send a song to
 // TubeGrab) go through preload.js and are checked again here.
@@ -11,7 +11,7 @@ const { fork, execFile } = require('child_process');
 const { migrateFromTubeGrab } = require('../server/lib/migrate');
 
 // Isolated runs (tests, a second profile): their own data folder.
-if (process.env.ESCUCHAR_USER_DATA && path.isAbsolute(process.env.ESCUCHAR_USER_DATA)) app.setPath('userData', process.env.ESCUCHAR_USER_DATA);
+if (process.env.CLMUSIC_USER_DATA && path.isAbsolute(process.env.CLMUSIC_USER_DATA)) app.setPath('userData', process.env.CLMUSIC_USER_DATA);
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 const ROOT = path.join(__dirname, '..');
@@ -52,7 +52,7 @@ function fetchBuffer(u, redirects = 5) {
   return new Promise((resolve, reject) => {
     const url = new URL(u);
     if (url.protocol !== 'https:' || !ALLOWED_HOSTS.has(url.hostname)) return reject(new Error(`Origen no permitido: ${url.hostname}`));
-    https.get(url, { headers: { 'User-Agent': 'escuchar' } }, (res) => {
+    https.get(url, { headers: { 'User-Agent': 'clmusic' } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects > 0) {
         res.resume();
         return fetchBuffer(new URL(res.headers.location, url).toString(), redirects - 1).then(resolve, reject);
@@ -100,11 +100,11 @@ function startServer() {
       env: {
         ...process.env,
         ELECTRON_RUN_AS_NODE: '1',
-        ESCUCHAR_TOKEN: token,
-        ESCUCHAR_DATA_DIR: userData(),
-        ESCUCHAR_YTDLP: ytDlpPath(),
-        ESCUCHAR_MUSIC_DIR: musicDir(),
-        ESCUCHAR_STATIC: DIST,
+        CLMUSIC_TOKEN: token,
+        CLMUSIC_DATA_DIR: userData(),
+        CLMUSIC_YTDLP: ytDlpPath(),
+        CLMUSIC_MUSIC_DIR: musicDir(),
+        CLMUSIC_STATIC: DIST,
       },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
       windowsHide: true,
@@ -114,7 +114,7 @@ function startServer() {
       clearTimeout(timer);
       if (m && m.type === 'ready' && Number.isInteger(m.port)) resolve(m.port); else reject(new Error('El servidor no arrancó.'));
     });
-    serverProcess.once('exit', (code) => { if (!app.isQuitting) dialog.showErrorBox('Escuchar', `El servidor se detuvo (código ${code}).`); });
+    serverProcess.once('exit', (code) => { if (!app.isQuitting) dialog.showErrorBox('CLMusic', `El servidor se detuvo (código ${code}).`); });
   });
 }
 
@@ -140,7 +140,8 @@ function createWindow(port) {
     ...b,
     minWidth: 900,
     minHeight: 600,
-    title: 'Escuchar',
+    title: 'CLMusic',
+    icon: path.join(ROOT, 'build', 'icon.png'),
     backgroundColor: '#0f0e17',
     autoHideMenuBar: true,
     show: false,
@@ -160,8 +161,8 @@ function createWindow(port) {
 }
 
 // === What the page may ask for ===
-ipcMain.handle('escuchar:settings', (event) => (isTrustedSender(event) ? { musicDir: musicDir(), tubegrab: fs.existsSync(TUBEGRAB_DATA) } : null));
-ipcMain.handle('escuchar:pickMusicDir', async (event) => {
+ipcMain.handle('clmusic:settings', (event) => (isTrustedSender(event) ? { musicDir: musicDir(), tubegrab: fs.existsSync(TUBEGRAB_DATA) } : null));
+ipcMain.handle('clmusic:pickMusicDir', async (event) => {
   if (!isTrustedSender(event)) return null;
   const r = await dialog.showOpenDialog(mainWindow, { title: 'Tu carpeta de música', defaultPath: musicDir(), properties: ['openDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;
@@ -170,7 +171,7 @@ ipcMain.handle('escuchar:pickMusicDir', async (event) => {
   return r.filePaths[0];
 });
 // "Descargar con TubeGrab": TubeGrab opens with the song in its download box (it asks before downloading).
-ipcMain.handle('escuchar:downloadInTubeGrab', (event, id) => {
+ipcMain.handle('clmusic:downloadInTubeGrab', (event, id) => {
   if (!isTrustedSender(event) || !/^[A-Za-z0-9_-]{11}$/.test(String(id))) return false;
   shell.openExternal(`tubegrab://download?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`);
   return true;
@@ -186,15 +187,15 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
   const copied = migrateFromTubeGrab(TUBEGRAB_DATA, userData());
-  if (copied.length) console.log(`Escuchar: copiado de TubeGrab: ${copied.join(', ')}`);
+  if (copied.length) console.log(`CLMusic: copiado de TubeGrab: ${copied.join(', ')}`);
   try { await ensureYtDlp(); updateYtDlpSoon(); } catch (err) {
-    dialog.showErrorBox('Escuchar', `No se pudo preparar yt-dlp (${err.message}). Sin él no se puede escuchar de YouTube; tu música local sí funciona.`);
+    dialog.showErrorBox('CLMusic', `No se pudo preparar yt-dlp (${err.message}). Sin él no se puede escuchar de YouTube; tu música local sí funciona.`);
   }
   const port = await startServer();
   appOrigin = `http://127.0.0.1:${port}`;
-  await session.defaultSession.cookies.set({ url: appOrigin, name: 'esc_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
+  await session.defaultSession.cookies.set({ url: appOrigin, name: 'clm_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
 }).catch((err) => {
-  dialog.showErrorBox('Escuchar', err.message);
+  dialog.showErrorBox('CLMusic', err.message);
   app.quit();
 });

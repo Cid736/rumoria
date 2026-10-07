@@ -1,8 +1,8 @@
 // The only doors from the page to the desktop: three, each checked again in main.js.
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('escuchar', {
-  settings: () => ipcRenderer.invoke('escuchar:settings'),
-  pickMusicDir: () => ipcRenderer.invoke('escuchar:pickMusicDir'),
-  downloadInTubeGrab: (id) => ipcRenderer.invoke('escuchar:downloadInTubeGrab', String(id)),
+contextBridge.exposeInMainWorld('clmusic', {
+  settings: () => ipcRenderer.invoke('clmusic:settings'),
+  pickMusicDir: () => ipcRenderer.invoke('clmusic:pickMusicDir'),
+  downloadInTubeGrab: (id) => ipcRenderer.invoke('clmusic:downloadInTubeGrab', String(id)),
 });

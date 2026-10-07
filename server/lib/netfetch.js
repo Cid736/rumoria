@@ -8,7 +8,7 @@ const http = require('http');
 const https = require('https');
 const net = require('net');
 
-const UA = 'Escuchar/1.0 (+https://github.com/Cid736/escuchar)';
+const UA = 'CLMusic/1.0 (+https://github.com/Cid736/clmusic)';
 const MAX_REDIRECTS = 5;
 
 /** Loopback, private, link-local, CGNAT, multicast, reserved… (IPv4 and IPv6). */

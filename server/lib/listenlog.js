@@ -1,5 +1,5 @@
 // What you listen to (desktop app): each song heard for a while, with how
-// long, so Escuchar can make lists from it (most played, heard lately, to
+// long, so CLMusic can make lists from it (most played, heard lately, to
 // rediscover, daily mixes) and Estadísticas a yearly summary. Kept only on
 // this computer (listen-history.json); it can be paused or wiped.
 const fs = require('fs');
@@ -120,7 +120,7 @@ class ListenLog {
     return [...by.values()];
   }
 
-  /** Lists for Escuchar: most played lately, heard lately, to rediscover, your artists. */
+  /** Lists for CLMusic: most played lately, heard lately, to rediscover, your artists. */
   smart() {
     const now = Math.floor(this.now() / 1000);
     const DAY = 86400;

@@ -1,14 +1,14 @@
-# TubeGrab y Escuchar: arquitectura tras la separación
+# TubeGrab y CLMusic: arquitectura tras la separación
 
-La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **Escuchar**. TubeGrab se queda con lo suyo: descargar, convertir y la biblioteca de archivos con su reproductor.
+La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **CLMusic**. TubeGrab se queda con lo suyo: descargar, convertir y la biblioteca de archivos con su reproductor.
 
-| | TubeGrab | Escuchar |
+| | TubeGrab | CLMusic |
 |---|---|---|
 | Para qué | Descargar y convertir; tu biblioteca de archivos | Escuchar sin descargar: listas, favoritas, «Hecho para ti» |
-| Repositorio | `Cid736/tubegrab` (rama `split/listen-app`) | `Cid736/escuchar` (nuevo, `main`) |
+| Repositorio | `Cid736/tubegrab` (rama `split/listen-app`) | `Cid736/clmusic` (nuevo, `main`) |
 | Pila | Electron 44 + Express 5 + JavaScript sin framework | Electron 44 + Express 5 (servidor) · React 19 + Vite 8 + Zustand 5 (interfaz) |
 | Tests | `node --test` (242) | `node --test` (49: servidor y seguridad) + Vitest (31: interfaz) |
-| Datos | `%APPDATA%\tubegrab` | `%APPDATA%\escuchar` (copiados de TubeGrab la primera vez) |
+| Datos | `%APPDATA%\tubegrab` | `%APPDATA%\clmusic` (copiados de TubeGrab la primera vez) |
 
 ---
 
@@ -18,23 +18,23 @@ La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **Escuchar*
 
 | Pieza | Antes (TubeGrab) | Ahora |
 |---|---|---|
-| Reproducir desde YouTube sin descargar (`lib/stream.js`) | TubeGrab | **Escuchar** |
-| Listas de Spotify / Apple Music / YouTube (`lib/streamlists.js`) y perfiles de Spotify | TubeGrab | **Escuchar** |
-| Historial de escucha, «Hecho para ti», resumen del año (`lib/listenlog.js`) | TubeGrab (Escuchar + Estadísticas) | **Escuchar** («Tu resumen») |
-| Favoritas (`lib/likes.js`), Novedades de tus artistas (`lib/news.js`) | TubeGrab | **Escuchar** |
-| Búsqueda de YouTube y listas en el mini reproductor; «poner una canción» desde el móvil | TubeGrab | Quitado de TubeGrab (lo hace Escuchar) |
+| Reproducir desde YouTube sin descargar (`lib/stream.js`) | TubeGrab | **CLMusic** |
+| Listas de Spotify / Apple Music / YouTube (`lib/streamlists.js`) y perfiles de Spotify | TubeGrab | **CLMusic** |
+| Historial de escucha, «Hecho para ti», resumen del año (`lib/listenlog.js`) | TubeGrab (Escuchar + Estadísticas) | **CLMusic** («Tu resumen») |
+| Favoritas (`lib/likes.js`), Novedades de tus artistas (`lib/news.js`) | TubeGrab | **CLMusic** |
+| Búsqueda de YouTube y listas en el mini reproductor; «poner una canción» desde el móvil | TubeGrab | Quitado de TubeGrab (lo hace CLMusic) |
 | Biblioteca de archivos, su reproductor, ecualizador, letras `.lrc`, mini reproductor, modo juego, Last.fm, Discord, tele, el móvil | TubeGrab | **TubeGrab** (solo archivos locales) |
 | Importar una lista de Spotify/Apple **para descargarla** | TubeGrab | **TubeGrab** |
 
-Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar con TubeGrab» en Escuchar abre `tubegrab://download?url=…`: TubeGrab rellena su cuadro de descarga y el usuario confirma. Escuchar, por su parte, lee tu carpeta de descargas de TubeGrab como «Tu música» (solo lectura).
+Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar con TubeGrab» en CLMusic abre `tubegrab://download?url=…`: TubeGrab rellena su cuadro de descarga y el usuario confirma. CLMusic, por su parte, lee tu carpeta de descargas de TubeGrab como «Tu música» (solo lectura).
 
 ```
-┌──────────────────────── Escuchar (Electron) ────────────────────────┐
+┌──────────────────────── CLMusic (Electron) ────────────────────────┐
 │ electron/main.js ── ventana sandbox, cookie httpOnly con el secreto │
 │        │ fork (ELECTRON_RUN_AS_NODE) + secreto de 32 bytes          │
 │        ▼                                                             │
 │ server/main.js → server/app.js (Express, 127.0.0.1:puerto libre)     │
-│   guard: Host + secreto + X-Escuchar · helmet/CSP · rate limit       │
+│   guard: Host + secreto + X-CLMusic · helmet/CSP · rate limit       │
 │   lib/: stream · streamlists · listenlog · likes · news · importlist │
 │         lyrics · ytdlp · localmusic · netfetch · migrate · lrc       │
 │        ▲ /api/*                                   │ yt-dlp (execFile) │
@@ -48,7 +48,7 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Escuchar por dentro
+### 1.2 CLMusic por dentro
 
 **Proceso principal (`electron/main.js`)**
 - Una sola instancia y una sola ventana con `contextIsolation`, `sandbox` y sin `nodeIntegration`. No navega fuera de su origen, no abre ventanas emergentes (solo enlaces de YouTube, Spotify y Apple Music, en el navegador) y no concede ningún permiso (cámara, micrófono…).
@@ -60,8 +60,8 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 **Servidor (`server/app.js`)**
 - Escucha solo en `127.0.0.1`. Cada petición pasa por el mismo control de entrada:
   1. `Host` = `127.0.0.1:<puerto>` o `localhost:<puerto>` (contra DNS rebinding); si no, 421.
-  2. Secreto (cookie o cabecera `X-Escuchar-Token` en desarrollo), comparado en tiempo constante; si no, 401.
-  3. Toda petición que cambia algo necesita además `X-Escuchar: 1` (contra CSRF: otra web no puede enviarla sin un preflight CORS, y nunca se permite); si no, 403.
+  2. Secreto (cookie o cabecera `X-CLMusic-Token` en desarrollo), comparado en tiempo constante; si no, 401.
+  3. Toda petición que cambia algo necesita además `X-CLMusic: 1` (contra CSRF: otra web no puede enviarla sin un preflight CORS, y nunca se permite); si no, 403.
 - Helmet con una CSP estricta (`script-src 'self'`, sin `unsafe-inline`), `nosniff`, `no-referrer` y `frame-ancestors 'none'`. JSON de 256 KB como máximo y límites de peticiones por minuto. Los errores devuelven un mensaje corto, nunca la traza.
 - API:
 
@@ -83,7 +83,7 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 ```
 src/
 ├─ main.jsx · App.jsx        diseño, tema, atajos de teclado
-├─ api.js                    cliente: cookie, X-Escuchar, errores legibles
+├─ api.js                    cliente: cookie, X-CLMusic, errores legibles
 ├─ store/
 │  ├─ player.js              cola, índice, quiero-sonar, posición, volumen, repetir, aleatorio, radio
 │  ├─ library.js             listas, favoritas (optimista, con vuelta atrás), historial, novedades, carpeta
@@ -103,7 +103,7 @@ La decisión clave de diseño es que **el store solo guarda estado e intención*
 
 Se quitó, sin dejar rutas muertas:
 - **Servidor:** las rutas `/api/stream/*`, `/api/streamlists*` y `/api/listen*` (316 líneas) y los módulos `stream`, `streamlists`, `listenlog`, `likes` y `news`. También salió la importación de perfiles de Spotify de `lib/importlist.js` (la de listas para descargar se queda).
-- **Página:** la vista Escuchar (1.027 líneas de `app.js`), la reproducción de YouTube dentro del reproductor (búsqueda, radio de YouTube, registro de escucha, «tu archivo en vez del streaming»), el resumen anual de Estadísticas y los botones «▶ Escuchar todo» y «Guardar como lista» de Buscar. Ctrl+K ya no muestra listas.
+- **Página:** la vista Escuchar (1.027 líneas de `app.js`), la reproducción de YouTube dentro del reproductor (búsqueda, radio de YouTube, registro de escucha, «tu archivo en vez del streaming»), el resumen anual de Estadísticas y los botones «▶ CLMusic todo» y «Guardar como lista» de Buscar. Ctrl+K ya no muestra listas.
 - **Mini reproductor:** se quitan las pestañas Buscar y Listas; se quedan «A continuación» y «Ajustes».
 - **Móvil:** se quita «poner una canción por su nombre» y las carátulas de YouTube (su CSP pasa a `img-src 'none'`).
 - **Electron:** los comandos `stream`, `enqueue`, `playList`, `playQuery` y `save`, y el botón de YouTube en Discord.
@@ -135,32 +135,32 @@ npx electron .                   # la app de escritorio desde el código
 
 Para probar sin tocar tus datos: `$env:TUBEGRAB_USER_DATA="C:\ruta\temporal"` antes de `npx electron .` (y quita `ELECTRON_RUN_AS_NODE` si lo tienes definido).
 
-### 2.2 Escuchar
+### 2.2 CLMusic
 
 ```powershell
-git clone https://github.com/Cid736/escuchar.git
-cd escuchar
+git clone https://github.com/Cid736/clmusic.git
+cd clmusic
 npm install
 npm run fetch-ytdlp              # yt-dlp verificado por SHA-256 en bin/ (opcional: también lo toma de TubeGrab)
 npm test                         # servidor + seguridad (node --test) e interfaz (Vitest)
 npm run dev                      # servidor + Vite: abre http://127.0.0.1:5173 (sin las funciones de escritorio)
 npm start                        # compila la interfaz y abre la app de escritorio
-npm run dist                     # instalador (Escuchar-Setup.exe) con electron-builder
+npm run dist                     # instalador (CLMusic-Setup.exe) con electron-builder
 ```
 
 Variables útiles:
 
 | Variable | Para qué |
 |---|---|
-| `ESCUCHAR_USER_DATA` | Carpeta de datos aparte (pruebas, un segundo perfil) |
-| `ESCUCHAR_DEV_PORT` | Puerto del servidor en `npm run dev` (por defecto 5174) |
-| `ESCUCHAR_YTDLP` | Usar un yt-dlp concreto |
+| `CLMUSIC_USER_DATA` | Carpeta de datos aparte (pruebas, un segundo perfil) |
+| `CLMUSIC_DEV_PORT` | Puerto del servidor en `npm run dev` (por defecto 5174) |
+| `CLMUSIC_YTDLP` | Usar un yt-dlp concreto |
 
-### 2.3 Crear el repositorio de Escuchar en GitHub
+### 2.3 Crear el repositorio de CLMusic en GitHub
 
 ```powershell
-cd C:\Users\ericc\OneDrive\Desktop\C\Escuchar
-gh repo create Cid736/escuchar --private --source . --remote origin --push
+cd C:\Users\ericc\OneDrive\Desktop\C\CLMusic
+gh repo create Cid736/clmusic --private --source . --remote origin --push
 # o público: --public
 gh repo edit --enable-issues --delete-branch-on-merge
 ```
@@ -176,12 +176,12 @@ Después, en GitHub: *Settings → Code security* activa **Dependabot alerts**, 
 | Proyecto | Comando | Qué corre |
 |---|---|---|
 | TubeGrab | `npm test` | Unitarios e integración con `node --test` (servidor real arrancado en un puerto libre, ffmpeg real cuando está) |
-| Escuchar | `npm test` | `test:server` (unitarios e integración del servidor) + `test:ui` (Vitest + Testing Library) |
-| Escuchar | `npm run test:security` | Solo la suite de seguridad |
-| Escuchar | `npm run lint` | ESLint con `eslint-plugin-security` y las reglas de React Hooks |
-| Escuchar | `npm run audit` | `npm audit` de las dependencias de producción (falla con severidad alta) |
+| CLMusic | `npm test` | `test:server` (unitarios e integración del servidor) + `test:ui` (Vitest + Testing Library) |
+| CLMusic | `npm run test:security` | Solo la suite de seguridad |
+| CLMusic | `npm run lint` | ESLint con `eslint-plugin-security` y las reglas de React Hooks |
+| CLMusic | `npm run audit` | `npm audit` de las dependencias de producción (falla con severidad alta) |
 
-### 3.2 Suite de seguridad de Escuchar (`test/security/security.test.js`)
+### 3.2 Suite de seguridad de CLMusic (`test/security/security.test.js`)
 
 | Riesgo | Qué se comprueba |
 |---|---|
@@ -195,27 +195,27 @@ Después, en GitHub: *Settings → Code security* activa **Dependabot alerts**, 
 | **Cabeceras** | CSP sin `unsafe-inline` ni `unsafe-eval`, `nosniff`, `no-referrer`, sin `X-Powered-By`, límites de peticiones (y un test que los agota → 429) |
 | **Electron** | Comprobación estática de que siguen `sandbox`, `contextIsolation`, sin `nodeIntegration`, bloqueo de navegación y `webview`, permisos denegados, cookie `httpOnly` y `SameSite=Strict`; cada IPC comprueba quién lo pide; el preload no expone `ipcRenderer`; yt-dlp solo con SHA-256 y desde GitHub |
 
-TubeGrab conserva su propia batería (pruebas de ataque al servidor, al móvil, a las subidas y al protocolo `tubegrab://`). Ahora incluye además el test de que las rutas de Escuchar ya no existen.
+TubeGrab conserva su propia batería (pruebas de ataque al servidor, al móvil, a las subidas y al protocolo `tubegrab://`). Ahora incluye además el test de que las rutas de CLMusic ya no existen.
 
-### 3.3 CI/CD y análisis estático (Escuchar, en `.github/`)
+### 3.3 CI/CD y análisis estático (CLMusic, en `.github/`)
 
 - **`ci.yml`**: en cada push y PR corre lint, tests del servidor y de la interfaz y la compilación en **Windows y Ubuntu**. Un segundo trabajo pasa la suite de seguridad, `npm audit --omit=dev --audit-level=high` y **gitleaks** (secretos subidos por error). En los PR se añade **dependency-review** (bloquea dependencias nuevas con vulnerabilidades altas).
 - **`codeql.yml`**: CodeQL con las consultas `security-extended`, en cada push, en cada PR y cada lunes.
 - **`dependabot.yml`**: actualizaciones semanales de npm (las de desarrollo agrupadas) y mensuales de las Actions.
 
-Para TubeGrab, el mismo `codeql.yml` y `dependabot.yml` sirven tal cual. Su `ci.yml` sería el de Escuchar con `npm test` en lugar de los tres pasos de test.
+Para TubeGrab, el mismo `codeql.yml` y `dependabot.yml` sirven tal cual. Su `ci.yml` sería el de CLMusic con `npm test` en lugar de los tres pasos de test.
 
 ### 3.4 Resultados en el momento de la separación
 
 | | Resultado |
 |---|---|
 | TubeGrab `npm test` | 242 superados, 0 fallos, 2 omitidos (dependen de herramientas opcionales) |
-| Escuchar `npm test` | 49 + 31 superados, 0 fallos |
-| Escuchar `npm run lint` | 0 errores; 10 avisos de `eslint-plugin-security` sobre expresiones regulares del código heredado (entradas ya acotadas en longitud) |
-| `npm audit` (producción) | 0 vulnerabilidades en las dos apps. En desarrollo, Escuchar tiene 8 moderadas en `sprintf-js` (herramientas de compilación; no viajan en la app) |
-| Pruebas en la app real | Escuchar: arranque, migración de tus datos, reproducción desde una lista de Spotify, búsqueda, letra sincronizada y Tu resumen. TubeGrab: Biblioteca, reproductor, cola, Estadísticas, Ctrl+K y mini reproductor |
+| CLMusic `npm test` | 49 + 31 superados, 0 fallos |
+| CLMusic `npm run lint` | 0 errores; 10 avisos de `eslint-plugin-security` sobre expresiones regulares del código heredado (entradas ya acotadas en longitud) |
+| `npm audit` (producción) | 0 vulnerabilidades en las dos apps. En desarrollo, CLMusic tiene 8 moderadas en `sprintf-js` (herramientas de compilación; no viajan en la app) |
+| Pruebas en la app real | CLMusic: arranque, migración de tus datos, reproducción desde una lista de Spotify, búsqueda, letra sincronizada y Tu resumen. TubeGrab: Biblioteca, reproductor, cola, Estadísticas, Ctrl+K y mini reproductor |
 
 ### 3.5 Pendiente o fuera de alcance
 
-- **«Mantener descargada una lista»** y **«guardar solas las que más escucho»** necesitaban la cola de descargas de TubeGrab dentro del mismo proceso. En Escuchar se sustituyen por «Descargar con TubeGrab» canción a canción. Para recuperarlas haría falta una API entre las dos apps (por ejemplo, el mismo `tubegrab://` con varias URL).
+- **«Mantener descargada una lista»** y **«guardar solas las que más escucho»** necesitaban la cola de descargas de TubeGrab dentro del mismo proceso. En CLMusic se sustituyen por «Descargar con TubeGrab» canción a canción. Para recuperarlas haría falta una API entre las dos apps (por ejemplo, el mismo `tubegrab://` con varias URL).
 - La migración de datos copia; los archivos originales siguen en `%APPDATA%\tubegrab` hasta que los borres.

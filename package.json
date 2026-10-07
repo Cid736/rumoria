@@ -1,11 +1,11 @@
 {
-  "name": "escuchar",
-  "productName": "Escuchar",
+  "name": "clmusic",
+  "productName": "CLMusic",
   "version": "1.0.0",
   "description": "Tu música: listas de Spotify, Apple Music y YouTube, favoritas e historial, sin descargar nada.",
   "main": "electron/main.js",
   "license": "MIT",
-  "author": "Eric Cid",
+  "author": "Eric Cid Lopez",
   "private": true,
   "engines": {
     "node": ">=22"
@@ -21,7 +21,10 @@
     "lint": "eslint .",
     "audit": "npm audit --omit=dev --audit-level=high",
     "fetch-ytdlp": "node scripts/fetch-ytdlp.js",
-    "dist": "vite build && electron-builder"
+    "icon": "node scripts/gen-icon.js",
+    "notices": "node scripts/notices.js",
+    "dist": "npm run fetch-ytdlp && npm run notices && vite build && electron-builder",
+    "dist:lite": "npm run notices && vite build && electron-builder --config electron-builder.lite.js"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -29,28 +32,42 @@
     "helmet": "^8.3.0"
   },
   "build": {
-    "appId": "com.escuchar.app",
-    "productName": "Escuchar",
+    "appId": "com.clmusic.app",
+    "productName": "CLMusic",
     "asar": false,
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "electron/**/*",
       "server/**/*",
       "dist/**/*",
-      "package.json"
+      "build/icon.png",
+      "bin/yt-dlp.exe",
+      "package.json",
+      "LICENSE",
+      "LEGAL.md",
+      "third-party/**/*"
     ],
-    "extraResources": [],
     "win": {
       "target": [
+        "portable",
         "nsis"
       ],
-      "artifactName": "Escuchar-Setup.exe"
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "CLMusic.exe"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "shortcutName": "Escuchar",
+      "artifactName": "CLMusic-Setup.exe",
+      "shortcutName": "CLMusic",
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     }
   },
   "devDependencies": {

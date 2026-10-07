@@ -46,7 +46,7 @@ describe('player store', () => {
     p.setVolume(7); expect(usePlayer.getState().volume).toBe(1);
     p.setVolume(-1); expect(usePlayer.getState().volume).toBe(0);
     p.setVolume(0.3);
-    expect(localStorage.getItem('escuchar_volume')).toBe('0.3');
+    expect(localStorage.getItem('clmusic_volume')).toBe('0.3');
   });
 
   it('shuffle stays on for the next thing you play', () => {

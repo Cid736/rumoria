@@ -1,7 +1,7 @@
 // Where you are (with back / forward), the side panel, toasts and menus.
 import { create } from 'zustand';
 
-const THEME_KEY = 'escuchar_theme';
+const THEME_KEY = 'clmusic_theme';
 const savedTheme = () => { try { return ['dark', 'light', 'system'].includes(localStorage.getItem(THEME_KEY)) ? localStorage.getItem(THEME_KEY) : 'dark'; } catch { return 'dark'; } };
 
 let toastId = 1;

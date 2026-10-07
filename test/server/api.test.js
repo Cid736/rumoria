@@ -92,7 +92,7 @@ test('history and favourites: noted, made into lists, paused, wiped', async () =
 });
 
 test('your music: listed, served with seeking, nothing else', async () => {
-  const music = fs.mkdtempSync(path.join(os.tmpdir(), 'esc-music-'));
+  const music = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-music-'));
   fs.writeFileSync(path.join(music, 'Band - Song.mp3'), Buffer.alloc(1000, 7));
   const app = await startApp({ musicDir: music });
   try {
@@ -110,13 +110,13 @@ test('your music: listed, served with seeking, nothing else', async () => {
 });
 
 test('the page itself is served (once built), with its security headers', async () => {
-  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'esc-dist-'));
-  fs.writeFileSync(path.join(dist, 'index.html'), '<!doctype html><title>Escuchar</title>');
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-dist-'));
+  fs.writeFileSync(path.join(dist, 'index.html'), '<!doctype html><title>CLMusic</title>');
   const app = await startApp({ staticDir: dist });
   try {
     const r = await app.call('GET', '/');
     assert.equal(r.status, 200);
-    assert.match(r.data, /Escuchar/);
+    assert.match(r.data, /CLMusic/);
     assert.match(r.headers.get('content-security-policy'), /script-src 'self'/);
     assert.equal((await app.call('GET', '/api/nope')).status, 404);
   } finally {

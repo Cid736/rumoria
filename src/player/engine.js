@@ -67,7 +67,7 @@ export function startEngine({ audio = new Audio(), store = usePlayer, toast = (t
 
   // ---- the operating system's media keys and overlay ----
   function setMediaInfo(t) {
-    if (typeof document !== 'undefined') document.title = t ? `${t.title}${t.artist ? ` · ${t.artist}` : ''}` : 'Escuchar';
+    if (typeof document !== 'undefined') document.title = t ? `${t.title}${t.artist ? ` · ${t.artist}` : ''}` : 'CLMusic';
     if (!media || typeof MediaMetadata === 'undefined') return;
     media.metadata = t ? new MediaMetadata({ title: t.title, artist: t.artist || '', artwork: t.thumbnail ? [{ src: t.thumbnail, sizes: '480x360', type: 'image/jpeg' }] : [] }) : null;
   }

@@ -12,7 +12,7 @@ const { LocalMusic, nameParts, isInside } = require('../../server/lib/localmusic
 const ytdlp = require('../../server/lib/ytdlp');
 const { migrateFromTubeGrab } = require('../../server/lib/migrate');
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'esc-src-'));
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'clm-src-'));
 
 function fakeFetch(routes, seen = []) {
   return async (url, init) => {
@@ -41,13 +41,13 @@ test('spotify profile: read through the page (no lists → a clear error)', asyn
   await assert.rejects(importlist.readProfile('https://open.spotify.com/user/pepe', { fetchText: async () => '<html></html>' }), /ninguna lista pública/);
 });
 
-test('lyrics: asks only lrclib.net, over HTTPS, as Escuchar, no redirects', async () => {
+test('lyrics: asks only lrclib.net, over HTTPS, as CLMusic, no redirects', async () => {
   const seen = [];
   const found = await lyrics.findLyrics({ artist: 'Queen', title: 'Bohemian Rhapsody (Official Video)', duration: 354.6 },
     { fetchImpl: fakeFetch({ '/api/get': { body: { plainLyrics: 'Is this the real life?', syncedLyrics: '[00:00.15] Is this the real life?' } } }, seen) });
   assert.deepEqual(found, { plain: 'Is this the real life?', synced: '[00:00.15] Is this the real life?' });
   assert.equal(seen[0].host, 'lrclib.net');
-  assert.match(seen[0].ua, /^Escuchar\//);
+  assert.match(seen[0].ua, /^CLMusic\//);
   assert.equal(seen[0].redirect, 'error');
   await assert.rejects(lyrics.findLyrics({ artist: 'A', title: 'B' }, { fetchImpl: fakeFetch({ '/api/get': { body: 'x'.repeat(600 * 1024) } }) }), /demasiado grande/);
 });

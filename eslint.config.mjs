@@ -20,7 +20,7 @@ export default [
     },
   },
   {
-    files: ['server/**/*.js', 'electron/**/*.js', 'scripts/**/*.js', 'test/server/**/*.js', 'test/security/**/*.js', 'test/helpers.js'],
+    files: ['server/**/*.js', 'electron/**/*.js', 'scripts/**/*.js', 'electron-builder.lite.js', 'test/server/**/*.js', 'test/security/**/*.js', 'test/helpers.js'],
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
   {

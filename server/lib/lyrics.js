@@ -7,7 +7,7 @@ const MAX_BYTES = 512 * 1024;
 const MAX_LYRICS = 20000;
 const { version } = require('../../package.json');
 
-const USER_AGENT = `Escuchar/${version} (https://github.com/Cid736/escuchar)`;
+const USER_AGENT = `CLMusic/${version} (https://github.com/Cid736/clmusic)`;
 
 // "(Official Video)", "[Lyrics]", "ft. X"… don't help finding the song.
 const NOISE = /\s*[([][^)\]]*(official|video|audio|lyric|letra|visualizer|remaster|hd|4k|mv)[^)\]]*[)\]]/gi;

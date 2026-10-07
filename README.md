@@ -1,4 +1,4 @@
-# Escuchar
+# CLMusic
 
 Tu música en el escritorio: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Hecho para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
 
