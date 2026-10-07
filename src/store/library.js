@@ -94,6 +94,13 @@ export const useLibrary = create((set, get) => ({
     get()._putList(l);
     return l;
   },
+  /** A list that fills itself from `q` (looked up now, then every `every` hours). */
+  async createAutoList(q, every = 24, folder = null) {
+    const l = await api.post('/api/lists/auto', { q, every, folder });
+    get()._putList(l);
+    toast(`«${l.name}»: ${l.tracks.length} canciones, sin descargar nada`);
+    return l;
+  },
   async addToList(id, tracks) {
     try {
       const l = await api.patch(urls.list(id), { add: tracks });
@@ -112,7 +119,13 @@ export const useLibrary = create((set, get) => ({
     } catch (err) { toast(err.message); }
   },
   async refreshList(id) {
-    try { get()._putList(await api.post(`${urls.list(id)}/refresh`)); toast('Lista actualizada'); } catch (err) { toast(err.message); }
+    try {
+      const l = await api.post(`${urls.list(id)}/refresh`);
+      get()._putList(l);
+      // A list that fills itself says how many it found.
+      if (Number.isInteger(l.added)) toast(l.added ? `${l.added === 1 ? '1 canción nueva' : `${l.added} canciones nuevas`} en «${l.name}»` : 'No hay canciones nuevas por ahora');
+      else toast('Lista actualizada');
+    } catch (err) { toast(err.message); }
   },
   async deleteList(id) {
     const name = (get().lists.find((l) => l.id === id) || {}).name || 'la lista';

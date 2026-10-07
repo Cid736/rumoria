@@ -10,7 +10,7 @@ const netfetch = require('../../server/lib/netfetch');
 const stream = require('../../server/lib/stream');
 
 const ROUTES = [
-  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
+  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/auto'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['POST', '/api/lists/aaaaaaaaaaaaaaaa/remove'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/restore'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/refresh'], ['DELETE', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['GET', `/api/stream/info?id=${VIDEO}`], ['GET', `/api/stream/audio?id=${VIDEO}`], ['GET', `/api/stream/radio?id=${VIDEO}`], ['GET', `/api/stream/lyrics?id=${VIDEO}`],
   ['GET', '/api/search?q=x'], ['GET', '/api/find?q=x'], ['POST', '/api/history'], ['GET', '/api/history/smart'], ['GET', '/api/history/summary'],
@@ -36,9 +36,9 @@ test('auth: a wrong secret (same length, or not) is refused; the right one by co
     const wrong = app.token.replace(/^./, (c) => (c === 'a' ? 'b' : 'a'));
     assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-Rumoria-Token': wrong } })).status, 401);
     assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-Rumoria-Token': 'short' } })).status, 401);
-    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `clm_t=${wrong}` } })).status, 401);
-    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `x=1; clm_t=${app.token}` } })).status, 200);
-    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `clm_t=${app.token}x` } })).status, 401, 'a longer value is not a prefix match');
+    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `rum_t=${wrong}` } })).status, 401);
+    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `x=1; rum_t=${app.token}` } })).status, 200);
+    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `rum_t=${app.token}x` } })).status, 401, 'a longer value is not a prefix match');
   } finally { await app.close(); }
 });
 
@@ -74,7 +74,7 @@ test('dns rebinding: only Host 127.0.0.1 / localhost with this port is answered'
 test('csrf: changes need the X-Rumoria header, even with the cookie', async () => {
   const app = await startApp();
   try {
-    const cookie = { Cookie: `clm_t=${app.token}` };
+    const cookie = { Cookie: `rum_t=${app.token}` };
     // What a hostile page could send: a "simple" cross-site POST (the browser would add the cookie... if SameSite allowed it).
     const r = await app.call('POST', '/api/likes', { auth: false, headers: { ...cookie, 'X-Rumoria': null, 'Content-Type': 'text/plain' }, body: '{"song":{"key":"yt:dQw4w9WgXcQ","title":"x"}}' });
     assert.equal(r.status, 403);

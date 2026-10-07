@@ -1,5 +1,6 @@
 // Left: where to go, and your library (Favoritas, your music, your lists by folder).
 import { useMemo, useState } from 'react';
+import { autoMenuItems, newAutoList } from '../lib/autoLists.js';
 import { fold } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
@@ -7,7 +8,20 @@ import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
 import { Folder, Home, Library, Link, Plus, Search, Sparkle } from './Icons.jsx';
 
-const SOURCE = { spotify: 'Spotify', apple: 'Apple Music', youtube: 'YouTube', own: 'Tu lista' };
+const SOURCE = { spotify: 'Spotify', apple: 'Apple Music', youtube: 'YouTube', own: 'Tu lista', auto: 'Se llena sola' };
+
+/** "+": an empty list of yours, or one that fills itself. */
+function newListMenu(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  const ui = useUi.getState();
+  ui.openMenu(r.left, r.bottom, [
+    { label: 'Lista que se llena sola…', onClick: () => newAutoList() },
+    {
+      label: 'Lista vacía…',
+      onClick: () => ui.openDialog({ kind: 'prompt', title: 'Lista nueva', label: 'Nombre', value: '', confirm: 'Crear', onConfirm: (name) => useLibrary.getState().createList(name, []).then((l) => ui.go({ name: 'list', id: l.id }), (err) => ui.toast(err.message)) }),
+    },
+  ]);
+}
 const FILTERS = [['all', 'Todo'], ['own', 'Tuyas'], ['link', 'De un enlace']];
 
 function Item({ active, onClick, onContextMenu, cover, title, sub, playing }) {
@@ -51,6 +65,7 @@ export default function Sidebar() {
       { label: 'Cambiar nombre…', onClick: () => ui.openDialog({ kind: 'prompt', title: 'Cambiar nombre', label: 'Nombre', value: l.name, confirm: 'Guardar', onConfirm: (name) => lib.patchList(l.id, { name }) }) },
       { label: 'Mover a una carpeta…', onClick: () => ui.openDialog({ kind: 'prompt', title: 'Carpeta', label: 'Nombre de la carpeta (vacío: ninguna)', value: l.folder || '', confirm: 'Guardar', allowEmpty: true, onConfirm: (folder) => lib.patchList(l.id, { folder }) }) },
       ...(l.url ? [{ label: 'Leer de nuevo', onClick: () => lib.refreshList(l.id) }, { label: l.sync ? 'No mantener al día' : 'Mantener al día', onClick: () => lib.patchList(l.id, { sync: !l.sync }) }] : []),
+      ...autoMenuItems(l),
       { sep: true },
       { label: 'Eliminar', danger: true, onClick: () => lib.deleteList(l.id) },
     ]);
@@ -68,7 +83,7 @@ export default function Sidebar() {
           <span className="side-head-title"><Library /> Tu biblioteca</span>
           <span className="side-head-actions">
             <button type="button" className="icon-btn" title="Importar una lista (Spotify, Apple Music, YouTube)" aria-label="Importar una lista" onClick={() => useUi.getState().openDialog({ kind: 'import' })}><Link size={18} /></button>
-            <button type="button" className="icon-btn" title="Crear una lista" aria-label="Crear una lista" onClick={() => useUi.getState().openDialog({ kind: 'prompt', title: 'Lista nueva', label: 'Nombre', value: '', confirm: 'Crear', onConfirm: (name) => useLibrary.getState().createList(name, []).then((l) => go({ name: 'list', id: l.id }), (err) => useUi.getState().toast(err.message)) })}><Plus size={18} /></button>
+            <button type="button" className="icon-btn" title="Crear una lista" aria-label="Crear una lista" aria-haspopup="menu" onClick={newListMenu}><Plus size={18} /></button>
           </span>
         </div>
         <div className="chips" role="radiogroup" aria-label="Filtrar">
@@ -80,7 +95,13 @@ export default function Sidebar() {
           {local.folder && <Item active={view.name === 'local'} onClick={() => go({ name: 'local' })} cover={<Cover name="Tu música" size={44} />} title="Tu música" sub={`Carpeta · ${local.songs.length} canciones`} />}
           {groups.map(([folder, ls]) => (
             <div key={folder || '-'} className="side-group">
-              {folder && <div className="side-folder"><Folder size={16} /> {folder}</div>}
+              {folder && (
+                <div className="side-folder">
+                  <Folder size={16} /> <span className="side-folder-name">{folder}</span>
+                  <button type="button" className="icon-btn side-folder-add" title={`Añadir una lista que se llena sola con «${folder}»`} aria-label={`Añadir a «${folder}» una lista que se llena sola`}
+                    onClick={() => newAutoList({ topic: folder, folder })}><Sparkle size={14} /></button>
+                </div>
+              )}
               {ls.map((l) => (
                 <Item key={l.id} active={view.name === 'list' && view.id === l.id} playing={playingList === l.id}
                   onClick={() => go({ name: 'list', id: l.id })} onContextMenu={listMenu(l)}
@@ -92,8 +113,9 @@ export default function Sidebar() {
           {!lists.length && (
             <div className="side-empty">
               <p><strong>Trae tus listas</strong></p>
-              <p>Pega el enlace de una playlist de Spotify, Apple Music o YouTube.</p>
+              <p>Pega el enlace de una playlist de Spotify, Apple Music o YouTube, o crea una que se llene sola con lo que te guste.</p>
               <button type="button" className="btn btn-light" onClick={() => useUi.getState().openDialog({ kind: 'import' })}>Importar una lista</button>
+              <button type="button" className="btn btn-ghost" onClick={() => newAutoList()}>Lista que se llena sola</button>
             </div>
           )}
         </div>

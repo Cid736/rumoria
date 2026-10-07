@@ -1,5 +1,6 @@
 // What floats over the page: the right-click menu, dialogs and toasts.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { EVERY } from '../lib/autoLists.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
 
@@ -65,15 +66,21 @@ function DialogForm({ d }) {
   const [value, setValue] = useState(d.value || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [every, setEvery] = useState(24);
   const isImport = d.kind === 'import';
+  const isAuto = d.kind === 'auto';
   const submit = async (e) => {
     e.preventDefault();
     const v = value.trim();
     if (!v && !d.allowEmpty) return;
-    if (isImport) {
+    if (isImport || isAuto) {
       setBusy(true);
       setError(null);
-      try { const r = await useLibrary.getState().importList(v); close(); if (r.id) useUi.getState().go({ name: 'list', id: r.id }); } catch (err) { setError(err.message); setBusy(false); }
+      try {
+        const r = isImport ? await useLibrary.getState().importList(v) : await useLibrary.getState().createAutoList(v, every, d.folder || null);
+        close();
+        if (r.id) useUi.getState().go({ name: 'list', id: r.id });
+      } catch (err) { setError(err.message); setBusy(false); }
       return;
     }
     close();
@@ -82,17 +89,26 @@ function DialogForm({ d }) {
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) close(); }}>
       <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" onSubmit={submit} onKeyDown={(e) => { if (e.key === 'Escape' && !busy) close(); }}>
-        <h2 id="dlg-title">{isImport ? 'Importar una lista' : d.title}</h2>
+        <h2 id="dlg-title">{isImport ? 'Importar una lista' : isAuto ? 'Una lista que se llena sola' : d.title}</h2>
         {isImport && <p className="muted">Pega el enlace de una playlist de Spotify, Apple Music o YouTube, o de un perfil de Spotify (todas sus listas públicas). Solo se guardan títulos y artistas: cada canción se busca en YouTube al sonar.</p>}
+        {isAuto && <p className="muted">Escribe un estilo, un artista o un momento. Rumoria busca canciones que encajen, la llena ahora y le añade las nuevas que vaya encontrando. No se descarga nada: todo suena al momento. Si quitas una canción, no vuelve.{d.folder ? ` Irá en la carpeta «${d.folder}».` : ''}</p>}
         <label className="field">
-          <span>{isImport ? 'Enlace' : d.label}</span>
-          <input autoFocus type={isImport ? 'url' : 'text'} value={value} maxLength={isImport ? 2048 : 150} onChange={(e) => setValue(e.target.value)}
-            placeholder={isImport ? 'https://open.spotify.com/playlist/…' : ''} disabled={busy} />
+          <span>{isImport ? 'Enlace' : isAuto ? 'De qué' : d.label}</span>
+          <input autoFocus type={isImport ? 'url' : 'text'} value={value} maxLength={isImport ? 2048 : isAuto ? 100 : 150} onChange={(e) => setValue(e.target.value)}
+            placeholder={isImport ? 'https://open.spotify.com/playlist/…' : isAuto ? 'Rock de los 80, Bad Bunny, lo-fi para estudiar…' : ''} disabled={busy} />
         </label>
+        {isAuto && (
+          <label className="field">
+            <span>Buscar canciones nuevas</span>
+            <select value={every} onChange={(e) => setEvery(Number(e.target.value))} disabled={busy}>
+              {EVERY.map(([h, label]) => <option key={h} value={h}>{label}</option>)}
+            </select>
+          </label>
+        )}
         {error && <p className="error" role="alert">{error}</p>}
         <div className="dialog-actions">
           <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>Cancelar</button>
-          <button type="submit" className="btn btn-accent" disabled={busy || (!value.trim() && !d.allowEmpty)}>{busy ? 'Leyendo…' : isImport ? 'Importar' : d.confirm}</button>
+          <button type="submit" className="btn btn-accent" disabled={busy || (!value.trim() && !d.allowEmpty)}>{busy ? (isAuto ? 'Buscando canciones…' : 'Leyendo…') : isImport ? 'Importar' : isAuto ? 'Crear' : d.confirm}</button>
         </div>
       </form>
     </div>

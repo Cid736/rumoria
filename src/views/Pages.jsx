@@ -1,6 +1,7 @@
 // The pages with songs: one of your lists, Favoritas, Tu música, a mix.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
+import { autoMenuItems, autoSub } from '../lib/autoLists.js';
 import { fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
@@ -9,7 +10,7 @@ import { Folder, More, Refresh } from '../components/Icons.jsx';
 import Collection, { BigCover } from './Collection.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
 
-const SOURCE = { spotify: 'Lista de Spotify', apple: 'Lista de Apple Music', youtube: 'Lista de YouTube', own: 'Lista' };
+const SOURCE = { spotify: 'Lista de Spotify', apple: 'Lista de Apple Music', youtube: 'Lista de YouTube', own: 'Lista', auto: 'Lista que se llena sola' };
 
 export function ListPage({ id }) {
   const list = useLibrary((s) => s.open[id]);
@@ -28,6 +29,7 @@ export function ListPage({ id }) {
       { label: 'Cambiar nombre…', onClick: () => ui.openDialog({ kind: 'prompt', title: 'Cambiar nombre', label: 'Nombre', value: list.name, confirm: 'Guardar', onConfirm: (name) => lib.patchList(id, { name }) }) },
       { label: 'Mover a una carpeta…', onClick: () => ui.openDialog({ kind: 'prompt', title: 'Carpeta', label: 'Nombre de la carpeta (vacío: ninguna)', value: list.folder || '', confirm: 'Guardar', allowEmpty: true, onConfirm: (folder) => lib.patchList(id, { folder }) }) },
       ...(list.url ? [{ label: list.sync ? 'No mantener al día' : 'Mantener al día (se lee de nuevo cada pocas horas)', onClick: () => lib.patchList(id, { sync: !list.sync }) }] : []),
+      ...autoMenuItems(list),
       { sep: true },
       { label: 'Eliminar lista', danger: true, onClick: () => { lib.deleteList(id); ui.go({ name: 'home' }); } },
     ]);
@@ -35,13 +37,14 @@ export function ListPage({ id }) {
   const thumbs = [...new Set(list.tracks.map((t) => t.thumbnail).filter(Boolean))].slice(0, 4);
   return (
     <Collection
-      kind={SOURCE[list.source] || 'Lista'} name={list.name} sub={list.folder ? `Carpeta ${list.folder}` : null}
+      kind={SOURCE[list.source] || 'Lista'} name={list.name} sub={[autoSub(list.auto), list.folder ? `Carpeta ${list.folder}` : null].filter(Boolean).join(' · ') || null}
       cover={<BigCover thumbs={thumbs} src={thumbs[0]} name={list.name} />}
       tracks={tracks} listId={list.id} recent={{ kind: 'list', id: list.id, name: list.name, sub: SOURCE[list.source] || 'Lista' }}
       reorder={(from, to) => lib.patchList(id, { move: { from, to } })}
       actions={(
         <>
           {list.url && <button type="button" className="icon-btn big" onClick={() => lib.refreshList(id)} aria-label="Leer de nuevo" title="Leer de nuevo desde el enlace"><Refresh size={22} /></button>}
+          {list.auto && <button type="button" className="icon-btn big" onClick={() => lib.refreshList(id)} aria-label="Buscar canciones nuevas ahora" title="Buscar canciones nuevas ahora"><Refresh size={22} /></button>}
           <button type="button" className="icon-btn big" onClick={more} aria-label="Más opciones de la lista" title="Más opciones"><More size={24} /></button>
         </>
       )}

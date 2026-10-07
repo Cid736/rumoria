@@ -14,18 +14,18 @@ const rateLimit = require('express-rate-limit');
 
 const ytdlp = require('./lib/ytdlp');
 const streamLib = require('./lib/stream');
-const { StreamLists, pickVideo, ID_RE: LIST_ID_RE } = require('./lib/streamlists');
+const { StreamLists, pickVideo, ID_RE: LIST_ID_RE, AUTO_EVERY } = require('./lib/streamlists');
 const { ListenLog } = require('./lib/listenlog');
 const { Likes } = require('./lib/likes');
 const { News } = require('./lib/news');
 const { LocalMusic } = require('./lib/localmusic');
-const { Browse } = require('./lib/browse');
+const { Browse, findSongs } = require('./lib/browse');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
 
 const TOKEN_RE = /^[a-f0-9]{64}$/;
-const COOKIE = 'clm_t';
+const COOKIE = 'rum_t';
 const BUSY = { error: 'Hay mucho en marcha; inténtalo en unos segundos.' };
 
 /** A few things at once at most (yt-dlp runs are heavy). */
@@ -229,6 +229,28 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       return res.status(400).json({ error: shortError(err, 'No se pudo leer esa lista.') });
     }
   });
+  // A list that fills itself from a topic ("Rock de los 80", "Bad Bunny"):
+  // songs found on YouTube now and every few hours. Titles and ids only —
+  // nothing is downloaded. The topic is plain text, searched after `--`.
+  const topicOf = (v) => String(v || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
+  const songsFor = async (q) => (await findSongs(q, (target, limit) => yt.flatList(target, ytEnv(), limit))).map((s) => {
+    const { artist, track } = streamLib.splitTitle(s.title, s.channel);
+    return { title: track || s.title, artist, yt: s.id, duration: s.duration, thumbnail: s.thumbnail };
+  });
+  app.post('/api/lists/auto', ytLimiter, async (req, res) => {
+    const b = req.body || {};
+    const q = topicOf(b.q || b.name);
+    if (!q) return res.status(400).json({ error: 'Escribe de qué quieres la lista.' });
+    const every = AUTO_EVERY.includes(b.every) ? b.every : 24;
+    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    try {
+      const tracks = await songsFor(q);
+      if (!tracks.length) return res.status(404).json({ error: `No se encontraron canciones de «${q}».` });
+      return res.json(lists.create({ name: topicOf(b.name) || q, tracks, auto: { q, every }, folder: typeof b.folder === 'string' ? b.folder : null }));
+    } catch (err) {
+      return res.status(400).json({ error: shortError(err, 'No se pudo crear la lista.') });
+    } finally { ytSlots.release(); }
+  });
   app.patch('/api/lists/:id', writeLimiter, (req, res) => {
     if (!listFor(req, res)) return;
     const b = req.body || {};
@@ -237,6 +259,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       name: typeof b.name === 'string' ? b.name : undefined,
       folder: typeof b.folder === 'string' ? b.folder : undefined,
       sync: typeof b.sync === 'boolean' ? b.sync : undefined,
+      auto: b.auto === null ? null : b.auto && typeof b.auto === 'object' ? { every: b.auto.every } : undefined,
       add: Array.isArray(b.add) ? b.add : undefined,
       insert: Array.isArray(b.insert) ? b.insert : undefined,
       move: pair(b.move),
@@ -257,6 +280,11 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   app.post('/api/lists/:id/refresh', ytLimiter, async (req, res) => {
     const l = listFor(req, res);
     if (!l) return;
+    // Filling itself: look for new songs now.
+    if (l.auto) {
+      if (!ytSlots.take()) return res.status(429).json(BUSY);
+      try { const r = lists.autoFill(l.id, await songsFor(l.auto.q)); return res.json({ ...r.list, added: r.added }); } catch (err) { return res.status(400).json({ error: shortError(err, 'No se pudo buscar ahora.') }); } finally { ytSlots.release(); }
+    }
     if (!l.url) return res.status(400).json({ error: 'Esta lista no viene de un enlace.' });
     try { res.json(lists.update(l.id, { tracks: (await readListLink(l.url)).tracks })); } catch (err) { res.status(400).json({ error: shortError(err, 'No se pudo leer esa lista.') }); }
   });
@@ -337,6 +365,17 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       try { const fresh = await readListLink(l.url); if (fresh.tracks.length) lists.update(id, { tracks: fresh.tracks }); } catch { /* next round */ }
     }
   }
+  // Lists that fill themselves, whose time has come: one at a time, and only
+  // with a free slot (what you're listening to always comes first).
+  async function fillAutoLists() {
+    for (const id of lists.dueForAuto()) {
+      const l = lists.get(id);
+      if (!l || !l.auto) continue;
+      if (!ytSlots.take()) return;
+      try { lists.autoFill(id, await songsFor(l.auto.q)); } catch { /* next round */ } finally { ytSlots.release(); }
+      await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
+    }
+  }
   async function lookForNews() {
     if (history.paused) return;
     const artists = (history.smart().artists || []).map((a) => a.name).filter(Boolean).slice(0, 8);
@@ -362,6 +401,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   if (background) {
     timers.push(setTimeout(() => { warmBrowse().catch(() => {}); }, 90_000));
     timers.push(setInterval(() => { warmBrowse().catch(() => {}); }, 6 * 3600_000));
+    timers.push(setTimeout(() => { fillAutoLists().catch(() => {}); }, 2 * 60_000));
+    timers.push(setInterval(() => { fillAutoLists().catch(() => {}); }, 3600_000));
     timers.push(setTimeout(() => { syncLists().catch(() => {}); }, 3 * 60_000));
     timers.push(setInterval(() => { syncLists().catch(() => {}); }, 3 * 3600_000));
     timers.push(setTimeout(() => { lookForNews().catch(() => {}); }, 5 * 60_000));
@@ -374,6 +415,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
     _state: { lists, history, likes, news, local, browse },
+    _run: { fillAutoLists },
   };
 }
 

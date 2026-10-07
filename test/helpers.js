@@ -51,7 +51,7 @@ async function startApp({ musicDir = null, staticDir = null, yt = fakeYouTube() 
     return { status: res.status, data, headers: res.headers };
   }
   return {
-    base, token, port, call, dataDir, musicDir, yt: yt, state: server._state,
+    base, token, port, call, dataDir, musicDir, yt: yt, state: server._state, run: server._run,
     close: () => new Promise((resolve) => { server.stop(); http.close(() => { fs.rmSync(dataDir, { recursive: true, force: true }); resolve(); }); http.closeAllConnections(); }),
   };
 }

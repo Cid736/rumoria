@@ -12,7 +12,12 @@ const MAX_TRACKS = 500;
 const TRASH_MS = 10 * 60 * 1000;
 const ID_RE = /^[a-f0-9]{16}$/;
 const YT_RE = /^[A-Za-z0-9_-]{11}$/;
-const SOURCES = ['spotify', 'apple', 'youtube', 'own'];
+const SOURCES = ['spotify', 'apple', 'youtube', 'own', 'auto'];
+// Lists that fill themselves from their topic: how often (hours) they look
+// for new songs, how long they get, and songs you took out (never back).
+const AUTO_EVERY = [6, 12, 24, 168];
+const AUTO_MAX = 100;
+const AUTO_BLOCKED = 500;
 const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 function cleanTrack(t) {
@@ -38,6 +43,15 @@ function cleanKeep(k) {
   return json.length <= 3000 ? { client: String(k.client), opts: JSON.parse(json) } : null;
 }
 
+/** "Fills itself": the topic searched, how often, when it last looked, songs you removed. */
+function cleanAuto(a) {
+  if (!a || typeof a !== 'object') return null;
+  const q = clean(a.q, 100);
+  if (!q) return null;
+  const blocked = [...new Set((Array.isArray(a.blocked) ? a.blocked : []).map(String).filter((id) => YT_RE.test(id)))].slice(-AUTO_BLOCKED);
+  return { q, every: AUTO_EVERY.includes(a.every) ? a.every : 24, at: Number.isFinite(a.at) ? a.at : 0, blocked };
+}
+
 function cleanList(l) {
   if (!l || typeof l !== 'object' || !ID_RE.test(String(l.id))) return null;
   const tracks = (Array.isArray(l.tracks) ? l.tracks : []).slice(0, MAX_TRACKS).map(cleanTrack).filter(Boolean);
@@ -51,6 +65,8 @@ function cleanList(l) {
     sync: Boolean(url) && l.sync === true,
     syncedAt: Number.isFinite(l.syncedAt) ? l.syncedAt : null,
     keep: cleanKeep(l.keep),
+    // v1.1: fills itself from its topic (titles and YouTube ids only; nothing is downloaded).
+    auto: cleanAuto(l.auto),
   };
 }
 
@@ -77,8 +93,42 @@ class StreamLists {
       return {
         id: l.id, name: l.name, source: l.source, url: l.url, count: l.tracks.length, updatedAt: l.updatedAt,
         thumbnail: thumbs[0] || null, thumbs, folder: l.folder, sync: l.sync, syncedAt: l.syncedAt, keep: Boolean(l.keep),
+        auto: l.auto ? { q: l.auto.q, every: l.auto.every, at: l.auto.at } : null,
       };
     });
+  }
+
+  /** Lists that fill themselves and haven't looked for new songs in their time. */
+  dueForAuto(now = Date.now()) {
+    return this.lists.filter((l) => l.auto && l.auto.at < now - l.auto.every * 3600 * 1000).map((l) => l.id);
+  }
+
+  /**
+   * New songs for a list that fills itself: the ones it doesn't have and you
+   * didn't take out go first; the oldest fall off past AUTO_MAX.
+   */
+  autoFill(id, songs, now = Date.now()) {
+    const l = this.get(id);
+    if (!l || !l.auto) return null;
+    const have = new Set(l.tracks.map((t) => t.yt).filter(Boolean));
+    const blocked = new Set(l.auto.blocked);
+    const fresh = [];
+    for (const t of (songs || []).map(cleanTrack).filter(Boolean)) {
+      if (!t.yt || have.has(t.yt) || blocked.has(t.yt)) continue;
+      have.add(t.yt);
+      fresh.push(t);
+    }
+    l.tracks = [...fresh, ...l.tracks].slice(0, AUTO_MAX);
+    l.auto.at = now;
+    if (fresh.length) l.updatedAt = now;
+    this.save();
+    return { list: l, added: fresh.length };
+  }
+
+  /** Songs taken out of a list that fills itself: never put back by it. */
+  _block(l, tracks) {
+    if (!l.auto) return;
+    l.auto.blocked = [...new Set([...l.auto.blocked, ...tracks.map((t) => t && t.yt).filter(Boolean)])].slice(-AUTO_BLOCKED);
   }
 
   /** Lists from a link with "keep it up to date" on, not read again for `maxAgeMs`. */
@@ -88,10 +138,15 @@ class StreamLists {
 
   get(id) { return this.lists.find((l) => l.id === id) || null; }
 
-  create({ name, source = 'own', url = null, tracks = [] }) {
+  create({ name, source = 'own', url = null, tracks = [], auto = null, folder = null }) {
     if (this.lists.length >= MAX_LISTS) throw new Error('Has llegado al máximo de listas.');
-    // From a link: kept up to date by default.
-    const list = cleanList({ id: crypto.randomBytes(8).toString('hex'), name, source, url, tracks, createdAt: Date.now(), updatedAt: Date.now(), sync: Boolean(url), syncedAt: url ? Date.now() : null });
+    // From a link: kept up to date by default. From a topic: fills itself.
+    const now = Date.now();
+    const list = cleanList({
+      id: crypto.randomBytes(8).toString('hex'), name, source: auto ? 'auto' : source, url, tracks, createdAt: now, updatedAt: now,
+      sync: Boolean(url), syncedAt: url ? now : null, folder, auto: auto ? { ...auto, at: now, blocked: [] } : null,
+    });
+    if (list.auto) list.tracks = list.tracks.slice(0, AUTO_MAX);
     if (!list.tracks.length) throw new Error('La lista no tiene canciones.');
     this.lists.unshift(list);
     this.save();
@@ -104,6 +159,9 @@ class StreamLists {
     if (patch.name !== undefined) l.name = clean(patch.name, 150) || l.name;
     if (typeof patch.folder === 'string') l.folder = clean(patch.folder, 60) || null;
     if (typeof patch.sync === 'boolean') l.sync = Boolean(l.url) && patch.sync;
+    // Filling itself: how often, or stop (it stays as a list of yours).
+    if (patch.auto === null && l.auto) { l.auto = null; if (l.source === 'auto') l.source = 'own'; }
+    if (patch.auto && typeof patch.auto === 'object' && l.auto && AUTO_EVERY.includes(patch.auto.every)) l.auto.every = patch.auto.every;
     if (Array.isArray(patch.tracks)) {
       const tracks = patch.tracks.slice(0, MAX_TRACKS).map(cleanTrack).filter(Boolean);
       // Re-read from Spotify: keep the YouTube videos already found.
@@ -173,6 +231,7 @@ class StreamLists {
     const out = [...new Set(ns.filter((i) => Number.isInteger(i) && i >= 0 && i < l.tracks.length))].sort((a, b) => a - b);
     if (!out.length) return null;
     const removed = out.map((at) => ({ at, track: l.tracks[at] }));
+    this._block(l, removed.map((r) => r.track));
     const gone = new Set(out);
     l.tracks = l.tracks.filter((_, i) => !gone.has(i));
     l.updatedAt = Date.now();
@@ -191,7 +250,7 @@ class StreamLists {
   removeTrack(id, n) {
     const l = this.get(id);
     if (!l || !Number.isInteger(n) || !l.tracks[n]) return null;
-    l.tracks.splice(n, 1);
+    this._block(l, l.tracks.splice(n, 1));
     l.updatedAt = Date.now();
     this.save();
     return l;
@@ -236,4 +295,4 @@ function pickVideo(results, duration) {
   return rs[0];
 }
 
-module.exports = { StreamLists, cleanTrack, cleanList, pickVideo, MAX_LISTS, MAX_TRACKS, ID_RE };
+module.exports = { StreamLists, cleanTrack, cleanList, pickVideo, MAX_LISTS, MAX_TRACKS, ID_RE, AUTO_EVERY, AUTO_MAX };

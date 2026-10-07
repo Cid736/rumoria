@@ -193,7 +193,7 @@ app.whenReady().then(async () => {
   }
   const port = await startServer();
   appOrigin = `http://127.0.0.1:${port}`;
-  await session.defaultSession.cookies.set({ url: appOrigin, name: 'clm_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
+  await session.defaultSession.cookies.set({ url: appOrigin, name: 'rum_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
 }).catch((err) => {
   dialog.showErrorBox('Rumoria', err.message);

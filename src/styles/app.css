@@ -87,6 +87,12 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .side-title.playing { color: var(--accent); }
 .side-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-folder { display: flex; align-items: center; gap: 8px; padding: 12px 10px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--subtle); }
+.side-folder-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* "Fill a list from this folder": shows on hover or focus, always reachable by keyboard. */
+.side-folder-add { width: 26px; height: 26px; opacity: 0; transition: opacity 0.15s var(--ease); }
+.side-folder:hover .side-folder-add, .side-folder-add:focus-visible { opacity: 1; }
+@media (hover: none) { .side-folder-add { opacity: 1; } }
+.side-empty .btn + .btn { margin-top: 8px; }
 .side-empty { margin: 8px; padding: 16px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .side-empty p { margin: 0 0 8px; }
 
@@ -282,8 +288,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .dialog h2 { font-size: 22px; }
 .dialog p { margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
-.field input { padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); font-size: 15px; font-weight: 400; outline: none; }
-.field input:focus { border-color: var(--accent); }
+.field input, .field select { padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 400; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
 .toasts { position: fixed; left: 50%; bottom: calc(var(--player-h) + 16px); transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-radius: var(--radius-sm); background: var(--text); color: var(--surface); font-weight: 600; box-shadow: var(--shadow); animation: rise 0.2s var(--ease); }
