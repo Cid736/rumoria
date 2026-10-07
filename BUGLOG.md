@@ -174,3 +174,9 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 - **Prueba en la app real:** el mini muestra la canción y avanza; pausa y «siguiente» funcionan desde él; cerrar la ventana grande no corta la música; cerrar el mini cierra la app. El color cambia al momento y se recuerda.
 - **Dos fallos de mis propias pruebas** (no de la app): `window.close()` desde la página destruye la ventana sin pasar por su evento `close`, así que no imita la X; y `sed` se comía las barras invertidas de una expresión regular en un test.
 - **Pruebas:** 75 de servidor y seguridad y 47 de interfaz, todas superadas. Lint: 0 errores, 12 avisos (el nuevo es la expresión de portadas del mini, acotada y comprobada con `recheck`). `npm audit`: 0.
+
+### Prueba real del actualizador (tras publicar)
+- **Montaje:** compilé una portable que decía ser la 1.1.9 y la abrí con un perfil aparte.
+- **Resultado:** a los pocos segundos encontró la 1.2.0 en GitHub, descargó `Rumoria.exe`, comprobó su SHA-256 y su tamaño, y mostró «Actualizar a 1.2.0». Al pulsarlo se cerró, el `.exe` quedó cambiado (su huella es la de la 1.2.0 publicada) y se abrió de nuevo, ya en la 1.2.0, con el mismo perfil.
+- **Pendiente menor:** queda una carpeta temporal vacía (`%TEMP%\rumoria-update-…`) por actualización. Es inofensivo; se limpiará en la próxima versión.
+- **CodeQL:** sin avisos en el código de la app. El único nuevo era un test (comprueba que la página del mini no tiene `<script>` en línea) y se descartó con ese motivo.
