@@ -104,3 +104,5 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
   - Están activos el escaneo de secretos con bloqueo al subir y las alertas de Dependabot.
 - **CI:** gitleaks se ejecuta sobre todo el historial con una versión fija verificada por SHA-256. La acción oficial fallaba en el primer push.
 - **Pruebas:** `test/security/hardening.test.js`. En total, 59 del servidor y de seguridad y 37 de la interfaz, todas superadas.
+- **Migración:** también se comprueba que el archivo abierto es el mismo que se miró (mismo identificador de archivo, `ino` en `bigint`; en Windows `lstat` no da número de dispositivo), así que no cuela uno cambiado entre medias.
+- v1.0.1 con estos arreglos.

@@ -20,10 +20,13 @@ function migrateFromTubeGrab(fromDir, toDir) {
     const dest = path.join(toDir, name);
     let fd = null;
     try {
-      if (fs.lstatSync(src).isSymbolicLink()) continue;
+      const seen = fs.lstatSync(src, { bigint: true });
+      if (seen.isSymbolicLink()) continue;
       fd = fs.openSync(src, 'r');
-      const st = fs.fstatSync(fd);
-      if (!st.isFile() || st.size > MAX_BYTES) continue;
+      const st = fs.fstatSync(fd, { bigint: true });
+      // What was opened must be the very file looked at, not one swapped in between
+      // (same file id; Windows reports no device number through lstat).
+      if (!st.isFile() || st.ino !== seen.ino || st.size > BigInt(MAX_BYTES)) continue;
       const text = fs.readFileSync(fd, 'utf8');
       JSON.parse(text);
       fs.writeFileSync(dest, text, { flag: 'wx', mode: 0o600 }); // never over one already there
