@@ -350,7 +350,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // covers show on the home page), only those not read lately; a list being
   // listened to always comes first (this one waits for a free slot or skips).
   async function warmBrowse() {
-    for (const b of browse.list().filter((x) => x.featured && !x.count)) {
+    for (const b of browse.list().filter((x) => x.featured && !browse.isFresh(x.id))) {
       if (!ytSlots.take()) return;
       try { await browse.get(b.id, (target, limit) => yt.flatList(target, ytEnv(), limit)); } catch { /* next time */ } finally { ytSlots.release(); }
       await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });

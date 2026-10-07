@@ -5,7 +5,7 @@ La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **CLMusic**
 | | TubeGrab | CLMusic |
 |---|---|---|
 | Para qué | Descargar y convertir; tu biblioteca de archivos | Escuchar sin descargar: listas, favoritas, «Hecho para ti» |
-| Repositorio | `Cid736/tubegrab` (rama `split/listen-app`) | `Cid736/clmusic` (nuevo, `main`) |
+| Repositorio | `Cid736/tubegrab` (`main`, v4.0.0) | `Cid736/clmusic` (público, `main`) |
 | Pila | Electron 44 + Express 5 + JavaScript sin framework | Electron 44 + Express 5 (servidor) · React 19 + Vite 8 + Zustand 5 (interfaz) |
 | Tests | `node --test` (242) | `node --test` (49: servidor y seguridad) + Vitest (31: interfaz) |
 | Datos | `%APPDATA%\tubegrab` | `%APPDATA%\clmusic` (copiados de TubeGrab la primera vez) |
@@ -161,8 +161,8 @@ Variables útiles:
 
 ```powershell
 cd C:\Users\ericc\OneDrive\Desktop\C\CLMusic
-gh repo create Cid736/clmusic --private --source . --remote origin --push
-# o público: --public
+gh repo create Cid736/clmusic --public --source . --remote origin --push   # así se creó
+# (o privado: --private)
 gh repo edit --enable-issues --delete-branch-on-merge
 ```
 
@@ -186,7 +186,7 @@ Después, en GitHub: *Settings → Code security* activa **Dependabot alerts**, 
 
 | Riesgo | Qué se comprueba |
 |---|---|
-| **Acceso sin autorización** (OWASP A01/A07) | Las 29 rutas devuelven 401 sin el secreto; un secreto falso (misma longitud, más corto, con un carácter de más) se rechaza; el servidor no arranca sin un secreto de 64 hex |
+| **Acceso sin autorización** (OWASP A01/A07) | Las 31 rutas (también `/api/browse`) devuelven 401 sin el secreto; un secreto falso (misma longitud, más corto, con un carácter de más) se rechaza; el servidor no arranca sin un secreto de 64 hex |
 | **DNS rebinding** | Solo responde a `Host` 127.0.0.1/localhost con su puerto; otro host, otro puerto o ningún `Host` → rechazado |
 | **CSRF / CORS** | Un POST «simple» de otra web, aunque lleve la cookie, se rechaza (403) sin cambiar nada; nunca hay `Access-Control-Allow-Origin` |
 | **Inyección** (A03) | Ids de vídeo con `--exec`, `;`, `../`, `%00`, parámetros duplicados → 400 y **nada llega a yt-dlp**; la búsqueda va en una sola línea y siempre después de `--`; ids de lista con trucos de ruta → 404; *prototype pollution* por JSON sin efecto; el texto guardado vuelve como JSON con `nosniff` y la interfaz lo pinta como texto (test de XSS en React) |
@@ -216,7 +216,19 @@ Para TubeGrab, el mismo `codeql.yml` y `dependabot.yml` sirven tal cual. Su `ci.
 | `npm audit` (producción) | 0 vulnerabilidades en las dos apps. En desarrollo, CLMusic tiene 8 moderadas en `sprintf-js` (herramientas de compilación; no viajan en la app) |
 | Pruebas en la app real | CLMusic: arranque, migración de tus datos, reproducción desde una lista de Spotify, búsqueda, letra sincronizada y Tu resumen. TubeGrab: Biblioteca, reproductor, cola, Estadísticas, Ctrl+K y mini reproductor |
 
-### 3.5 Pendiente o fuera de alcance
+### 3.5 Revisión de seguridad y fallos tras las recomendaciones (2026-10-07)
+
+Revisado: `server/lib/browse.js`, las rutas `/api/browse*` y el trabajo en segundo plano, `src/views/Home.jsx`, `recommend.js`, `Discover.jsx` y el almacén de «Recientes». En TubeGrab, la ruta `/api/clmusic/latest` y su página. El detalle está en [BUGLOG.md](../BUGLOG.md).
+
+| | Resultado |
+|---|---|
+| Fallos encontrados y arreglados | 6 (3 del servidor, 3 de la interfaz), con sus tests |
+| CLMusic `npm test` | 55 + 37 superados, 0 fallos |
+| CLMusic `npm run lint` | 0 errores; 11 avisos de `eslint-plugin-security` sobre expresiones regulares con entradas ya acotadas en longitud |
+| TubeGrab `npm test` | 242 superados, 0 fallos |
+| `npm audit` (producción) | CLMusic: 0. TubeGrab tenía 1 crítica (`proxy-addr` ≤ 2.0.7, suplantación de IP con una subred de confianza IPv4-mapeada), ya actualizada a 2.0.8. En la práctica no le afectaba: `trust proxy` solo se activa con `TRUST_PROXY` y por número de saltos |
+
+### 3.6 Pendiente o fuera de alcance
 
 - **«Mantener descargada una lista»** y **«guardar solas las que más escucho»** necesitaban la cola de descargas de TubeGrab dentro del mismo proceso. En CLMusic se sustituyen por «Descargar con TubeGrab» canción a canción. Para recuperarlas haría falta una API entre las dos apps (por ejemplo, el mismo `tubegrab://` con varias URL).
 - La migración de datos copia; los archivos originales siguen en `%APPDATA%\tubegrab` hasta que los borres.

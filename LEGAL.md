@@ -20,12 +20,14 @@ CLMusic es software gratuito y de código abierto (licencia MIT), mantenido por 
 | Historial de escucha (qué canción y cuántos segundos) | «Hecho para ti», novedades de tus artistas y «Tu resumen». Se puede **pausar o borrar** en Ajustes |
 | Favoritas | Tu lista de Favoritas |
 | Ajustes (tema, volumen, carpeta de música) | Recordarlos |
+| «Recientes» (qué listas, mezclas o radios pusiste y cuántas veces) y las recomendaciones ya calculadas | «Recientes», «Lo que más vuelves a poner», «Descubre algo nuevo» y las mezclas del día |
+| Copia de las listas de Explorar (datos públicos de YouTube, hasta 6 horas) | Que se abran rápido y tengan portada |
 
 La primera vez, si tienes TubeGrab, CLMusic **copia** (no mueve) tus listas, historial, favoritas y novedades desde `%APPDATA%\tubegrab`.
 
 Conexiones a terceros (cada servicio aplica su propia política de privacidad):
 
-- **YouTube** (Google): buscar, leer playlists y reproducir. Recibe tu dirección IP, como cualquier visita a YouTube.
+- **YouTube** (Google): buscar, leer playlists, reproducir y mostrar portadas (`i.ytimg.com`). Recibe tu dirección IP, como cualquier visita a YouTube. Con la app abierta también lo consulta **en segundo plano**: las listas destacadas de Explorar (cada 6 h), las novedades de tus artistas (cada 12 h) y las listas importadas desde un enlace (cada 3 h). Solo envía búsquedas fijas de la app, los nombres de tus artistas más escuchados (para sus novedades) e ids de canciones; tu historial no sale del equipo.
 - **Spotify** (`open.spotify.com`) y **Apple Music** (`music.apple.com`): solo al importar o actualizar una lista desde su enlace; se lee su página pública.
 - **LRCLIB** (`lrclib.net`): al abrir la letra; recibe el artista, el título y la duración.
 - **GitHub** (`github.com`): descargar y actualizar yt-dlp.
@@ -39,6 +41,7 @@ Tu carpeta de música solo se lee en tu equipo; nada de ella sale a internet.
 - **Uso personal y responsabilidad del usuario.** CLMusic reproduce contenido de YouTube fuera de su web y de su reproductor. Las condiciones de servicio de YouTube no lo permiten y pueden suspender el acceso. Úsalo solo para uso personal y privado, nunca para difundir, emitir en público ni sacar beneficio. Tú eres responsable del uso que hagas de la app.
 - **Derechos de autor.** La música, las letras y las imágenes pertenecen a sus titulares. CLMusic no aloja, guarda ni distribuye contenido: lo pide en el momento a quien lo publica, y las letras a LRCLIB, un servicio colaborativo.
 - **Sin afiliación.** CLMusic no está afiliado, patrocinado ni aprobado por YouTube, Google, Spotify, Apple ni LRCLIB. Sus nombres son marcas de sus titulares y se citan solo para indicar de dónde se pueden importar listas. CLMusic no usa sus logotipos, colores ni diseño.
+- **Artistas y listas de terceros.** Los nombres de artistas («Radio de …», «Radios populares», «Si te gusta …») solo indican qué música suena. No implican relación, patrocinio ni aprobación de esos artistas ni de sus sellos. Las listas de Explorar y las radios se forman con playlists y mezclas públicas de YouTube creadas por otros; los nombres y descripciones de las categorías son de CLMusic. Si eres titular de derechos o artista y quieres que algo deje de aparecer, abre un *issue* (ver Contacto).
 - **Sin garantía.** Se ofrece "tal cual", sin garantías de ningún tipo, según la [licencia MIT](LICENSE). Los servicios cambian a menudo y la reproducción puede fallar.
 - **Componentes de terceros:** [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense; su .exe incluye Python y otras bibliotecas con sus licencias), Electron, React y los paquetes npm listados en [`third-party/`](third-party/README.txt), que también va dentro de la app.
 
@@ -56,9 +59,9 @@ CLMusic is free, open-source software (MIT licence), maintained by Eric Cid Lóp
 
 ## Privacy
 
-**CLMusic doesn't collect or send any personal data to the author.** No analytics, telemetry or trackers. Everything stays on your computer (`%APPDATA%\clmusic`): your lists (titles, artists and video ids, never audio), your listening history (which song and for how many seconds — it can be **paused or wiped** in Settings), favourites and settings. On first launch, if you have TubeGrab, CLMusic **copies** (doesn't move) your lists, history, favourites and news from `%APPDATA%\tubegrab`.
+**CLMusic doesn't collect or send any personal data to the author.** No analytics, telemetry or trackers. Everything stays on your computer (`%APPDATA%\clmusic`): your lists (titles, artists and video ids, never audio), your listening history (which song and for how many seconds — it can be **paused or wiped** in Settings), favourites and settings, "Recientes" (which lists, mixes or radios you put on and how often) with the recommendations already worked out, and a copy of the Explorar lists (public YouTube data, kept up to 6 hours). On first launch, if you have TubeGrab, CLMusic **copies** (doesn't move) your lists, history, favourites and news from `%APPDATA%\tubegrab`.
 
-Third-party connections (each service has its own privacy policy): **YouTube** (search, playlists, playback; receives your IP like any visit), **Spotify** and **Apple Music** (only when importing or refreshing a list from its link; their public page is read), **LRCLIB** (when showing lyrics; receives artist, title and length), **GitHub** (downloading and updating yt-dlp). Your music folder is only read on your computer.
+Third-party connections (each service has its own privacy policy): **YouTube** (search, playlists, playback and covers from `i.ytimg.com`; receives your IP like any visit. While the app is open it is also asked **in the background**: the featured Explorar lists every 6 h, news of your artists every 12 h, lists imported from a link every 3 h — only the app's fixed searches, your most-played artists' names (for their news) and song ids are sent; your history never leaves your computer), **Spotify** and **Apple Music** (only when importing or refreshing a list from its link; their public page is read), **LRCLIB** (when showing lyrics; receives artist, title and length), **GitHub** (downloading and updating yt-dlp). Your music folder is only read on your computer.
 
 **Cookies:** the app's internal server uses one technical session cookie, so that only the app itself can talk to it; it's exempt from consent (EU ePrivacy Directive art. 5(3)).
 
@@ -67,6 +70,7 @@ Third-party connections (each service has its own privacy policy): **YouTube** (
 - **Personal use; you are responsible.** CLMusic plays YouTube content outside YouTube's website and player, which YouTube's terms of service don't allow; they may suspend access. Use it only privately, never to redistribute, broadcast in public or make money. You are responsible for how you use the app.
 - **Copyright.** Music, lyrics and images belong to their owners. CLMusic doesn't host, store or distribute content: it requests it on the spot from whoever publishes it (lyrics from LRCLIB, a community service).
 - **No affiliation.** CLMusic isn't affiliated with, sponsored or endorsed by YouTube, Google, Spotify, Apple or LRCLIB. Their names are trademarks of their owners and are mentioned only to say where lists can be imported from. CLMusic doesn't use their logos, colours or design.
+- **Artists and third-party lists.** Artist names ("Radio de …", popular radios, "Si te gusta …") only say what music plays; they imply no connection with, sponsorship or endorsement by those artists or their labels. Explorar lists and radios are made from public YouTube playlists and mixes created by others; the category names and descriptions are CLMusic's own. Rights holders or artists who want something removed can open an issue (see Contact).
 - **No warranty.** Provided "as is", without warranty of any kind, under the [MIT licence](LICENSE). Services change often and playback may fail.
 - **Third-party components:** [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense; its .exe bundles Python and other libraries under their licences), Electron, React and the npm packages listed in [`third-party/`](third-party/README.txt), which also ships inside the app.
 

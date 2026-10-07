@@ -74,6 +74,25 @@ test('explorar: each list looked up once, kept on disk, old copy if YouTube fail
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('explorar: a poor answer never replaces a good list; stale lists are read again; covers only from YouTube', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-browse-'));
+  let now = 1000;
+  try {
+    const b = new Browse(path.join(dir, 'b.json'), { now: () => now });
+    await b.get('rock', async (t) => (t.startsWith('ytsearch') ? { entries: many('g', 30) } : { entries: [] }));
+    assert.equal(b.isFresh('rock'), true);
+    assert.equal(b.isFresh('pop'), false, 'never read');
+    now += 7 * 3600 * 1000;
+    assert.equal(b.isFresh('rock'), false, 'six hours later: worth reading again (in the background)');
+    const poor = await b.get('rock', async (t) => (t.startsWith('ytsearch') ? { entries: many('p', 3) } : { entries: [] }));
+    assert.equal(poor.tracks.length, 30, 'YouTube half-answered: the good list stays');
+    assert.equal(b.cache.rock.tracks[0].title, 'g canción 0');
+    assert.deepEqual(songsOf([{ ...e('h', 'Canción'), thumbnail: 'https://evil.example/x.jpg' }, { ...e('i', 'Otra'), thumbnail: 'javascript:alert(1)' }]).map((s) => s.thumbnail), [null, null]);
+    fs.writeFileSync(path.join(dir, 'c.json'), JSON.stringify({ rock: { at: now, tracks: [{ ...e('j', 'De disco'), thumbnail: 'http://i.ytimg.com/vi/x' }] } }));
+    assert.equal(new Browse(path.join(dir, 'c.json'), { now: () => now }).cache.rock.tracks[0].thumbnail, null, 'what is read back from disk is checked again');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('explorar: the routes — fixed searches per list, never text from the page', async () => {
   const yt = fakeYouTube();
   const app = await startApp({ yt });

@@ -91,4 +91,12 @@ describe('home', () => {
     expect(screen.getByRole('heading', { name: 'Lo que más vuelves a poner' })).toBeInTheDocument();
     expect(screen.getAllByText('Radio de Ana').length).toBeGreaterThan(0);
   });
+
+  it('a recent radio keeps only the texts it needs and YouTube covers', () => {
+    useUi.getState().addRecent({ kind: 'radio', id: 'bbbbbbbbbbb', name: 'Radio de Beto', thumbs: ['https://evil.example/a.png', 'https://i.ytimg.com/vi/b/hq.jpg'],
+      payload: { title: 'Dos', artist: 'Beto', thumb: 'https://evil.example/t.png', extra: { deep: true }, name: 42 } });
+    const r = useUi.getState().recent.find((x) => x.id === 'bbbbbbbbbbb');
+    expect(r.payload).toEqual({ title: 'Dos', artist: 'Beto', name: null, thumb: null });
+    expect(r.thumbs).toEqual(['https://i.ytimg.com/vi/b/hq.jpg']);
+  });
 });

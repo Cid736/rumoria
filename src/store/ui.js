@@ -10,10 +10,17 @@ let toastId = 1;
 // and "Lo que más vuelves a poner". Only on this computer.
 const RECENT_KEY = 'clmusic_recent';
 const KINDS = ['list', 'liked', 'local', 'mix', 'browse', 'radio', 'discover', 'news'];
+const YT_IMG = /^https:\/\/i\d?\.ytimg\.com\//;
+// A radio's song (what it starts with and what it's called): only those texts.
+const cleanPayload = (p) => {
+  if (!p || typeof p !== 'object') return null;
+  const s = (v) => (typeof v === 'string' ? v.slice(0, 150) : '');
+  return { title: s(p.title), artist: s(p.artist), name: s(p.name) || null, thumb: typeof p.thumb === 'string' && YT_IMG.test(p.thumb) ? p.thumb : null };
+};
 const cleanItem = (x) => (x && KINDS.includes(x.kind) && typeof x.name === 'string' && x.name ? {
   kind: x.kind, id: typeof x.id === 'string' ? x.id.slice(0, 80) : null, name: x.name.slice(0, 150), sub: typeof x.sub === 'string' ? x.sub.slice(0, 150) : '',
   thumbs: Array.isArray(x.thumbs) ? x.thumbs.filter((t) => typeof t === 'string' && /^https:\/\/i\d?\.ytimg\.com\//.test(t)).slice(0, 4) : [],
-  payload: x.payload && typeof x.payload === 'object' ? JSON.parse(JSON.stringify(x.payload)) : null,
+  payload: cleanPayload(x.payload),
   plays: Number.isInteger(x.plays) && x.plays > 0 ? x.plays : 1, at: Number.isFinite(x.at) ? x.at : Date.now(),
 } : null);
 const savedRecent = () => { try { return (JSON.parse(localStorage.getItem(RECENT_KEY)) || []).map(cleanItem).filter(Boolean).slice(0, 30); } catch { return []; } };

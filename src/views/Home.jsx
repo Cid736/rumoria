@@ -101,7 +101,11 @@ async function tracksOf(item) {
   switch (item.kind) {
     case 'list': { const l = await lib.loadList(item.id); return l.tracks.map(fromList(l.id)); }
     case 'browse': return (await lib.loadBrowse(item.id)).tracks.map(fromYouTube);
-    case 'radio': return radioOf({ yt: item.id, ...(item.payload || {}) });
+    case 'radio': {
+      // Its song first, as when it was put on from its shelf.
+      const p = item.payload || {};
+      return [{ key: `yt:${item.id}`, yt: item.id, title: p.title || item.name, artist: p.artist || '', thumbnail: p.thumb || null }, ...await radioOf({ yt: item.id })];
+    }
     case 'discover': return discoverOf(lib.smart);
     case 'liked': return lib.likes.map((s) => fromSaved(s, map)).filter(Boolean);
     case 'local': return lib.local.songs.map(fromLocal);
@@ -183,7 +187,7 @@ function LikeArtistShelf({ smart }) {
       const items = [];
       for (const t of (r.entries || []).map(fromYouTube)) {
         const who = fold(t.artist);
-        if (!who || seen.has(who) || who.includes(me) || items.length >= 8) continue;
+        if (!who || seen.has(who) || (me && who.includes(me)) || items.length >= 8) continue;
         seen.add(who);
         items.push({ yt: t.yt, title: t.title, artist: t.artist, thumb: t.thumbnail });
       }

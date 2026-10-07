@@ -79,7 +79,12 @@ function songsOf(results) {
     if (Number.isFinite(e.duration) && (e.duration < 90 || e.duration > 600)) return false;
     seen.add(e.id);
     return true;
-  }).slice(0, MAX).map(({ id, title, channel, duration, thumbnail }) => ({ id, title, channel, duration, thumbnail }));
+  }).slice(0, MAX).map(({ id, title, channel, duration, thumbnail }) => ({
+    id, title: String(title || '').slice(0, 300), channel: channel ? String(channel).slice(0, 120) : null,
+    duration: Number.isFinite(duration) ? duration : null,
+    // Only YouTube's own image hosts (the cache file is read back from disk).
+    thumbnail: typeof thumbnail === 'string' && /^https:\/\/i\d?\.ytimg\.com\//.test(thumbnail) ? thumbnail : null,
+  }));
 }
 
 /** YouTube's search for playlists (its own filter), for a fixed text of ours. */
@@ -146,6 +151,12 @@ class Browse {
 
   has(id) { return BY_ID.has(String(id)); }
 
+  /** Read less than six hours ago (else worth reading again). */
+  isFresh(id) {
+    const hit = this.cache[String(id)];
+    return Boolean(hit && hit.tracks.length && this.now() - hit.at < CACHE_MS);
+  }
+
   /** One list's songs: from the cache while fresh, else looked up (once at a time). */
   async get(id, flatList) {
     const c = BY_ID.get(String(id));
@@ -155,13 +166,16 @@ class Browse {
     if (!this.pending.has(c.id)) {
       this.pending.set(c.id, (async () => {
         const tracks = c.group === 'radio' ? await radioSongs(c.artist, flatList) : await findSongs(c.q(), flatList);
-        if (tracks.length) { this.cache[c.id] = { at: this.now(), tracks }; this.save(); }
+        // A poor answer (YouTube half-answering) never replaces a good list.
+        const old = this.cache[c.id];
+        if (tracks.length && (!old || tracks.length >= Math.min(10, old.tracks.length))) { this.cache[c.id] = { at: this.now(), tracks }; this.save(); }
         return tracks;
       })().finally(() => this.pending.delete(c.id)));
     }
     let tracks = await this.pending.get(c.id);
-    // YouTube didn't answer: what we had, even if old.
-    if (!tracks.length && hit) tracks = hit.tracks;
+    // YouTube didn't answer (or barely): what we had, even if old.
+    const kept = this.cache[c.id];
+    if (kept && kept.tracks.length > tracks.length) tracks = kept.tracks;
     return { id: c.id, name: c.name, sub: c.sub, tracks };
   }
 }
