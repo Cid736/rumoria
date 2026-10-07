@@ -258,9 +258,18 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   const handlers = main.match(/ipcMain\.handle\([^,]+,\s*(async\s*)?\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
   assert.ok(handlers.length >= 3);
   for (const h of handlers) assert.ok(h.includes('isTrustedSender(event)'), h);
-  // The preload exposes three functions, never ipcRenderer itself.
+  // ipcMain.on listeners too.
+  const listeners = main.match(/ipcMain\.on\([^,]+,\s*\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
+  for (const h of listeners) assert.ok(h.includes('isTrustedSender(event)'), h);
+  // The preload exposes a few named functions (three + updates), never ipcRenderer itself,
+  // and only fixed channel names.
   assert.equal(/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(preload), false);
-  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 3);
+  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 4);
+  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 2);
+  const channels = [...preload.matchAll(/ipcRenderer\.(?:invoke|send|on|removeListener)\(\s*([^,)]+)/g)].map((m) => m[1].trim());
+  assert.ok(channels.every((c) => /^'rumoria:[a-zA-Z:]+'$/.test(c)), channels.join(', '));
+  // Messages to the page carry only the update state, never the event (its sender).
+  assert.match(preload, /const f = \(_e, s\) => cb\(s\)/);
 });
 
 test('electron: yt-dlp is only installed if its SHA-256 matches the published one, from GitHub only', () => {

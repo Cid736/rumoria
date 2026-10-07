@@ -1,10 +1,30 @@
 // Ajustes: the look, your music folder, "Para ti", the listening history (pause, wipe).
 import { useEffect, useState } from 'react';
 import { api, desktop } from '../api.js';
+import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
+
+/** Updates: which version, what's going on, look now, restart when one is ready. */
+function Updates() {
+  const u = useUpdate();
+  if (!u) return null;
+  const busy = u.status === 'checking' || u.status === 'downloading';
+  return (
+    <section className="set-group">
+      <h2>Actualizaciones</h2>
+      <p className="muted">Rumoria se actualiza sola desde GitHub: descarga la versión nueva en segundo plano y solo la usa si su huella SHA-256 coincide con la publicada. Tus listas y tu historial no se tocan.</p>
+      <div className="set-row">
+        <span><strong>Versión {u.current}</strong><small>{updateText(u)}</small></span>
+        {u.status === 'ready'
+          ? <button type="button" className="btn btn-accent" onClick={() => desktop.update.restart()}>Reiniciar y actualizar</button>
+          : <button type="button" className="btn btn-ghost" onClick={() => desktop.update.check()} disabled={busy || u.status === 'dev'}>{busy ? 'Buscando…' : 'Buscar ahora'}</button>}
+      </div>
+    </section>
+  );
+}
 
 /** "Para ti": the lists Rumoria makes and rotates (your genres, one to discover). */
 function ParaTi() {
@@ -108,6 +128,7 @@ export default function Settings() {
           <button type="button" className="btn btn-danger" onClick={wipe}>Borrar…</button>
         </div>
       </section>
+      <Updates />
       <section className="set-group">
         <h2>Atajos de teclado</h2>
         <dl className="keys">

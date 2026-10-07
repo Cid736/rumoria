@@ -108,7 +108,9 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 16px; padding: 14px 20px; pointer-events: none; }
 .topbar > * { pointer-events: auto; }
 .topbar-nav { display: flex; gap: 8px; }
-.topbar-end { margin-left: auto; }
+.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.update-pill { padding: 6px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 13px; }
+.update-pill:hover { background: var(--accent-strong); }
 .searchbox { display: flex; align-items: center; gap: 10px; width: min(420px, 100%); padding: 10px 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
 .searchbox:focus-within { border-color: var(--text); color: var(--text); }
 .searchbox input { flex: 1; border: 0; outline: none; background: none; }

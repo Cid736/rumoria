@@ -1,5 +1,7 @@
-// Back / forward, and (on Buscar) the search box.
+// Back / forward, (on Buscar) the search box, and an update ready to install.
 import { useEffect, useRef } from 'react';
+import { desktop } from '../api.js';
+import { useUpdate } from '../lib/useUpdate.js';
 import { useUi } from '../store/ui.js';
 import { ChevronLeft, ChevronRight, Gear, Search } from './Icons.jsx';
 
@@ -9,6 +11,7 @@ export default function TopBar() {
   const canForward = useUi((s) => s.at < s.history.length - 1);
   const text = useUi((s) => s.searchText);
   const input = useRef(null);
+  const update = useUpdate();
   useEffect(() => { if (view.name === 'search' && input.current) input.current.focus(); }, [view.name]);
 
   return (
@@ -25,6 +28,11 @@ export default function TopBar() {
         </label>
       )}
       <div className="topbar-end">
+        {update && update.status === 'ready' && (
+          <button type="button" className="update-pill" onClick={() => desktop.update.restart()} title={`Rumoria ${update.latest} está lista. También se instala sola al cerrar la app.`}>
+            Actualizar a {update.latest}
+          </button>
+        )}
         <button type="button" className="round-btn" onClick={() => useUi.getState().go({ name: 'settings' })} aria-label="Ajustes" title="Ajustes"><Gear size={18} /></button>
       </div>
     </header>

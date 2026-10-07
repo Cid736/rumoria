@@ -9,6 +9,7 @@ const path = require('path');
 const https = require('https');
 const { fork, execFile } = require('child_process');
 const { migrateFromTubeGrab } = require('../server/lib/migrate');
+const { createUpdater } = require('./updater');
 
 // Isolated runs (tests, a second profile): their own data folder.
 if (process.env.RUMORIA_USER_DATA && path.isAbsolute(process.env.RUMORIA_USER_DATA)) app.setPath('userData', process.env.RUMORIA_USER_DATA);
@@ -23,6 +24,12 @@ let mainWindow = null;
 let serverProcess = null;
 let appOrigin = null;
 const token = crypto.randomBytes(32).toString('hex');
+// Updates from GitHub, verified by SHA-256 (see updater.js).
+const updater = createUpdater({
+  root: path.join(__dirname, '..'),
+  send: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:update', state); },
+  quit: () => app.quit(),
+});
 
 // === Settings (userData/settings.json) ===
 function readSettings() {
@@ -170,6 +177,10 @@ ipcMain.handle('rumoria:pickMusicDir', async (event) => {
   if (serverProcess && serverProcess.connected) serverProcess.send({ type: 'musicDir', dir: r.filePaths[0] });
   return r.filePaths[0];
 });
+// Updates: what's going on, look now, put the ready one in place and start again.
+ipcMain.handle('rumoria:update:state', (event) => (isTrustedSender(event) ? updater.state() : null));
+ipcMain.on('rumoria:update:check', (event) => { if (isTrustedSender(event)) updater.check(); });
+ipcMain.on('rumoria:update:restart', (event) => { if (isTrustedSender(event)) updater.restart(); });
 // "Descargar con TubeGrab": TubeGrab opens with the song in its download box (it asks before downloading).
 ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
   if (!isTrustedSender(event) || !/^[A-Za-z0-9_-]{11}$/.test(String(id))) return false;
@@ -179,6 +190,8 @@ ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
 
 app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.on('before-quit', () => { app.isQuitting = true; });
+// An update downloaded but not applied yet: put in place as Rumoria closes.
+app.on('will-quit', () => updater.onQuit());
 app.on('window-all-closed', () => app.quit());
 app.on('quit', () => { if (serverProcess) serverProcess.kill(); });
 
@@ -195,6 +208,7 @@ app.whenReady().then(async () => {
   appOrigin = `http://127.0.0.1:${port}`;
   await session.defaultSession.cookies.set({ url: appOrigin, name: 'rum_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
+  updater.start();
 }).catch((err) => {
   dialog.showErrorBox('Rumoria', err.message);
   app.quit();
