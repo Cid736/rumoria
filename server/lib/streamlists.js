@@ -5,6 +5,7 @@
 // the video found is remembered for next time.
 const crypto = require('crypto');
 const fs = require('fs');
+const { writeFileAtomic } = require('./atomic');
 
 const MAX_LISTS = 100;
 const MAX_TRACKS = 500;
@@ -65,9 +66,7 @@ class StreamLists {
   }
 
   save() {
-    const tmp = `${this.file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.lists));
-    fs.renameSync(tmp, this.file);
+    writeFileAtomic(this.file, JSON.stringify(this.lists));
   }
 
   /** Without the tracks: what the list of lists shows. */

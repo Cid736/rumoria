@@ -116,6 +116,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const limiter = (max) => rateLimit({ windowMs: 60_000, limit: max, standardHeaders: 'draft-7', legacyHeaders: false, message: BUSY });
   const ytLimiter = limiter(240);
   const writeLimiter = limiter(600);
+  // Your own songs: plenty (playing asks for many byte ranges), never unlimited.
+  const fileLimiter = limiter(3000);
 
   const needId = (req, res, next) => (stream.isId(req.query.id) ? next() : res.status(400).json({ error: 'Vídeo no válido.' }));
 
@@ -312,7 +314,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // ---- your own music folder ----
   app.get('/api/local', (req, res) => res.json({ folder: Boolean(local.root), songs: local.list() }));
   app.post('/api/local/rescan', writeLimiter, (req, res) => res.json({ folder: Boolean(local.root), songs: local.scan() }));
-  app.get('/api/local/file', (req, res) => {
+  app.get('/api/local/file', fileLimiter, (req, res) => {
     const hit = local.resolve(String(req.query.id || ''));
     if (!hit) return res.status(404).json({ error: 'No se encuentra esa canción.' });
     return res.sendFile(hit.file, { dotfiles: 'deny', headers: { 'Content-Type': hit.mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });

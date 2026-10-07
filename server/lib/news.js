@@ -4,6 +4,7 @@
 // channel or their "- Topic" one, not a live, a cover or a reaction) is news.
 // Kept in news.json; only titles and YouTube ids.
 const fs = require('fs');
+const { writeFileAtomic } = require('./atomic');
 
 const MAX_NEWS = 40;
 const CHANNEL_RE = /^https:\/\/www\.youtube\.com\/(channel\/UC[\w-]{22}|@[\w.-]{3,40})$/;
@@ -40,9 +41,7 @@ class News {
 
   save() {
     try {
-      const tmp = `${this.file}.tmp`;
-      fs.writeFileSync(tmp, JSON.stringify({ seen: this.seen, channels: this.channels, news: this.news }));
-      fs.renameSync(tmp, this.file);
+      writeFileAtomic(this.file, JSON.stringify({ seen: this.seen, channels: this.channels, news: this.news }));
     } catch { /* not fatal */ }
   }
 

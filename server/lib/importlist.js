@@ -67,7 +67,7 @@ function parseApple(html) {
     for (const k of Object.keys(o)) walk(o[k], depth + 1);
   })(data, 0);
   const t = /<meta property="og:title" content="([^"]*)"/.exec(html);
-  const title = t ? clean(t[1].replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/ on Apple Music$| en Apple Music$/i, ''), 150) : 'Apple Music';
+  const title = t ? clean(t[1].replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/ on Apple Music$| en Apple Music$/i, ''), 150) : 'Apple Music';
   return { title, tracks: out.filter((x) => x.title) };
 }
 

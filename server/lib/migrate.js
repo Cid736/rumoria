@@ -18,14 +18,17 @@ function migrateFromTubeGrab(fromDir, toDir) {
   for (const name of FILES) {
     const src = path.join(fromDir, name);
     const dest = path.join(toDir, name);
+    let fd = null;
     try {
-      if (fs.existsSync(dest)) continue;
-      const st = fs.lstatSync(src);
+      if (fs.lstatSync(src).isSymbolicLink()) continue;
+      fd = fs.openSync(src, 'r');
+      const st = fs.fstatSync(fd);
       if (!st.isFile() || st.size > MAX_BYTES) continue;
-      JSON.parse(fs.readFileSync(src, 'utf8'));
-      fs.copyFileSync(src, dest, fs.constants.COPYFILE_EXCL);
+      const text = fs.readFileSync(fd, 'utf8');
+      JSON.parse(text);
+      fs.writeFileSync(dest, text, { flag: 'wx', mode: 0o600 }); // never over one already there
       copied.push(name);
-    } catch { /* not there, or not valid: skipped */ }
+    } catch { /* not there, already there, or not valid: skipped */ } finally { if (fd !== null) fs.closeSync(fd); }
   }
   try { fs.writeFileSync(mark, JSON.stringify({ at: Date.now(), copied })); } catch { /* tried again next time */ }
   return copied;

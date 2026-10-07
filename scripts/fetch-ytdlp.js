@@ -37,6 +37,7 @@ function get(u, redirects = 5) {
   const actual = crypto.createHash('sha256').update(bin).digest('hex');
   if (!expected || expected !== actual) throw new Error('la huella SHA-256 no coincide con la publicada');
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest, bin, { mode: 0o755 });
+  // Without --force, never over a copy that appeared meanwhile.
+  fs.writeFileSync(dest, bin, { mode: 0o755, flag: process.argv.includes('--force') ? 'w' : 'wx' });
   console.log(`yt-dlp descargado y verificado (SHA-256) en ${dest}`);
 })().catch((err) => { console.error(`No se pudo descargar yt-dlp: ${err.message}`); process.exit(1); });

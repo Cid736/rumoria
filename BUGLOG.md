@@ -65,3 +65,42 @@ Revisado: `server/lib/browse.js`, `/api/browse` y `/api/browse/:id`, la lectura 
 - **Rumoria:** no tiene marcas registradas en EE. UU. (Trademarkia/USPTO; el buscador se comprobó con «Deezer» y «Sonora»), ni uso en la web, ni repos en GitHub, y `rumoria.com`, `.app` y `.es` están libres. Se descartaron, entre otros, Melovia, Sonvia y Sonaro, demasiado parecidos a apps de música que ya existen, y Muselo, que es una marca registrada.
 - **Pendiente:** buscarla en TMview (EUIPO y OEPM) antes de registrarla; su API no responde a consultas automáticas.
 - **Cambiado:** nombre, `appId` (`com.rumoria.app`), los tres `.exe`, la carpeta de datos (`%APPDATA%\rumoria`), las variables `RUMORIA_*`, la cabecera `X-Rumoria`, el canal IPC `rumoria:*`, las claves de `localStorage`, el User-Agent y la documentación. TubeGrab enlaza a `Cid736/rumoria`.
+
+---
+
+## 2026-10-07 — Revisión 2: seguridad tras publicar el repositorio
+
+CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 1. Cada aviso se revisó en el código antes de tocar nada.
+
+### [Seguridad — BAJA] Archivos temporales con nombre fijo (CodeQL #4–#8)
+- **Archivos:** `server/lib/browse.js`, `likes.js`, `listenlog.js`, `news.js` y `streamlists.js`
+- **Descripción:** se guardaba escribiendo `<archivo>.tmp` y renombrándolo. Alguien con acceso a la carpeta podía dejar ahí un enlace con ese nombre fijo para que la app escribiera en otro sitio. La carpeta de datos es del usuario, así que el riesgo práctico es bajo.
+- **Fix:** `server/lib/atomic.js` (`writeFileAtomic`) escribe un temporal con nombre aleatorio, creado en exclusiva (`wx`, permisos `0600`), lo renombra después y no deja restos si algo falla.
+
+### [Seguridad — BAJA] Comprobar y después usar un archivo (CodeQL #9–#11)
+- **Archivos:** `server/lib/migrate.js` y `scripts/fetch-ytdlp.js`
+- **Descripción:** se comprobaba que un archivo existía y se usaba después. Entre una cosa y otra podía cambiar.
+- **Fix:** la migración descarta los enlaces simbólicos, lee el archivo una sola vez desde el mismo descriptor (tamaño y tipo con `fstat`) y escribe la copia en exclusiva (`wx`), sin sustituir nunca una que ya exista. La descarga de yt-dlp no sobrescribe una copia aparecida entretanto, salvo con `--force`.
+
+### [Seguridad — BAJA] Tus canciones sin límite de peticiones (CodeQL #3)
+- **Archivo:** `server/app.js` (`/api/local/file`)
+- **Fix:** límite propio de 3000 por minuto, generoso porque al reproducir se piden muchos trozos.
+
+### [Bug] Títulos de Apple Music decodificados dos veces (CodeQL #2)
+- **Archivo:** `server/lib/importlist.js`
+- **Descripción:** `&amp;` se decodificaba antes que las demás entidades, así que `&amp;quot;` acababa en `"`. Solo afectaba al texto, que React pinta siempre como texto.
+- **Fix:** `&amp;` se decodifica la última.
+
+### Descartados tras revisarlos
+- **CodeQL #1, petición a una URL que viene de fuera (SSRF), en `netfetch.js`:** falso positivo. Solo admite `https`, ni usuario ni contraseña, y puertos 80/443/8080/8443. Rechaza IPs privadas o locales en la dirección, al resolver el DNS (el socket usa esa misma resolución, así que no hay DNS rebinding) y en cada redirección (máximo 5). Además, cada llamada solo pasa hosts permitidos (Spotify, Apple Music, YouTube, LRCLIB, GitHub).
+- **CodeQL #12, datos de HTTP escritos en disco, en `listenlog.js`:** es la función: guardar tu historial. Cada campo se limpia y se acota antes (`cleanSong`) y el archivo se escribe con `writeFileAtomic`.
+- **Dependabot, `sprintf-js` (DoS con especificadores de precisión):** solo lo usan herramientas de desarrollo (el linter), no va dentro de la app y no hay versión corregida.
+
+### Además
+- **gitleaks en local:** todo el historial de TubeGrab (83 commits) y de Rumoria, sin secretos. Tampoco se ha subido nunca un archivo sensible (cookies, `.env`, ajustes, historiales, claves).
+- **Ejecutables publicados:** sin datos, sin rutas del equipo, sin source maps ni secretos.
+- **GitHub:**
+  - Los workflows solo tienen permiso de lectura por defecto (CodeQL, además, `security-events: write`), no pueden aprobar PR y no se usa `pull_request_target`.
+  - Están activos el escaneo de secretos con bloqueo al subir y las alertas de Dependabot.
+- **CI:** gitleaks se ejecuta sobre todo el historial con una versión fija verificada por SHA-256. La acción oficial fallaba en el primer push.
+- **Pruebas:** `test/security/hardening.test.js`. En total, 59 del servidor y de seguridad y 37 de la interfaz, todas superadas.

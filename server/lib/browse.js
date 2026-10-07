@@ -4,6 +4,7 @@
 // would bring mostly hour-long compilations). Only songs stay (no mixes, lives
 // or compilations), and the result is kept a few hours on disk.
 const fs = require('fs');
+const { writeFileAtomic } = require('./atomic');
 
 const year = () => new Date().getFullYear();
 // id → what it's called and what's searched. Names are ours (no other service's).
@@ -137,7 +138,7 @@ class Browse {
   }
 
   save() {
-    try { fs.writeFileSync(`${this.file}.tmp`, JSON.stringify(this.cache)); fs.renameSync(`${this.file}.tmp`, this.file); } catch { /* not fatal */ }
+    try { writeFileAtomic(this.file, JSON.stringify(this.cache)); } catch { /* not fatal */ }
   }
 
   /** The lists, with covers once a list has been read. */

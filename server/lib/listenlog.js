@@ -3,6 +3,7 @@
 // rediscover, daily mixes) and Estadísticas a yearly summary. Kept only on
 // this computer (listen-history.json); it can be paused or wiped.
 const fs = require('fs');
+const { writeFileAtomic } = require('./atomic');
 
 const MAX_EVENTS = 60000;
 const MAX_TRACKS = 20000;
@@ -55,10 +56,8 @@ class ListenLog {
     this.events = this.events.filter((e) => e[0] >= cut).slice(-MAX_EVENTS);
     const used = new Set(this.events.map((e) => e[1]));
     for (const k of this.tracks.keys()) if (!used.has(k)) this.tracks.delete(k);
-    const tmp = `${this.file}.tmp`;
     try {
-      fs.writeFileSync(tmp, JSON.stringify({ v: 1, paused: this.paused, autoSave: this.autoSave, tracks: Object.fromEntries(this.tracks), events: this.events }));
-      fs.renameSync(tmp, this.file);
+      writeFileAtomic(this.file, JSON.stringify({ v: 1, paused: this.paused, autoSave: this.autoSave, tracks: Object.fromEntries(this.tracks), events: this.events }));
     } catch { /* not fatal */ }
   }
 

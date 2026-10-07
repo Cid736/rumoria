@@ -2,6 +2,7 @@
 // newest first, kept only on this computer (likes.json). A song is its key,
 // as in the listening history: yt:<video> or f:<path in your library>.
 const fs = require('fs');
+const { writeFileAtomic } = require('./atomic');
 const { cleanSong } = require('./listenlog');
 
 const MAX = 5000;
@@ -25,9 +26,7 @@ class Likes {
   }
 
   save() {
-    const tmp = `${this.file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify({ songs: this.songs }));
-    fs.renameSync(tmp, this.file);
+    writeFileAtomic(this.file, JSON.stringify({ songs: this.songs }));
   }
 
   has(key) { return this.songs.some((s) => s.key === key); }
