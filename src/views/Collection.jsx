@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { fold, totalTime } from '../lib/tracks.js';
 import { usePlayer } from '../store/player.js';
+import { useUi } from '../store/ui.js';
 import Cover, { gradientOf } from '../components/Cover.jsx';
 import { Pause, Play, Shuffle } from '../components/Icons.jsx';
 import TrackTable from '../components/TrackTable.jsx';
 
-export default function Collection({ kind, name, sub, cover, tracks, listId = null, actions = null, reorder = null, showAdded = false, loading = false, empty = null }) {
+/** `recent`: what this page is, for "Recientes" ({ kind, id, name, sub, payload }), once something plays from it. */
+export default function Collection({ kind, name, sub, cover, tracks, listId = null, actions = null, reorder = null, showAdded = false, loading = false, empty = null, recent = null }) {
   const [filter, setFilter] = useState('');
   const playingHere = usePlayer((s) => {
     const c = s.queue.items[s.queue.index];
@@ -15,10 +17,14 @@ export default function Collection({ kind, name, sub, cover, tracks, listId = nu
   });
   const want = usePlayer((s) => s.wantPlaying);
   const shown = filter ? tracks.filter((t) => fold(`${t.title} ${t.artist}`).includes(fold(filter))) : tracks;
+  const played = () => {
+    if (recent) useUi.getState().addRecent({ ...recent, thumbs: [...new Set(tracks.map((t) => t.thumbnail).filter(Boolean))].slice(0, 4) });
+  };
   const playAll = (shuffle) => {
     const p = usePlayer.getState();
     if (playingHere && !shuffle) { p.toggle(); return; }
     p.playTracks(tracks, shuffle ? Math.floor(Math.random() * tracks.length) : 0, { shuffle });
+    played();
   };
   const details = [sub, tracks.length ? `${tracks.length} canciones` : null, totalTime(tracks)].filter(Boolean).join(' · ');
 
@@ -41,7 +47,7 @@ export default function Collection({ kind, name, sub, cover, tracks, listId = nu
         {tracks.length > 8 && <input className="col-filter" type="search" placeholder="Buscar en esta lista" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Buscar en esta lista" />}
       </div>
       {loading ? <p className="muted pad">Cargando…</p> : !tracks.length && empty ? empty : (
-        <TrackTable tracks={shown} listId={listId} showAdded={showAdded} reorder={filter ? null : reorder} />
+        <TrackTable tracks={shown} listId={listId} showAdded={showAdded} reorder={filter ? null : reorder} onPlay={played} />
       )}
     </div>
   );

@@ -20,9 +20,9 @@ export function smartTracks(kind, smart, local) {
   return rows.map((r) => fromSaved(r, map)).filter(Boolean);
 }
 
-/** Your top artists → one mix each (up to three). */
+/** Your top artists → one mix each (up to six), new every day. */
 export function mixCards(smart) {
-  return ((smart && smart.artists) || []).filter((a) => a.seed && a.seed.yt).slice(0, 3).map((a, i) => ({ id: `mix${i}`, name: `Mix diario ${i + 1}`, sub: a.name, artist: a, thumb: a.seed.thumb || null }));
+  return ((smart && smart.artists) || []).filter((a) => a.seed && a.seed.yt).slice(0, 6).map((a, i) => ({ id: `mix${i}`, name: `Mezcla del día ${i + 1}`, sub: a.name, artist: a, thumb: a.seed.thumb || null }));
 }
 
 export async function buildMix(artist, local, { storage = globalThis.localStorage, get = api.get } = {}) {

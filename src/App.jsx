@@ -10,10 +10,11 @@ import Sidebar from './components/Sidebar.jsx';
 import SidePanel from './components/SidePanel.jsx';
 import TopBar from './components/TopBar.jsx';
 import Home from './views/Home.jsx';
-import { LikedPage, ListPage, LocalPage, MixPage } from './views/Pages.jsx';
+import { LikedPage, ListPage, LocalPage, MixPage, NewsPage } from './views/Pages.jsx';
 import Search from './views/Search.jsx';
 import Settings from './views/Settings.jsx';
 import Summary from './views/Summary.jsx';
+import { BrowsePage, DiscoverPage, RadioPage } from './views/Discover.jsx';
 
 function Page({ view }) {
   switch (view.name) {
@@ -24,6 +25,10 @@ function Page({ view }) {
     case 'mix': return <MixPage id={view.id} />;
     case 'settings': return <Settings />;
     case 'summary': return <Summary />;
+    case 'browse': return <BrowsePage id={view.id} />;
+    case 'radio': return <RadioPage id={view.id} payload={view.payload} />;
+    case 'discover': return <DiscoverPage />;
+    case 'news': return <NewsPage />;
     default: return <Home />;
   }
 }

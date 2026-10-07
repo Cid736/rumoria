@@ -9,6 +9,7 @@ import { useUi } from '../store/ui.js';
 import Cover from '../components/Cover.jsx';
 import { Play } from '../components/Icons.jsx';
 import TrackTable from '../components/TrackTable.jsx';
+import { CategoryGrid, ExploreShelf } from './Home.jsx';
 
 export default function Search() {
   const text = useUi((s) => s.searchText);
@@ -37,6 +38,8 @@ export default function Search() {
       <div className="search-empty">
         <h1>Buscar</h1>
         <p className="muted">Escribe una canción, un artista o un álbum. Se escucha directamente de YouTube, sin descargar nada.</p>
+        <CategoryGrid />
+        <ExploreShelf title="Radios populares" group="radio" />
       </div>
     );
   }

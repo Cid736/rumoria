@@ -1,7 +1,7 @@
 // The pages with songs: one of your lists, Favoritas, Tu música, a mix.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
-import { fromList, fromLocal, fromSaved } from '../lib/tracks.js';
+import { fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
 import Cover from '../components/Cover.jsx';
@@ -37,7 +37,7 @@ export function ListPage({ id }) {
     <Collection
       kind={SOURCE[list.source] || 'Lista'} name={list.name} sub={list.folder ? `Carpeta ${list.folder}` : null}
       cover={<BigCover thumbs={thumbs} src={thumbs[0]} name={list.name} />}
-      tracks={tracks} listId={list.id}
+      tracks={tracks} listId={list.id} recent={{ kind: 'list', id: list.id, name: list.name, sub: SOURCE[list.source] || 'Lista' }}
       reorder={(from, to) => lib.patchList(id, { move: { from, to } })}
       actions={(
         <>
@@ -57,6 +57,7 @@ export function LikedPage() {
   const tracks = likes.map((s) => ({ ...fromSaved(s, map), at: s.at })).filter((t) => t.key);
   return (
     <Collection kind="Lista" name="Favoritas" cover={<Cover liked size={200} className="col-cover" />} tracks={tracks} showAdded
+      recent={{ kind: 'liked', name: 'Favoritas', sub: 'Tus canciones con corazón' }}
       empty={<p className="muted pad">Las canciones que marques con el corazón aparecerán aquí.</p>} />
   );
 }
@@ -67,6 +68,7 @@ export function LocalPage() {
   const pick = async () => { if (desktop && await desktop.pickMusicDir()) useLibrary.getState().rescanLocal(); };
   return (
     <Collection kind="Carpeta" name="Tu música" sub="Tus archivos, en este ordenador" cover={<BigCover name="Tu música" />} tracks={tracks}
+      recent={{ kind: 'local', name: 'Tu música', sub: 'Tus archivos' }}
       actions={(
         <>
           <button type="button" className="icon-btn big" onClick={() => useLibrary.getState().rescanLocal()} aria-label="Volver a leer la carpeta" title="Volver a leer la carpeta"><Refresh size={22} /></button>
@@ -92,8 +94,21 @@ export function MixPage({ id }) {
   const mix = built.id === id ? built.tracks : null;
   if (SMART[id]) {
     const tracks = smartTracks(id, smart, local);
-    return <Collection kind="Hecho para ti" name={SMART[id].name} sub={SMART[id].sub} cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name={SMART[id].name} />} tracks={tracks} />;
+    return <Collection kind="Hecho para ti" name={SMART[id].name} sub={SMART[id].sub} cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name={SMART[id].name} />} tracks={tracks}
+      recent={{ kind: 'mix', id, name: SMART[id].name, sub: 'Hecho para ti' }} />;
   }
-  if (!card) return <p className="muted pad">Este mix ya no está.</p>;
-  return <Collection kind="Hecho para ti" name={card.name} sub={`${card.sub} y parecidos`} cover={<BigCover src={card.thumb} name={card.sub} />} tracks={mix || []} loading={!mix} />;
+  if (!card) return <p className="muted pad">Esta mezcla ya no está.</p>;
+  return <Collection kind="Hecho para ti" name={card.name} sub={`${card.sub} y parecidos`} cover={<BigCover src={card.thumb} name={card.sub} />} tracks={mix || []} loading={!mix}
+    recent={{ kind: 'mix', id, name: card.name, sub: `${card.sub} y más` }} />;
+}
+
+export function NewsPage() {
+  const news = useLibrary((s) => s.news);
+  const tracks = news.map((n) => fromYouTube({ ...n, id: n.yt }));
+  return (
+    <Collection kind="Hecho para ti" name="Novedades de tus artistas" sub="Lo último de los que más escuchas"
+      cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name="Novedades de tus artistas" />} tracks={tracks}
+      recent={{ kind: 'news', name: 'Novedades de tus artistas', sub: 'Hecho para ti' }}
+      empty={<p className="muted pad">Cuando tus artistas saquen algo nuevo, aparecerá aquí (se mira cada 12 horas).</p>} />
+  );
 }

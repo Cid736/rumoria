@@ -6,8 +6,21 @@ const savedTheme = () => { try { return ['dark', 'light', 'system'].includes(loc
 
 let toastId = 1;
 
+// What you put on lately (lists, mixes, radios…), and how often: "Recientes"
+// and "Lo que más vuelves a poner". Only on this computer.
+const RECENT_KEY = 'clmusic_recent';
+const KINDS = ['list', 'liked', 'local', 'mix', 'browse', 'radio', 'discover', 'news'];
+const cleanItem = (x) => (x && KINDS.includes(x.kind) && typeof x.name === 'string' && x.name ? {
+  kind: x.kind, id: typeof x.id === 'string' ? x.id.slice(0, 80) : null, name: x.name.slice(0, 150), sub: typeof x.sub === 'string' ? x.sub.slice(0, 150) : '',
+  thumbs: Array.isArray(x.thumbs) ? x.thumbs.filter((t) => typeof t === 'string' && /^https:\/\/i\d?\.ytimg\.com\//.test(t)).slice(0, 4) : [],
+  payload: x.payload && typeof x.payload === 'object' ? JSON.parse(JSON.stringify(x.payload)) : null,
+  plays: Number.isInteger(x.plays) && x.plays > 0 ? x.plays : 1, at: Number.isFinite(x.at) ? x.at : Date.now(),
+} : null);
+const savedRecent = () => { try { return (JSON.parse(localStorage.getItem(RECENT_KEY)) || []).map(cleanItem).filter(Boolean).slice(0, 30); } catch { return []; } };
+const sameItem = (a, b) => a.kind === b.kind && a.id === b.id;
+
 export const useUi = create((set, get) => ({
-  // A view: { name: 'home' | 'search' | 'list' | 'liked' | 'local' | 'mix' | 'settings', id?, payload? }
+  // A view: { name: 'home' | 'search' | 'list' | 'liked' | 'local' | 'mix' | 'browse' | 'radio' | 'discover' | 'news' | 'summary' | 'settings', id?, payload? }
   history: [{ name: 'home' }],
   at: 0,
   panel: null,          // null | 'queue' | 'lyrics'
@@ -16,6 +29,18 @@ export const useUi = create((set, get) => ({
   dialog: null,         // { kind: 'prompt' | 'import', ... }
   theme: savedTheme(),
   searchText: '',
+  recent: savedRecent(), // [{ kind, id, name, sub, thumbs, payload, plays, at }], newest first
+
+  /** Something was put on: to the front of "Recientes", one more play. */
+  addRecent(item) {
+    const c = cleanItem(item);
+    if (!c) return;
+    const old = get().recent.find((x) => sameItem(x, c));
+    const recent = [{ ...c, plays: old ? old.plays + 1 : 1, at: Date.now(), thumbs: c.thumbs.length ? c.thumbs : old ? old.thumbs : [] },
+      ...get().recent.filter((x) => !sameItem(x, c))].slice(0, 30);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(recent)); } catch { /* only for now */ }
+    set({ recent });
+  },
 
   view: () => get().history[get().at],
   go(view) {

@@ -17,7 +17,7 @@ function isCurrent(cur, t, listId) {
   return Boolean(t.key) && cur.key === t.key;
 }
 
-export default function TrackTable({ tracks, listId = null, showCover = true, showAdded = false, reorder = null, startShuffle = false }) {
+export default function TrackTable({ tracks, listId = null, showCover = true, showAdded = false, reorder = null, startShuffle = false, onPlay = null }) {
   const [sel, setSel] = useState(() => new Set());
   const anchor = useRef(null);
   const [dragOver, setDragOver] = useState(null);
@@ -29,6 +29,7 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
     const p = usePlayer.getState();
     if (isCurrent(cur, tracks[i], listId)) { p.toggle(); return; }
     p.playTracks(tracks, i, { shuffle: startShuffle });
+    if (onPlay) onPlay();
   };
   const select = (i, e) => {
     const next = new Set(e.ctrlKey || e.metaKey ? sel : []);

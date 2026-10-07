@@ -2,7 +2,7 @@
 // Loaded from the server once and kept in step after each change.
 import { create } from 'zustand';
 import { api, urls } from '../api.js';
-import { songOf } from '../lib/tracks.js';
+import { songOf, toListTrack } from '../lib/tracks.js';
 import { useUi } from './ui.js';
 
 const toast = (...a) => useUi.getState().toast(...a);
@@ -15,10 +15,11 @@ export const useLibrary = create((set, get) => ({
   smart: null,          // most played, heard lately, to rediscover, your artists
   news: [],
   local: { folder: false, songs: [] },
+  browse: [],           // "Explorar": ready-made lists (their covers once read)
   loaded: false,
 
   async loadAll() {
-    const [l, k, s, n, f] = await Promise.allSettled([api.get('/api/lists'), api.get('/api/likes'), api.get('/api/history/smart'), api.get('/api/news'), api.get('/api/local')]);
+    const [l, k, s, n, f, b] = await Promise.allSettled([api.get('/api/lists'), api.get('/api/likes'), api.get('/api/history/smart'), api.get('/api/news'), api.get('/api/local'), api.get('/api/browse')]);
     const ok = (r, fallback) => (r.status === 'fulfilled' ? r.value : fallback);
     const likes = ok(k, { songs: [] }).songs || [];
     set({
@@ -28,8 +29,25 @@ export const useLibrary = create((set, get) => ({
       smart: ok(s, null),
       news: ok(n, { news: [] }).news || [],
       local: ok(f, { folder: false, songs: [] }),
+      browse: ok(b, { lists: [] }).lists || [],
       loaded: true,
     });
+  },
+  /** The "Explorar" lists again (covers read ahead since). */
+  async refreshBrowse() { try { set({ browse: (await api.get('/api/browse')).lists || get().browse }); } catch { /* keep */ } },
+  /** One "Explorar" list's songs (and its cover, now known, on the home page). */
+  async loadBrowse(id) {
+    const l = await api.get(`/api/browse/${encodeURIComponent(id)}`);
+    try { set({ browse: (await api.get('/api/browse')).lists || get().browse }); } catch { /* keep */ }
+    return l;
+  },
+  /** Anything playable kept as a list of yours. */
+  async saveAsList(name, tracks) {
+    try {
+      const l = await get().createList(name, tracks.map(toListTrack));
+      toast(`Guardada como «${l.name}»`);
+      return l;
+    } catch (err) { toast(err.message); return null; }
   },
   async refreshLists() { try { set({ lists: (await api.get('/api/lists')).lists || [] }); } catch { /* keep what's shown */ } },
   async refreshSmart() { try { set({ smart: await api.get('/api/history/smart') }); } catch { /* keep */ } },

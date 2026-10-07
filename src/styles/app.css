@@ -120,7 +120,19 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .tile:hover .tile-play, .tile-play:focus-visible { opacity: 1; }
 .tile-play:hover { transform: translateY(-50%) scale(1.06); }
 .shelf { margin-bottom: 32px; }
-.shelf-title { font-size: 22px; font-weight: 800; margin-bottom: 12px; }
+.shelf-title { font-size: 22px; font-weight: 800; }
+.shelf-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.shelf-kicker { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.shelf-more { font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.shelf-more:hover { color: var(--text); text-decoration: underline; }
+.card-round .card-art .cover { border-radius: 50%; }
+
+/* Every category: coloured tiles (each its own colour, from its name). */
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.cat-tile { position: relative; overflow: hidden; height: 104px; border-radius: var(--radius-sm); padding: 14px; text-align: left; color: #fff; transition: transform 0.15s var(--ease), filter 0.15s; }
+.cat-tile:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.cat-name { position: relative; z-index: 1; font-size: 17px; font-weight: 800; line-height: 1.15; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); display: block; max-width: 70%; }
+.cat-pic { position: absolute; right: 10px; bottom: 10px; width: 64px; height: 64px; border-radius: 10px; object-fit: cover; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
 .shelf-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); grid-auto-rows: auto; gap: 8px; }
 .card { position: relative; border-radius: var(--radius-sm); transition: background 0.2s; }
 .card:hover { background: var(--surface-2); }
@@ -188,6 +200,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .search, .search-empty { padding: 76px 24px 24px; }
 .search .tracks { padding: 0; }
 .search-empty h1 { font-size: 30px; margin-bottom: 8px; }
+.search-empty .shelf { margin-top: 28px; }
+.save-list { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 13px; }
 .search-top { display: grid; grid-template-columns: minmax(280px, 2fr) 3fr; gap: 24px; margin-bottom: 32px; }
 .top-card { position: relative; display: flex; flex-direction: column; gap: 16px; padding: 20px; border-radius: var(--radius); background: var(--surface-2); min-height: 220px; }
 .top-text { display: flex; flex-direction: column; gap: 4px; padding-right: 64px; }

@@ -74,6 +74,7 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 | `POST /api/history`, `GET /api/history/{smart,summary}`, `PATCH /api/history/settings`, `DELETE /api/history` | Historial de escucha |
 | `GET/POST /api/likes`, `POST /api/likes/remove` | Favoritas |
 | `GET /api/news` | Novedades de tus artistas |
+| `GET /api/browse`, `GET /api/browse/:id` | «Explorar»: listas ya hechas. Cada id tiene una búsqueda fija de playlists de YouTube (nunca texto de la página); solo canciones, en caché 6 h |
 | `GET /api/local`, `POST /api/local/rescan`, `GET /api/local/file?id=` | Tu carpeta de música (por id, nunca por ruta) |
 
 - En segundo plano: las listas «al día» se releen cada pocas horas y las novedades de tus artistas se buscan cada 12 h.

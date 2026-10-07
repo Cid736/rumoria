@@ -10,7 +10,13 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Importa** una playlist o un perfil entero de Spotify; las listas de un enlace se mantienen al día solas
 - **Reproductor abajo**: aleatorio, repetir (todo / una), radio al acabar la cola, volumen, teclas multimedia
 - **Cola y letra sincronizada** en el panel derecho (pulsa una línea para ir a ella)
-- **Hecho para ti**: mixes diarios de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
+- **Inicio con recomendaciones**, sin tener que añadir nada:
+  - **Hecho para ti**: «Descubre algo nuevo» (cada semana, solo canciones que aún no has escuchado), una **Mezcla del día** por cada uno de tus seis artistas favoritos, novedades de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
+  - **Lo que más vuelves a poner** y **Recientes** (listas, mezclas, radios…)
+  - **Radios para ti** (de tus artistas), **Radios populares** (Bad Bunny, KAROL G, Rosalía, Coldplay…) y **Si te gusta …** (radios de artistas parecidos a tu favorito)
+  - **Explorar** y **Todas las categorías**: más de 40 listas ya hechas (éxitos, pop, urbano, rock, K-pop, anime, jazz, flamenco, salsa, para dormir, para entrenar, décadas…), también en Buscar
+- Cada estantería enseña una fila y tiene «Mostrar todo»
+- Todo suena directamente desde YouTube, sin descargar nada; cualquier lista se puede guardar como tuya, y descargar una canción es opcional («Descargar con TubeGrab»)
 - **Novedades de tus artistas** y **Tu resumen** del año
 - Botón derecho en cualquier canción: a continuación, a la cola, a una lista, favorita, radio, descargar con TubeGrab
 - Tema oscuro, claro o el del sistema; atajos de teclado (Espacio, Ctrl+←/→, Ctrl+S, Ctrl+R, Ctrl+L, Alt+←/→)

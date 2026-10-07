@@ -15,7 +15,7 @@ const ROUTES = [
   ['GET', `/api/stream/info?id=${VIDEO}`], ['GET', `/api/stream/audio?id=${VIDEO}`], ['GET', `/api/stream/radio?id=${VIDEO}`], ['GET', `/api/stream/lyrics?id=${VIDEO}`],
   ['GET', '/api/search?q=x'], ['GET', '/api/find?q=x'], ['POST', '/api/history'], ['GET', '/api/history/smart'], ['GET', '/api/history/summary'],
   ['PATCH', '/api/history/settings'], ['DELETE', '/api/history'], ['GET', '/api/likes'], ['POST', '/api/likes'], ['POST', '/api/likes/remove'],
-  ['GET', '/api/news'], ['GET', '/api/local'], ['POST', '/api/local/rescan'], ['GET', '/api/local/file?id=x'], ['GET', '/'], ['GET', '/index.html'],
+  ['GET', '/api/news'], ['GET', '/api/browse'], ['GET', '/api/browse/exitos'], ['GET', '/api/local'], ['POST', '/api/local/rescan'], ['GET', '/api/local/file?id=x'], ['GET', '/'], ['GET', '/index.html'],
 ];
 
 // ---------- A01/A07 Broken access control & authentication ----------

@@ -19,6 +19,7 @@ const { ListenLog } = require('./lib/listenlog');
 const { Likes } = require('./lib/likes');
 const { News } = require('./lib/news');
 const { LocalMusic } = require('./lib/localmusic');
+const { Browse } = require('./lib/browse');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
@@ -81,6 +82,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const news = new News(path.join(dataDir, 'news.json'));
   const local = new LocalMusic(musicDir);
   if (musicDir) local.scan();
+  const browse = new Browse(path.join(dataDir, 'browse-cache.json'));
 
   const ytSlots = slots(3);
   const listSlots = slots(2);
@@ -291,6 +293,19 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     return res.json({ ok: true, count: likes.remove(key) });
   });
 
+  // ---- "Explorar": ready-made lists (fixed searches, never text from the page) ----
+  app.get('/api/browse', (req, res) => res.json({ lists: browse.list() }));
+  app.get('/api/browse/:id', ytLimiter, async (req, res) => {
+    if (!browse.has(req.params.id)) return res.status(404).json({ error: 'No existe esa lista.' });
+    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    try {
+      const l = await browse.get(req.params.id, (target, limit) => yt.flatList(target, ytEnv(), limit));
+      return res.json(l);
+    } catch {
+      return res.status(502).json({ error: 'YouTube no respondió.' });
+    } finally { ytSlots.release(); }
+  });
+
   // ---- news of your artists ----
   app.get('/api/news', (req, res) => res.json({ news: news.list() }));
 
@@ -331,8 +346,20 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       });
     } finally { ytSlots.release(); }
   }
+  // The featured "Explorar" lists and radios, read ahead one at a time (so their
+  // covers show on the home page), only those not read lately; a list being
+  // listened to always comes first (this one waits for a free slot or skips).
+  async function warmBrowse() {
+    for (const b of browse.list().filter((x) => x.featured && !x.count)) {
+      if (!ytSlots.take()) return;
+      try { await browse.get(b.id, (target, limit) => yt.flatList(target, ytEnv(), limit)); } catch { /* next time */ } finally { ytSlots.release(); }
+      await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
+    }
+  }
   const timers = [];
   if (background) {
+    timers.push(setTimeout(() => { warmBrowse().catch(() => {}); }, 90_000));
+    timers.push(setInterval(() => { warmBrowse().catch(() => {}); }, 6 * 3600_000));
     timers.push(setTimeout(() => { syncLists().catch(() => {}); }, 3 * 60_000));
     timers.push(setInterval(() => { syncLists().catch(() => {}); }, 3 * 3600_000));
     timers.push(setTimeout(() => { lookForNews().catch(() => {}); }, 5 * 60_000));
@@ -344,7 +371,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
-    _state: { lists, history, likes, news, local },
+    _state: { lists, history, likes, news, local, browse },
   };
 }
 
