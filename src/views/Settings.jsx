@@ -1,9 +1,10 @@
-// Ajustes: the look, your music folder, "Para ti", the listening history (pause, wipe).
+// Ajustes: the look and how to customise it, the mini player, your music folder, "Para ti", the listening history (pause, wipe).
 import { useEffect, useState } from 'react';
 import { api, desktop } from '../api.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
+import { Customize, MiniSettings } from './Customize.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
 
@@ -106,6 +107,8 @@ export default function Settings() {
           </select>
         </label>
       </section>
+      <Customize />
+      <MiniSettings />
       {desktop && (
         <section className="set-group">
           <h2>Tu música</h2>
@@ -137,6 +140,7 @@ export default function Settings() {
           <dt>Ctrl + ↑ / ↓</dt><dd>Volumen</dd>
           <dt>Ctrl + S</dt><dd>Aleatorio</dd>
           <dt>Ctrl + R</dt><dd>Repetir</dd>
+          <dt>Ctrl + M</dt><dd>Mini reproductor</dd>
           <dt>Ctrl + L</dt><dd>Buscar</dd>
           <dt>Alt + ← / →</dt><dd>Atrás / adelante</dd>
         </dl>

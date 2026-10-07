@@ -141,3 +141,36 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 - **Resultado:** Pop en español (por Cris Leiva, a través de Morad, DELLAFUENTE y JC Reyes), J-pop, Éxitos y Urbano latino, y para descubrir, Pop internacional.
 - **Legal:** `LEGAL.md` dice que el nombre de esos artistas se busca en YouTube para esto.
 - **Pruebas:** 67 de servidor y seguridad, 41 de interfaz.
+
+---
+
+## 2026-10-08 — v1.2.0: se actualiza sola, mini reproductor, personalizar
+
+### [Bug] Rumoria olvidaba tus ajustes al reiniciarse
+- **Archivos:** `server/main.js`, `electron/main.js`
+- **Descripción:** el servidor escuchaba en un puerto libre al azar en cada arranque. La página cambiaba así de origen (`127.0.0.1:<puerto>`) y el navegador le daba un almacenamiento vacío, así que se perdían el tema, el volumen, «Recientes», la mezcla semanal y las cachés de recomendaciones.
+- **Fix:** el puerto se elige una vez y se guarda en `settings.json`; si otro programa lo ocupa, se usa otro y se recuerda ese. Probado: al reiniciar, el mismo puerto (56755) y el volumen guardado.
+
+### [Función] Se actualiza sola, como TubeGrab
+- **Cuándo:** `electron/updater.js` busca la última release 15 s después de arrancar y cada 6 h.
+- **Cómo descarga:** baja en segundo plano el archivo de tu versión (instalador, portable o Lite), solo de GitHub, por HTTPS y comprobando cada redirección, a una carpeta temporal nueva y con creación exclusiva. Lo conserva solo si su SHA-256 y su tamaño coinciden con los publicados.
+- **Cómo instala:** «Actualizar a X» en la barra superior, o simplemente cerrar Rumoria. El instalador se ejecuta en silencio; en la portable, un paso de PowerShell recibe las rutas por variables de entorno y cambia el `.exe`.
+- **En Ajustes:** la versión, el estado, «Buscar ahora» y «Reiniciar y actualizar».
+
+### [Función] Mini reproductor
+- **Qué es:** una ventana pequeña encima de las demás, con portada, título, artista, barra (clic o flechas para saltar), anterior, pausa, siguiente y favorita. Se abre con Ctrl+M o con el botón junto al volumen.
+- **Opciones:** compacto, siempre encima, fijo, portada, transparencia y opaco al pasar el ratón, desde su menú ⋯ o desde Ajustes.
+- **Cerrar:** si cierras la ventana grande con el mini abierto, solo se oculta y la música sigue; al cerrar el mini, Rumoria se cierra. Probado enviando a la ventana el mismo `WM_CLOSE` que manda Windows.
+- **Seguridad:** el mini tiene su propio preload mínimo y cada mensaje comprueba de qué ventana viene. Solo muestra texto (`textContent`) y portadas de `i.ytimg.com`, y sus botones son una lista cerrada con valores acotados.
+
+### [Función] Personalizar
+- **Opciones:** 8 colores (cada uno con su versión para el tema claro y el oscuro, todos con contraste de 4,5:1 o más con su texto), tamaño del texto (zoom del 80 al 150 %), densidad de las listas, esquinas, menos animaciones, portadas en la biblioteca y qué estanterías salen en Inicio.
+- **Al momento:** se aplica sin reiniciar, también en el mini reproductor si está abierto.
+- **Valores seguros:** solo valores conocidos; lo que se lee del almacenamiento se limpia antes de usarlo.
+
+### Revisión de seguridad y fallos
+- **ReDoS:** comprobado con `recheck` en todo el código nuevo; ninguna expresión es vulnerable.
+- **Tests de seguridad nuevos:** `test/security/updater.test.js` (solo GitHub, solo con SHA-256, tamaño acotado, rutas fuera del comando) y `test/security/mini.test.js` (qué muestra, qué órdenes acepta, que cada mensaje comprueba quién lo envía, sin código en línea). La suite principal cuenta ahora las puertas del preload, comprueba que cada `ipcMain.on` verifica quién llama y que el zoom está acotado.
+- **Prueba en la app real:** el mini muestra la canción y avanza; pausa y «siguiente» funcionan desde él; cerrar la ventana grande no corta la música; cerrar el mini cierra la app. El color cambia al momento y se recuerda.
+- **Dos fallos de mis propias pruebas** (no de la app): `window.close()` desde la página destruye la ventana sin pasar por su evento `close`, así que no imita la X; y `sed` se comía las barras invertidas de una expresión regular en un test.
+- **Pruebas:** 75 de servidor y seguridad y 47 de interfaz, todas superadas. Lint: 0 errores, 12 avisos (el nuevo es la expresión de portadas del mini, acotada y comprobada con `recheck`). `npm audit`: 0.

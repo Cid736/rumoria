@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api, urls } from '../api.js';
 import { fold, fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
+import { useShows } from '../store/look.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover, { gradientOf } from '../components/Cover.jsx';
@@ -218,6 +219,8 @@ export default function Home() {
   const { lists, likes, smart, news, local, loaded } = useLibrary();
   const recent = useUi((s) => s.recent);
   const go = useUi((s) => s.go);
+  // The shelves you chose to see (Ajustes → Personalizar).
+  const shows = useShows();
   useEffect(() => {
     useLibrary.getState().refreshSmart();
     // Covers of ready-made lists appear as the server reads them ahead.
@@ -242,9 +245,9 @@ export default function Home() {
   return (
     <div className="home">
       <h1 className="greeting">{greeting()}</h1>
-      {tiles.length > 0 && <div className="tiles">{tiles.map(({ key, ...t }) => <Tile key={key} {...t} />)}</div>}
+      {shows('tiles') && tiles.length > 0 && <div className="tiles">{tiles.map(({ key, ...t }) => <Tile key={key} {...t} />)}</div>}
 
-      <Shelf title="Hecho para ti">
+      {shows('made') && (<Shelf title="Hecho para ti">
         {smart && smart.count > 0 && (
           <Card key="discover" title="Descubre algo nuevo" sub="Canciones que aún no has escuchado · cambia cada semana" cover={<Cover name="Descubre algo nuevo" size={160} />}
             onOpen={() => go({ name: 'discover' })} onPlay={playFrom(() => discoverOf(smart), { kind: 'discover', name: 'Descubre algo nuevo', sub: 'Cambia cada semana' })} />
@@ -261,12 +264,12 @@ export default function Home() {
           <Card key={c.k} title={c.name} sub={c.sub} cover={<Cover thumbs={c.tracks.map((t) => t.thumbnail).filter(Boolean)} src={c.tracks[0].thumbnail} name={c.name} size={160} />}
             onOpen={() => go({ name: 'mix', id: c.k })} onPlay={playFrom(async () => c.tracks, { kind: 'mix', id: c.k, name: c.name, sub: 'Hecho para ti' })} />
         ))}
-      </Shelf>
+      </Shelf>)}
 
-      <Shelf title="Lo que más vuelves a poner">{again.map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>
-      <Shelf title="Recientes">{recent.slice(0, 16).map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>
+      {shows('again') && <Shelf title="Lo que más vuelves a poner">{again.map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>}
+      {shows('recent') && <Shelf title="Recientes">{recent.slice(0, 16).map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>}
 
-      <Shelf title="Radios para ti">
+      {shows('radios') && (<Shelf title="Radios para ti">
         {seeds.map((s) => {
           const payload = { title: s.title, artist: s.artist, thumb: s.thumb, name: `Radio de ${s.artist || s.title}` };
           return (
@@ -276,13 +279,13 @@ export default function Home() {
                 { kind: 'radio', id: s.yt, name: payload.name, sub: `${s.artist} y parecidos`, payload })} />
           );
         })}
-      </Shelf>
+      </Shelf>)}
 
-      <ExploreShelf title="Radios populares" group="radio" />
-      <LikeArtistShelf smart={smart} />
-      <ExploreShelf title="Explorar" />
+      {shows('popular') && <ExploreShelf title="Radios populares" group="radio" />}
+      {shows('like') && <LikeArtistShelf smart={smart} />}
+      {shows('explore') && <ExploreShelf title="Explorar" />}
 
-      {lists.length > 0 && (
+      {shows('lists') && lists.length > 0 && (
         <Shelf title="Tus listas">
           {lists.map((l) => (
             <Card key={l.id} title={l.name} sub={`${l.count} canciones`} cover={<Cover src={l.thumbnail} thumbs={l.thumbs} name={l.name} size={160} />}
@@ -302,7 +305,7 @@ export default function Home() {
         </section>
       )}
 
-      <CategoryGrid />
+      {shows('categories') && <CategoryGrid />}
     </div>
   );
 }

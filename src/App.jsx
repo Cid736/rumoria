@@ -1,6 +1,9 @@
 // The layout: library on the left, the page in the middle, queue or lyrics
 // on the right (when open), and the player along the bottom.
 import { useEffect } from 'react';
+import { desktop } from './api.js';
+import { startMiniBridge } from './player/miniBridge.js';
+import { applyLook, useLook } from './store/look.js';
 import { useLibrary } from './store/library.js';
 import { usePlayer } from './store/player.js';
 import { useUi } from './store/ui.js';
@@ -50,6 +53,7 @@ export function onKey(e) {
     arrowright: () => p.next(), arrowleft: () => p.prev(),
     arrowup: () => p.setVolume(p.volume + 0.1), arrowdown: () => p.setVolume(p.volume - 0.1),
     s: () => p.toggleShuffle(), r: () => p.cycleRepeat(),
+    m: () => { if (desktop && desktop.mini) desktop.mini.open(); },
   };
   if (actions[k]) { e.preventDefault(); actions[k](); }
 }
@@ -69,6 +73,10 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+  // The mini player sees what plays here and its buttons drive this player.
+  useEffect(() => startMiniBridge(), []);
+  // Your look (Ajustes → Personalizar), from the start.
+  useEffect(() => { applyLook(useLook.getState().look); }, []);
   useEffect(() => {
     const apply = () => {
       const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

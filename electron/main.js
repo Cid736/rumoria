@@ -10,6 +10,7 @@ const https = require('https');
 const { fork, execFile } = require('child_process');
 const { migrateFromTubeGrab } = require('../server/lib/migrate');
 const { createUpdater } = require('./updater');
+const { createMini } = require('./mini');
 
 // Isolated runs (tests, a second profile): their own data folder.
 if (process.env.RUMORIA_USER_DATA && path.isAbsolute(process.env.RUMORIA_USER_DATA)) app.setPath('userData', process.env.RUMORIA_USER_DATA);
@@ -29,6 +30,16 @@ const updater = createUpdater({
   root: path.join(__dirname, '..'),
   send: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:update', state); },
   quit: () => app.quit(),
+});
+// The mini player (see mini.js). Closing it after the main window was closed
+// behind it really closes Rumoria.
+const mini = createMini({
+  origin: () => appOrigin,
+  main: () => mainWindow,
+  readSettings: (...a) => readSettings(...a),
+  saveSettings: (...a) => saveSettings(...a),
+  icon: path.join(__dirname, '..', 'build', 'icon.png'),
+  onClosed: () => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) app.quit(); },
 });
 
 // === Settings (userData/settings.json) ===
@@ -100,6 +111,19 @@ function updateYtDlpSoon() {
   }, 60_000).unref();
 }
 
+/**
+ * The port kept between runs (picked once, among less used ones): the page's
+ * origin stays the same, and with it what it keeps in the browser (theme,
+ * volume, Recientes, your look).
+ */
+function serverPort() {
+  const p = readSettings().port;
+  if (Number.isInteger(p) && p >= 1024 && p <= 65535) return p;
+  const fresh = 20000 + crypto.randomInt(40000);
+  try { saveSettings({ port: fresh }); } catch { /* next time */ }
+  return fresh;
+}
+
 // === The server (Electron acting as Node, so yt-dlp can use it to solve YouTube's challenges) ===
 function startServer() {
   return new Promise((resolve, reject) => {
@@ -112,6 +136,7 @@ function startServer() {
         RUMORIA_YTDLP: ytDlpPath(),
         RUMORIA_MUSIC_DIR: musicDir(),
         RUMORIA_STATIC: DIST,
+        RUMORIA_PORT: String(serverPort()),
       },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
       windowsHide: true,
@@ -119,7 +144,10 @@ function startServer() {
     const timer = setTimeout(() => reject(new Error('El servidor no arrancó.')), 20_000);
     serverProcess.once('message', (m) => {
       clearTimeout(timer);
-      if (m && m.type === 'ready' && Number.isInteger(m.port)) resolve(m.port); else reject(new Error('El servidor no arrancó.'));
+      if (!m || m.type !== 'ready' || !Number.isInteger(m.port)) { reject(new Error('El servidor no arrancó.')); return; }
+      // Ours was taken and another one was used: that one from now on.
+      if (m.port !== readSettings().port) { try { saveSettings({ port: m.port }); } catch { /* not fatal */ } }
+      resolve(m.port);
     });
     serverProcess.once('exit', (code) => { if (!app.isQuitting) dialog.showErrorBox('Rumoria', `El servidor se detuvo (código ${code}).`); });
   });
@@ -159,11 +187,17 @@ function createWindow(port) {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
+      // Hidden behind the mini player it still drives the music (next song, radio).
+      backgroundThrottling: false,
     },
   });
   mainWindow.setMenu(null);
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('close', () => { try { saveSettings({ bounds: mainWindow.getNormalBounds() }); } catch { /* not fatal */ } });
+  mainWindow.on('close', (e) => {
+    try { saveSettings({ bounds: mainWindow.getNormalBounds() }); } catch { /* not fatal */ }
+    // The mini player is open: the main window only hides, the music goes on.
+    if (mini.isOpen() && !app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
+  });
   mainWindow.loadURL(`http://127.0.0.1:${port}/`);
 }
 
@@ -188,7 +222,7 @@ ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
   return true;
 });
 
-app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
+app.on('second-instance', () => { if (mainWindow) { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.on('before-quit', () => { app.isQuitting = true; });
 // An update downloaded but not applied yet: put in place as Rumoria closes.
 app.on('will-quit', () => updater.onQuit());

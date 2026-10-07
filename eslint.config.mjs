@@ -29,5 +29,7 @@ export default [
     plugins: { 'react-hooks': reactHooks },
     rules: { ...reactHooks.configs.recommended.rules, 'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', caughtErrors: 'none' }] },
   },
+  // The mini player's page: a plain script in the browser, no modules.
+  { files: ['public/**/*.js'], languageOptions: { sourceType: 'script', globals: { ...globals.browser } } },
   { files: ['vite.config.mjs', 'eslint.config.mjs'], languageOptions: { globals: { ...globals.node } } },
 ];

@@ -21,7 +21,10 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - Todo suena directamente desde YouTube, sin descargar nada; cualquier lista se puede guardar como tuya, y descargar una canción es opcional («Descargar con TubeGrab»)
 - **Novedades de tus artistas** y **Tu resumen** del año
 - Botón derecho en cualquier canción: a continuación, a la cola, a una lista, favorita, radio, descargar con TubeGrab
-- Tema oscuro, claro o el del sistema; atajos de teclado (Espacio, Ctrl+←/→, Ctrl+S, Ctrl+R, Ctrl+L, Alt+←/→)
+- **Mini reproductor** (Ctrl+M o el botón junto al volumen): una ventana pequeña encima de las demás con la canción, su portada, la barra y los botones. Se puede poner compacto, transparente, fijo o sin portada. Si cierras la ventana grande, la música sigue
+- **Personalizar** (Ajustes): 8 colores (cada uno con contraste comprobado en tema claro y oscuro), tamaño del texto, densidad de las listas, esquinas, menos animaciones, portadas en la biblioteca y qué estanterías salen en Inicio
+- **Se actualiza sola** desde GitHub: descarga la versión nueva en segundo plano, la comprueba con su huella SHA-256 y la instala al reiniciar o al cerrar
+- Tema oscuro, claro o el del sistema; atajos de teclado (Espacio, Ctrl+←/→, Ctrl+S, Ctrl+R, Ctrl+L, Ctrl+M, Alt+←/→)
 
 ## Desarrollo
 

@@ -1,0 +1,63 @@
+/* The mini player: Rumoria's colours (and your accent, if you picked one). */
+:root {
+  --bg: #14121c; --surface: #1d1a28; --line: #2c2838; --text: #f5f3fa; --muted: #a7a2b8;
+  --accent: #ff7a59; --accent-ink: #1a0f0b; color-scheme: dark;
+}
+:root[data-theme="light"] { --bg: #ffffff; --surface: #f1eef6; --line: #ddd8e6; --text: #17141f; --muted: #5d586d; color-scheme: light; }
+@media (prefers-color-scheme: light) { :root[data-theme="system"] { --bg: #ffffff; --surface: #f1eef6; --line: #ddd8e6; --text: #17141f; --muted: #5d586d; color-scheme: light; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font: 13px/1.3 system-ui, "Segoe UI", sans-serif; user-select: none; }
+.mini { position: relative; display: flex; gap: 12px; align-items: center; height: 100%; padding: 12px; cursor: grab; border: 1px solid var(--line); }
+.mini.dragging { cursor: grabbing; }
+.art { flex: none; width: 104px; height: 104px; border-radius: 8px; object-fit: cover; background: var(--surface); }
+.art-empty { display: grid; place-items: center; font-size: 40px; color: var(--muted); }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { position: relative; height: 4px; margin: 6px 0 4px; border-radius: 2px; background: var(--line); cursor: pointer; }
+.bar:hover, .bar:focus-visible { height: 6px; margin: 5px 0 3px; outline: none; }
+.fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; background: var(--accent); }
+.controls { display: flex; align-items: center; gap: 4px; }
+.btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text); font-size: 15px; cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--surface); }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn.main { width: 34px; height: 34px; background: var(--text); color: var(--bg); font-size: 14px; }
+.btn.main:hover:not(:disabled) { background: var(--text); transform: scale(1.05); }
+.btn.small { font-size: 16px; }
+.btn.on { color: var(--accent); }
+.btn.tiny { width: 22px; height: 22px; font-size: 12px; color: var(--muted); }
+.time { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; white-space: nowrap; }
+.side { flex: none; display: flex; flex-direction: column; gap: 4px; align-self: flex-start; }
+.menu { position: absolute; inset: 6px 38px 6px auto; z-index: 2; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px 10px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: default; font-size: 12px; }
+.menu label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+.menu .range { flex-wrap: wrap; }
+.menu input[type="range"] { width: 100%; accent-color: var(--accent); }
+.menu input[type="checkbox"] { accent-color: var(--accent); }
+/* Compact: one line, no cover, no bar. */
+.mini.compact { padding: 8px 10px; gap: 8px; }
+.mini.compact .art, .mini.compact .art-empty { width: 46px; height: 46px; font-size: 20px; }
+.mini.compact .artist, .mini.compact .bar, .mini.compact .time, .mini.compact #like { display: none; }
+.mini.compact .info { flex-direction: row; align-items: center; gap: 8px; }
+.mini.compact .title { flex: 1; min-width: 0; }
+.mini.compact .side { flex-direction: row; align-self: center; }
+.mini.compact .menu { inset: 4px 4px 4px auto; flex-direction: row; flex-wrap: wrap; }
+.mini.no-cover .art, .mini.no-cover .art-empty { display: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Your accent (Ajustes → Personalizar), as in the main window. */
+:root[data-accent="azul"] { --accent: #6ea8ff; }
+:root[data-theme="light"][data-accent="azul"] { --accent: #2f62d6; }
+:root[data-accent="verde"] { --accent: #3ecf8e; }
+:root[data-theme="light"][data-accent="verde"] { --accent: #1a7f4f; }
+:root[data-accent="violeta"] { --accent: #b18cff; }
+:root[data-theme="light"][data-accent="violeta"] { --accent: #6d43d9; }
+:root[data-accent="rosa"] { --accent: #ff6fae; }
+:root[data-theme="light"][data-accent="rosa"] { --accent: #c2337a; }
+:root[data-accent="ambar"] { --accent: #ffbf3c; }
+:root[data-theme="light"][data-accent="ambar"] { --accent: #9a5a00; }
+:root[data-accent="turquesa"] { --accent: #2ed3c9; }
+:root[data-theme="light"][data-accent="turquesa"] { --accent: #0f7a74; }
+:root[data-accent="rojo"] { --accent: #ff6b6b; }
+:root[data-theme="light"][data-accent="rojo"] { --accent: #c62828; }

@@ -1,0 +1,158 @@
+// The mini player: a small window over the others (like TubeGrab's), with the
+// song, its cover, play/pause, next, previous, favourite and a progress bar
+// you can click. The music keeps playing in the main window (hidden or not);
+// this one only shows it and sends the buttons back. Moved by dragging it
+// anywhere but its buttons; opens where it was left. Its look and behaviour
+// (compact, see-through, always on top, fixed in place, cover) are yours to
+// choose, from the mini player itself or from Ajustes.
+const { BrowserWindow, ipcMain, screen } = require('electron');
+const path = require('path');
+
+const SIZES = { normal: { width: 360, height: 132 }, compact: { width: 300, height: 64 } };
+const DEFAULTS = { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true };
+const BOOLS = ['compact', 'hoverFull', 'onTop', 'locked', 'showCover'];
+const COMMANDS = ['toggle', 'next', 'prev', 'like', 'seek', 'volume', 'shuffle', 'repeat'];
+
+/** The mini player's settings, each checked (they drive window calls). */
+function cleanPrefs(raw) {
+  const out = { ...DEFAULTS };
+  if (raw && Number.isFinite(raw.opacity)) out.opacity = Math.min(1, Math.max(0.3, Math.round(raw.opacity * 20) / 20));
+  for (const k of BOOLS) if (raw && typeof raw[k] === 'boolean') out[k] = raw[k];
+  return out;
+}
+
+const text = (v, n) => String(v || '').replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, n);
+/** What the page says is playing, as the mini window may show it. */
+function cleanState(s) {
+  if (!s || typeof s !== 'object') return null;
+  // Covers only from YouTube's image hosts (your own files have none).
+  const cover = typeof s.cover === 'string' && /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]{1,200}(\?[\w\-=&%.]{0,300})?$/.test(s.cover) ? s.cover : null;
+  const num = (v, max) => (Number.isFinite(Number(v)) ? Math.min(max, Math.max(0, Number(v))) : 0);
+  return {
+    title: text(s.title, 300), artist: text(s.artist, 200), cover,
+    playing: s.playing === true, loading: s.loading === true, time: num(s.time, 86400), duration: num(s.duration, 86400),
+    liked: s.liked === true, canLike: s.canLike === true, volume: num(s.volume, 1), shuffle: s.shuffle === true,
+    repeat: ['off', 'all', 'one'].includes(s.repeat) ? s.repeat : 'off', hasNext: s.hasNext === true,
+  };
+}
+
+/** A command from the mini window's buttons, checked before the page gets it. */
+function cleanCommand(cmd, value) {
+  if (!COMMANDS.includes(cmd)) return null;
+  if (cmd === 'seek') return Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 86400 ? { cmd, value: Number(value) } : null;
+  if (cmd === 'volume') return Number.isFinite(Number(value)) ? { cmd, value: Math.min(1, Math.max(0, Number(value))) } : null;
+  return { cmd };
+}
+
+/**
+ * `origin()`: the app's origin; `main()`: the main window; settings read/save;
+ * `onClosed()`: the mini window went away.
+ */
+function createMini({ origin, main, readSettings, saveSettings, icon, onClosed }) {
+  let win = null;
+  let hovered = false;
+  let last = null; // what's playing, for a window that opens now
+  let saveTimer = null;
+  const prefs = () => cleanPrefs(readSettings().miniPrefs);
+  const size = () => SIZES[prefs().compact ? 'compact' : 'normal'];
+  const alive = () => win && !win.isDestroyed();
+  const fromMini = (event) => alive() && event.sender === win.webContents && String(event.senderFrame && event.senderFrame.url).startsWith(`${origin()}/mini.html`);
+  const fromMain = (event) => { const m = main(); return m && !m.isDestroyed() && event.sender === m.webContents && String(event.senderFrame && event.senderFrame.url).startsWith(`${origin()}/`); };
+
+  function position() {
+    const saved = readSettings().miniPos;
+    const s = size();
+    if (saved && Number.isInteger(saved.x) && Number.isInteger(saved.y)) {
+      // Only if it's still on a screen (a monitor may have been unplugged).
+      const fits = screen.getAllDisplays().some(({ workArea: w }) => saved.x >= w.x - 40 && saved.y >= w.y - 10 && saved.x + 80 <= w.x + w.width && saved.y + 40 <= w.y + w.height);
+      if (fits) return saved;
+    }
+    const { workArea: w } = screen.getPrimaryDisplay();
+    return { x: w.x + w.width - s.width - 20, y: w.y + w.height - s.height - 20 };
+  }
+  function savePosSoon() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { if (alive()) { const [x, y] = win.getPosition(); try { saveSettings({ miniPos: { x, y } }); } catch { /* not fatal */ } } }, 400);
+  }
+  /** See-through, on top, size: what the settings say, now. */
+  function apply() {
+    if (!alive()) return;
+    const p = prefs();
+    win.setOpacity(p.hoverFull && hovered ? 1 : p.opacity);
+    win.setAlwaysOnTop(p.onTop, p.onTop ? 'floating' : 'normal');
+    win.webContents.send('mini:prefs', p);
+  }
+  function setPrefs(patch) {
+    const before = prefs();
+    const next = cleanPrefs({ ...before, ...(patch && typeof patch === 'object' ? patch : {}) });
+    try { saveSettings({ miniPrefs: next }); } catch { /* not fatal */ }
+    // Compact or not: another size, the bottom-right corner kept on screen.
+    if (alive() && next.compact !== before.compact) {
+      const [x, y] = win.getPosition();
+      const s = size();
+      const { workArea: w } = screen.getDisplayMatching({ x, y, width: s.width, height: s.height });
+      win.setBounds({ x: Math.min(x, w.x + w.width - s.width), y: Math.min(y, w.y + w.height - s.height), ...s });
+    }
+    apply();
+    return next;
+  }
+
+  function open() {
+    if (alive()) { win.show(); win.focus(); return; }
+    win = new BrowserWindow({
+      ...size(), ...position(),
+      frame: false, resizable: false, maximizable: false, fullscreenable: false, alwaysOnTop: true, skipTaskbar: false,
+      title: 'Rumoria', icon, backgroundColor: '#14121c', show: false,
+      webPreferences: { preload: path.join(__dirname, 'mini-preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true, spellcheck: false },
+    });
+    win.setMenu(null);
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', (e) => e.preventDefault());
+    win.webContents.on('will-attach-webview', (e) => e.preventDefault());
+    win.webContents.on('did-finish-load', () => { apply(); if (last) win.webContents.send('mini:state', last); });
+    win.once('ready-to-show', () => win.show());
+    win.on('moved', savePosSoon);
+    win.on('closed', () => { win = null; hovered = false; onClosed(); });
+    win.loadURL(`${origin()}/mini.html`);
+    apply();
+  }
+
+  // The main page: open it; what's playing (forwarded, checked).
+  ipcMain.on('rumoria:mini:open', (event) => { if (fromMain(event)) open(); });
+  ipcMain.on('rumoria:player:state', (event, s) => {
+    if (!fromMain(event)) return;
+    const clean = cleanState(s);
+    if (!clean) return;
+    last = clean;
+    if (alive()) win.webContents.send('mini:state', clean);
+  });
+  ipcMain.handle('rumoria:mini:prefs', (event) => (fromMain(event) || fromMini(event) ? prefs() : null));
+  ipcMain.handle('rumoria:mini:setPrefs', (event, patch) => (fromMain(event) || fromMini(event) ? setPrefs(patch) : null));
+  // The mini window: its buttons (to the main page), moving it, hovering, closing it, the main window.
+  ipcMain.on('mini:command', (event, cmd, value) => {
+    if (!fromMini(event)) return;
+    const c = cleanCommand(cmd, value);
+    const m = main();
+    if (c && m && !m.isDestroyed()) m.webContents.send('rumoria:player:command', c);
+  });
+  ipcMain.on('mini:move', (event, dx, dy) => {
+    if (!fromMini(event) || prefs().locked) return;
+    const x = Math.round(Number(dx));
+    const y = Math.round(Number(dy));
+    if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 4000 || Math.abs(y) > 4000) return;
+    const [px, py] = win.getPosition();
+    win.setPosition(px + x, py + y);
+    savePosSoon();
+  });
+  ipcMain.on('mini:hover', (event, on) => { if (fromMini(event)) { hovered = on === true; apply(); } });
+  ipcMain.on('mini:close', (event) => { if (fromMini(event)) win.close(); });
+  ipcMain.on('mini:showMain', (event) => {
+    if (!fromMini(event)) return;
+    const m = main();
+    if (m && !m.isDestroyed()) { m.show(); if (m.isMinimized()) m.restore(); m.focus(); }
+  });
+
+  return { open, isOpen: alive, close: () => { if (alive()) win.close(); } };
+}
+
+module.exports = { createMini, cleanPrefs, cleanState, cleanCommand, SIZES };

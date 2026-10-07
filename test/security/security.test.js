@@ -261,11 +261,12 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   // ipcMain.on listeners too.
   const listeners = main.match(/ipcMain\.on\([^,]+,\s*\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
   for (const h of listeners) assert.ok(h.includes('isTrustedSender(event)'), h);
-  // The preload exposes a few named functions (three + updates), never ipcRenderer itself,
-  // and only fixed channel names.
+  // The preload exposes a few named functions (settings, music folder, TubeGrab,
+  // updates, mini player, zoom), never ipcRenderer itself, and only fixed channel names.
   assert.equal(/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(preload), false);
-  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 4);
-  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 2);
+  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 6);
+  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 4);
+  assert.match(preload, /setZoomFactor\(Math\.min\(1\.5, Math\.max\(0\.8, n\)\)\)/, 'zoom only within 80-150 %');
   const channels = [...preload.matchAll(/ipcRenderer\.(?:invoke|send|on|removeListener)\(\s*([^,)]+)/g)].map((m) => m[1].trim());
   assert.ok(channels.every((c) => /^'rumoria:[a-zA-Z:]+'$/.test(c)), channels.join(', '));
   // Messages to the page carry only the update state, never the event (its sender).

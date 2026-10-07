@@ -5,7 +5,9 @@
 //   RUMORIA_YTDLP     the yt-dlp to use
 //   RUMORIA_MUSIC_DIR your music folder (optional; changed later by message)
 //   RUMORIA_STATIC    the built page (dist/), if this server serves it
-//   RUMORIA_PORT      a fixed port (development); else any free one
+//   RUMORIA_PORT      the port to use (the desktop app keeps the same one between
+//                     runs, so what the page keeps in the browser survives);
+//                     if it's taken, any free one
 // It tells its parent the port once it's listening.
 const fs = require('fs');
 const path = require('path');
@@ -32,12 +34,17 @@ const server = createApp({
   staticDir: abs(env.RUMORIA_STATIC),
 });
 
-const port = /^\d{2,5}$/.test(String(env.RUMORIA_PORT || '')) ? Number(env.RUMORIA_PORT) : 0;
-const http = server.app.listen(port, '127.0.0.1', () => {
-  const { port: real } = http.address();
-  if (process.send) process.send({ type: 'ready', port: real });
-  else console.log(`Rumoria: servidor en http://127.0.0.1:${real}`);
-});
+const wanted = /^\d{2,5}$/.test(String(env.RUMORIA_PORT || '')) && Number(env.RUMORIA_PORT) <= 65535 ? Number(env.RUMORIA_PORT) : 0;
+function listen(port) {
+  const http = server.app.listen(port, '127.0.0.1', () => {
+    const { port: real } = http.address();
+    if (process.send) process.send({ type: 'ready', port: real });
+    else console.log(`Rumoria: servidor en http://127.0.0.1:${real}`);
+  });
+  // That port is taken (another program): any free one this time.
+  http.once('error', (err) => { if (port && err.code === 'EADDRINUSE') listen(0); else throw err; });
+}
+listen(wanted);
 
 // The desktop app picks the music folder (a native dialog), never the page.
 process.on('message', (m) => {

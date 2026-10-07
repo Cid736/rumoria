@@ -1,12 +1,13 @@
 // Bottom: what's playing (with the star), the controls and the position, and
 // on the right lyrics, the queue and the volume.
 import { useRef, useState } from 'react';
+import { desktop } from '../api.js';
 import { formatTime } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
-import { Heart, Mic, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Volume } from './Icons.jsx';
+import { Heart, Mic, MiniPlayer, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Volume } from './Icons.jsx';
 
 /** A bar you can click or drag (position, volume), and move with the arrow keys. */
 export function Slider({ value, max, onChange, onCommit, label, step, format }) {
@@ -98,6 +99,7 @@ export default function PlayerBar() {
       <div className="pb-side">
         <button type="button" className={`icon-btn toggle ${radio ? 'on' : ''}`} aria-pressed={radio} aria-label="Seguir con canciones parecidas" title="Al acabar, seguir con canciones parecidas" onClick={p.toggleRadio}><Radio size={18} /></button>
         <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" title="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
+        {desktop && desktop.mini && <button type="button" className="icon-btn" aria-label="Mini reproductor" title="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" title="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>
         <button type="button" className="icon-btn" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={p.toggleMute}><Volume level={vol} size={18} /></button>
         <div className="pb-volume"><Slider value={vol} max={1} label="Volumen" step={0.05} format={(v) => `${Math.round(v * 100)} %`} onChange={(v) => p.setVolume(v)} onCommit={(v) => p.setVolume(v)} /></div>

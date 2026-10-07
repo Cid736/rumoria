@@ -55,7 +55,10 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - Al arrancar genera un secreto de 32 bytes y lanza el servidor como proceso hijo. Electron hace de Node, así yt-dlp lo usa para resolver los retos de YouTube. El secreto se guarda en una cookie `httpOnly; SameSite=Strict`, que la página nunca puede leer.
 - yt-dlp: su propia copia en `userData/bin`. Sale de la que trae la app, de la de TubeGrab o de la última versión publicada, y solo se instala si su SHA-256 coincide con `SHA2-256SUMS`. Una vez al día pasa `yt-dlp -U`.
 - La primera vez copia de TubeGrab `stream-lists.json`, `listen-history.json`, `likes.json` y `news.json`. Solo copia (nunca mueve), nunca sobrescribe y solo acepta JSON válido.
-- La página solo puede pedir tres cosas por `preload.js`: los ajustes, elegir la carpeta de música (con un diálogo nativo, nunca una ruta que mande la página) y «Descargar con TubeGrab» (solo un id de vídeo de 11 caracteres).
+- La página solo puede pedir unas pocas cosas por `preload.js`, cada una comprobada otra vez en el proceso principal (quién la pide y qué valores trae): los ajustes, elegir la carpeta de música (con un diálogo nativo, nunca una ruta que mande la página), «Descargar con TubeGrab» (solo un id de vídeo de 11 caracteres), las actualizaciones (estado, buscar, reiniciar), el mini reproductor (abrirlo, decirle qué suena, sus ajustes, sus botones) y el zoom (del 80 al 150 %).
+- **El puerto se recuerda** entre arranques (`settings.json`). Así el origen de la página no cambia y lo que guarda en el navegador (tema, volumen, Recientes, tu aspecto) no se pierde. Si ese puerto está ocupado, se usa otro y se recuerda ese.
+- **Actualizaciones (`electron/updater.js`):** 15 s después de arrancar y cada 6 h consulta la última release de `Cid736/rumoria`. Descarga en segundo plano el archivo de esta versión (instalador, portable o Lite), solo de GitHub, por HTTPS y comprobando cada redirección, a una carpeta temporal nueva, y lo conserva solo si su SHA-256 y su tamaño coinciden con lo que publica GitHub. «Actualizar a X» (o cerrar Rumoria) lo instala: el instalador en silencio, o en la portable un paso de PowerShell que recibe las rutas por variables de entorno (nunca dentro del texto del comando) y cambia el `.exe`.
+- **Mini reproductor (`electron/mini.js`, `mini-preload.js`, `public/mini.*`):** una ventana sin marco, encima de las demás, con su propio preload mínimo. La música sigue en la ventana principal; el mini solo la muestra (texto con `textContent` y portadas de `i.ytimg.com`) y envía sus botones, de una lista cerrada (`toggle`, `next`, `prev`, `like`, `seek`, `volume`…), que el proceso principal comprueba antes de pasarlos a la página. Si cierras la ventana grande con el mini abierto, solo se oculta (`backgroundThrottling: false`) y la música sigue; al cerrar el mini, Rumoria se cierra.
 
 **Servidor (`server/app.js`)**
 - Escucha solo en `127.0.0.1`. Cada petición pasa por el mismo control de entrada:
@@ -88,10 +91,12 @@ src/
 ├─ main.jsx · App.jsx        diseño, tema, atajos de teclado
 ├─ api.js                    cliente: cookie, X-Rumoria, errores legibles
 ├─ store/
+│  ├─ look.js                tu aspecto: color, tamaño, densidad, esquinas, movimiento, estanterías (solo valores conocidos)
 │  ├─ player.js              cola, índice, quiero-sonar, posición, volumen, repetir, aleatorio, radio
 │  ├─ library.js             listas, favoritas (optimista, con vuelta atrás), historial, novedades, carpeta
 │  └─ ui.js                  vista con atrás/adelante, panel lateral, menús, diálogos, avisos
 ├─ lib/queue.js · tracks.js  reglas puras (cola, aleatorio, mezclas, formatos): probadas sin navegador
+├─ player/miniBridge.js      la página ↔ el mini reproductor (estado a ráfagas de 250 ms, botones de vuelta)
 ├─ player/engine.js          hace que un <audio> siga al store: carga, busca, registra lo escuchado,
 │                            radio al acabar, teclas multimedia (Media Session)
 ├─ components/               Sidebar, TopBar, PlayerBar, SidePanel (cola/letra), TrackTable, Overlays…
