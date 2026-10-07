@@ -1,9 +1,9 @@
-// CLMusic's local server: the page's only way to YouTube, your lists and
+// Rumoria's local server: the page's only way to YouTube, your lists and
 // your history. It listens on 127.0.0.1 only and answers nobody but the app:
 //  - the Host must be this computer and this port (no DNS rebinding);
 //  - every request carries this launch's secret (a cookie the desktop app
 //    sets, httpOnly, or a header in development), compared in constant time;
-//  - anything that changes something also needs the X-CLMusic header, which
+//  - anything that changes something also needs the X-Rumoria header, which
 //    a page from elsewhere can't send without a CORS preflight we never allow.
 // Inputs are checked here; the modules in lib/ clean every field again.
 const crypto = require('crypto');
@@ -41,7 +41,7 @@ const sameSecret = (a, b) => {
 };
 
 function tokenFrom(req) {
-  const h = req.get('x-clmusic-token');
+  const h = req.get('x-rumoria-token');
   if (h) return h;
   const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]{64})(?:;|$)`).exec(String(req.headers.cookie || ''));
   return m ? m[1] : null;
@@ -55,7 +55,7 @@ function guard(token) {
     if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return res.status(421).json({ error: 'Host no permitido.' });
     const given = tokenFrom(req);
     if (!given || !sameSecret(given, token)) return res.status(401).json({ error: 'No autorizado.' });
-    if (!['GET', 'HEAD'].includes(req.method) && req.get('x-clmusic') !== '1') return res.status(403).json({ error: 'Petición no permitida.' });
+    if (!['GET', 'HEAD'].includes(req.method) && req.get('x-rumoria') !== '1') return res.status(403).json({ error: 'Petición no permitida.' });
     return next();
   };
 }

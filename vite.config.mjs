@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 
 // In development (`npm run dev`) the page comes from Vite and /api goes to the
 // local server, with this run's secret added by the proxy (the browser never sees it).
-const devToken = process.env.CLMUSIC_DEV_TOKEN;
-const devPort = process.env.CLMUSIC_DEV_PORT || '5174';
+const devToken = process.env.RUMORIA_DEV_TOKEN;
+const devPort = process.env.RUMORIA_DEV_PORT || '5174';
 
 export default defineConfig({
   plugins: [react()],
@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: devToken ? {
-      '/api': { target: `http://127.0.0.1:${devPort}`, changeOrigin: true, headers: { 'X-CLMusic-Token': devToken } },
+      '/api': { target: `http://127.0.0.1:${devPort}`, changeOrigin: true, headers: { 'X-Rumoria-Token': devToken } },
     } : undefined,
   },
   test: {

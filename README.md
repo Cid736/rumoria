@@ -1,4 +1,4 @@
-# CLMusic
+# Rumoria
 
 Tu música en el escritorio: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Hecho para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
 
@@ -39,4 +39,4 @@ Todo se queda en tu ordenador: listas, historial y favoritas. El historial se pu
 
 ## Licencia
 
-MIT. Para uso personal; respeta los derechos de autor y las condiciones de los servicios que uses. Reproducir YouTube fuera de su web no está permitido por sus condiciones. CLMusic no está afiliado a YouTube, Spotify, Apple, LRCLIB ni a los artistas que aparecen en sus radios. Privacidad, condiciones y licencias de terceros: [LEGAL.md](LEGAL.md) y [third-party/](third-party/README.txt).
+MIT. Para uso personal; respeta los derechos de autor y las condiciones de los servicios que uses. Reproducir YouTube fuera de su web no está permitido por sus condiciones. Rumoria no está afiliado a YouTube, Spotify, Apple, LRCLIB ni a los artistas que aparecen en sus radios. Privacidad, condiciones y licencias de terceros: [LEGAL.md](LEGAL.md) y [third-party/](third-party/README.txt).

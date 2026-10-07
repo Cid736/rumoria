@@ -1,4 +1,4 @@
-// Security suite for CLMusic's local server and desktop shell.
+// Security suite for Rumoria's local server and desktop shell.
 // Each block names the class of bug it guards against (OWASP-style).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -34,8 +34,8 @@ test('auth: a wrong secret (same length, or not) is refused; the right one by co
   const app = await startApp();
   try {
     const wrong = app.token.replace(/^./, (c) => (c === 'a' ? 'b' : 'a'));
-    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-CLMusic-Token': wrong } })).status, 401);
-    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-CLMusic-Token': 'short' } })).status, 401);
+    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-Rumoria-Token': wrong } })).status, 401);
+    assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { 'X-Rumoria-Token': 'short' } })).status, 401);
     assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `clm_t=${wrong}` } })).status, 401);
     assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `x=1; clm_t=${app.token}` } })).status, 200);
     assert.equal((await app.call('GET', '/api/lists', { auth: false, headers: { Cookie: `clm_t=${app.token}x` } })).status, 401, 'a longer value is not a prefix match');
@@ -53,7 +53,7 @@ test('auth: the server will not start without a strong secret', () => {
 test('dns rebinding: only Host 127.0.0.1 / localhost with this port is answered', async () => {
   const app = await startApp();
   try {
-    const h = { 'X-CLMusic-Token': app.token };
+    const h = { 'X-Rumoria-Token': app.token };
     assert.equal((await rawRequest(app.port, { path: '/api/lists', headers: { ...h, Host: `127.0.0.1:${app.port}` } })).status, 200);
     assert.equal((await rawRequest(app.port, { path: '/api/lists', headers: { ...h, Host: `localhost:${app.port}` } })).status, 200);
     for (const host of [`evil.example:${app.port}`, '127.0.0.1', `127.0.0.1:${app.port + 1}`, `127.0.0.1.evil.example:${app.port}`]) {
@@ -61,7 +61,7 @@ test('dns rebinding: only Host 127.0.0.1 / localhost with this port is answered'
     }
     // No Host at all (Node's client would add one, so straight over a socket).
     const reply = await new Promise((resolve) => {
-      const s = require('net').connect(app.port, '127.0.0.1', () => s.write(`GET /api/lists HTTP/1.1\r\nX-CLMusic-Token: ${app.token}\r\nConnection: close\r\n\r\n`));
+      const s = require('net').connect(app.port, '127.0.0.1', () => s.write(`GET /api/lists HTTP/1.1\r\nX-Rumoria-Token: ${app.token}\r\nConnection: close\r\n\r\n`));
       let out = '';
       s.on('data', (c) => { out += c; });
       s.on('close', () => resolve(out));
@@ -71,14 +71,14 @@ test('dns rebinding: only Host 127.0.0.1 / localhost with this port is answered'
 });
 
 // ---------- CSRF / CORS ----------
-test('csrf: changes need the X-CLMusic header, even with the cookie', async () => {
+test('csrf: changes need the X-Rumoria header, even with the cookie', async () => {
   const app = await startApp();
   try {
     const cookie = { Cookie: `clm_t=${app.token}` };
     // What a hostile page could send: a "simple" cross-site POST (the browser would add the cookie... if SameSite allowed it).
-    const r = await app.call('POST', '/api/likes', { auth: false, headers: { ...cookie, 'X-CLMusic': null, 'Content-Type': 'text/plain' }, body: '{"song":{"key":"yt:dQw4w9WgXcQ","title":"x"}}' });
+    const r = await app.call('POST', '/api/likes', { auth: false, headers: { ...cookie, 'X-Rumoria': null, 'Content-Type': 'text/plain' }, body: '{"song":{"key":"yt:dQw4w9WgXcQ","title":"x"}}' });
     assert.equal(r.status, 403);
-    assert.equal((await app.call('DELETE', '/api/history', { auth: false, headers: { ...cookie, 'X-CLMusic': null } })).status, 403);
+    assert.equal((await app.call('DELETE', '/api/history', { auth: false, headers: { ...cookie, 'X-Rumoria': null } })).status, 403);
     assert.equal((await app.call('GET', '/api/likes')).data.songs.length, 0, 'nothing changed');
   } finally { await app.close(); }
 });
@@ -175,8 +175,8 @@ test('ssrf: the fetcher only talks to public addresses (also after DNS and redir
 
 // ---------- Path traversal ----------
 test('path traversal: local files only by id, inside your folder; dotfiles never served', async () => {
-  const music = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-music-'));
-  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-dist-'));
+  const music = fs.mkdtempSync(path.join(os.tmpdir(), 'rum-music-'));
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'rum-dist-'));
   fs.writeFileSync(path.join(music, 'a.mp3'), 'x');
   fs.writeFileSync(path.join(dist, 'index.html'), 'ok');
   fs.writeFileSync(path.join(dist, '.env'), 'SECRET=1');
@@ -186,7 +186,7 @@ test('path traversal: local files only by id, inside your folder; dotfiles never
       assert.equal((await app.call('GET', `/api/local/file?id=${encodeURIComponent(id)}`)).status, 404, id);
     }
     for (const p of ['/.env', '/%2e%2e/package.json', '/..%2f..%2fpackage.json', '/../server/app.js']) {
-      const r = await rawRequest(app.port, { path: p, headers: { 'X-CLMusic-Token': app.token, Host: `127.0.0.1:${app.port}` } });
+      const r = await rawRequest(app.port, { path: p, headers: { 'X-Rumoria-Token': app.token, Host: `127.0.0.1:${app.port}` } });
       assert.ok([403, 404].includes(r.status), `${p} → ${r.status}`);
       assert.equal(r.body.includes('SECRET'), false);
     }

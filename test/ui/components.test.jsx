@@ -50,7 +50,7 @@ describe('PlayerBar', () => {
     expect(useLibrary.getState().likedKeys.has(A.key)).toBe(true);
     const [url, init] = fetch.mock.calls[0];
     expect(url).toBe('/api/likes');
-    expect(init.headers['X-CLMusic']).toBe('1');
+    expect(init.headers['X-Rumoria']).toBe('1');
     expect(JSON.parse(init.body).song).toEqual({ key: A.key, title: 'Primera', artist: 'Grupo', dur: 125 });
   });
 
@@ -166,12 +166,12 @@ describe('keyboard', () => {
 });
 
 describe('api client', () => {
-  it('reads send no extra headers; changes send X-CLMusic and JSON; errors carry the server\'s message', async () => {
+  it('reads send no extra headers; changes send X-Rumoria and JSON; errors carry the server\'s message', async () => {
     await api.get('/api/lists');
-    expect(fetch.mock.calls[0][1].headers['X-CLMusic']).toBeUndefined();
+    expect(fetch.mock.calls[0][1].headers['X-Rumoria']).toBeUndefined();
     expect(fetch.mock.calls[0][1].credentials).toBe('same-origin');
     await api.patch('/api/lists/x', { name: 'y' });
-    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'PATCH', body: '{"name":"y"}', headers: { 'X-CLMusic': '1', 'Content-Type': 'application/json' } });
+    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'PATCH', body: '{"name":"y"}', headers: { 'X-Rumoria': '1', 'Content-Type': 'application/json' } });
     fetch.mockResolvedValueOnce(new Response(JSON.stringify({ error: 'Vídeo no válido.' }), { status: 400 }));
     await expect(api.get('/api/stream/info?id=x')).rejects.toThrow('Vídeo no válido.');
     fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));

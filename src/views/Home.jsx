@@ -13,7 +13,7 @@ import { Play } from '../components/Icons.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
 import { discoverOf, radioOf, seedsOf } from './recommend.js';
 
-const SIMILAR_KEY = 'clmusic_similar';
+const SIMILAR_KEY = 'rumoria_similar';
 
 function greeting(d = new Date()) {
   const h = d.getHours();

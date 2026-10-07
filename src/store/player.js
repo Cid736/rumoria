@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { emptyQueue, insert, nextIndex, prevIndex, removeAt, replaceAt, setShuffle, startQueue } from '../lib/queue.js';
 
-const VOLUME_KEY = 'clmusic_volume';
+const VOLUME_KEY = 'rumoria_volume';
 const savedVolume = () => {
   try { const v = Number(localStorage.getItem(VOLUME_KEY)); return Number.isFinite(v) && v >= 0 && v <= 1 && localStorage.getItem(VOLUME_KEY) !== null ? v : 0.8; } catch { return 0.8; }
 };

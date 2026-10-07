@@ -3,7 +3,7 @@
 import { api, urls } from '../api.js';
 import { fromSaved, fromYouTube, mixOf, shuffled } from '../lib/tracks.js';
 
-const CACHE_KEY = 'clmusic_mixes';
+const CACHE_KEY = 'rumoria_mixes';
 
 export const SMART = {
   top: { name: 'Lo más escuchado', sub: 'Lo que más suena estos tres meses' },

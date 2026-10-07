@@ -1,6 +1,6 @@
 {
-  "name": "clmusic",
-  "productName": "CLMusic",
+  "name": "rumoria",
+  "productName": "Rumoria",
   "version": "1.0.0",
   "description": "Tu música: listas de Spotify, Apple Music y YouTube, favoritas e historial, sin descargar nada.",
   "main": "electron/main.js",
@@ -32,8 +32,8 @@
     "helmet": "^8.3.0"
   },
   "build": {
-    "appId": "com.clmusic.app",
-    "productName": "CLMusic",
+    "appId": "com.rumoria.app",
+    "productName": "Rumoria",
     "asar": false,
     "directories": {
       "output": "release"
@@ -57,13 +57,13 @@
       "icon": "build/icon.ico"
     },
     "portable": {
-      "artifactName": "CLMusic.exe"
+      "artifactName": "Rumoria.exe"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "artifactName": "CLMusic-Setup.exe",
-      "shortcutName": "CLMusic",
+      "artifactName": "Rumoria-Setup.exe",
+      "shortcutName": "Rumoria",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,

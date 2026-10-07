@@ -1,4 +1,4 @@
-/* CLMusic's look: ink and coral. Every colour is a token, defined for both themes. */
+/* Rumoria's look: ink and coral. Every colour is a token, defined for both themes. */
 :root,
 :root[data-theme="dark"] {
   --bg: #0b0a10;

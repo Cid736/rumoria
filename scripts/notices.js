@@ -25,7 +25,7 @@ const pkg = (n) => JSON.parse(fs.readFileSync(path.join(root, 'node_modules', n,
 const addWithDeps = (n) => { if (names.has(n)) return; names.add(n); for (const d of Object.keys(pkg(n).dependencies || {})) addWithDeps(d); };
 BUNDLED.forEach(addWithDeps);
 
-const out = ['CLMusic — third-party notices', '', 'CLMusic includes the following open-source packages, each under its own license.', ''];
+const out = ['Rumoria — third-party notices', '', 'Rumoria includes the following open-source packages, each under its own license.', ''];
 const problems = [];
 for (const n of [...names].sort()) {
   const p = pkg(n);

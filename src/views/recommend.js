@@ -5,7 +5,7 @@
 import { api, urls } from '../api.js';
 import { fromYouTube } from '../lib/tracks.js';
 
-const DISCOVER_KEY = 'clmusic_discover';
+const DISCOVER_KEY = 'rumoria_discover';
 const fold = (s) => String(s || '').toLowerCase().trim();
 
 /** Up to `max` songs to start from: what you play most, then what you played lately, one per artist. */

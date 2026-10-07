@@ -54,7 +54,7 @@ test('explorar: the songs of the first playlists found, in turns; a plain search
 });
 
 test('explorar: each list looked up once, kept on disk, old copy if YouTube fails', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-browse-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rum-browse-'));
   let now = 1000;
   let calls = 0;
   try {
@@ -75,7 +75,7 @@ test('explorar: each list looked up once, kept on disk, old copy if YouTube fail
 });
 
 test('explorar: a poor answer never replaces a good list; stale lists are read again; covers only from YouTube', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-browse-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rum-browse-'));
   let now = 1000;
   try {
     const b = new Browse(path.join(dir, 'b.json'), { now: () => now });

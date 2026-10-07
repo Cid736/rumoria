@@ -32,15 +32,15 @@ function fakeYouTube(overrides = {}) {
 
 /** Starts the app; returns { base, token, port, call, dataDir, musicDir, yt, close }. */
 async function startApp({ musicDir = null, staticDir = null, yt = fakeYouTube() } = {}) {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'clm-app-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rum-app-'));
   const token = crypto.randomBytes(32).toString('hex');
   const server = createApp({ token, dataDir, ytEnv: () => ({ ytDlpPath: 'yt-dlp' }), musicDir, staticDir, background: false, deps: yt });
   const http = await new Promise((resolve) => { const h = server.app.listen(0, '127.0.0.1', () => resolve(h)); });
   const { port } = http.address();
   const base = `http://127.0.0.1:${port}`;
-  /** A request as the app makes it (secret + X-CLMusic), unless `headers` says otherwise. */
+  /** A request as the app makes it (secret + X-Rumoria), unless `headers` says otherwise. */
   async function call(method, url, { body, headers = {}, auth = true, raw = false } = {}) {
-    const h = { ...(auth ? { 'X-CLMusic-Token': token } : {}), ...(method !== 'GET' ? { 'X-CLMusic': '1' } : {}), ...headers };
+    const h = { ...(auth ? { 'X-Rumoria-Token': token } : {}), ...(method !== 'GET' ? { 'X-Rumoria': '1' } : {}), ...headers };
     if (body !== undefined && typeof body !== 'string') h['Content-Type'] = 'application/json';
     for (const [k, v] of Object.entries(h)) if (v === null) delete h[k];
     const res = await fetch(`${base}${url}`, { method, headers: h, body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body) });

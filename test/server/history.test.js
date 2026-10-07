@@ -8,7 +8,7 @@ const { ListenLog, cleanSong, mainArtist } = require('../../server/lib/listenlog
 const { Likes } = require('../../server/lib/likes');
 const { News, isTheirs } = require('../../server/lib/news');
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'clm-history-'));
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rum-history-'));
 const song = (id, title, artist, extra = {}) => ({ key: `yt:${id}`, title, artist, thumb: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, dur: 200, ...extra });
 
 test('history: only songs we know how to name, cleaned', () => {

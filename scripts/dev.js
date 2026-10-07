@@ -7,9 +7,9 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const token = crypto.randomBytes(32).toString('hex');
-const port = process.env.CLMUSIC_DEV_PORT || '5174';
+const port = process.env.RUMORIA_DEV_PORT || '5174';
 const root = path.join(__dirname, '..');
-const env = { ...process.env, CLMUSIC_TOKEN: token, CLMUSIC_DEV_TOKEN: token, CLMUSIC_PORT: port, CLMUSIC_DEV_PORT: port };
+const env = { ...process.env, RUMORIA_TOKEN: token, RUMORIA_DEV_TOKEN: token, RUMORIA_PORT: port, RUMORIA_DEV_PORT: port };
 
 const server = spawn(process.execPath, [path.join(root, 'server', 'main.js')], { env, stdio: 'inherit' });
 const vite = spawn(process.execPath, [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')], { env, stdio: 'inherit', cwd: root });

@@ -1,6 +1,6 @@
-CLMusic — third-party notices
+Rumoria — third-party notices
 
-CLMusic includes the following open-source packages, each under its own license.
+Rumoria includes the following open-source packages, each under its own license.
 
 ------------------------------------------------------------------------
 accepts 2.0.0 — MIT

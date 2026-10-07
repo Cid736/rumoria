@@ -72,13 +72,13 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
             onKeyDown={(e) => { if (e.key === 'Enter') play(i); }}
             onContextMenu={(e) => { e.preventDefault(); openMenu(i, e.clientX, e.clientY); }}
             draggable={Boolean(reorder)}
-            onDragStart={(e) => { e.dataTransfer.setData('text/x-clmusic-row', String(i)); e.dataTransfer.effectAllowed = 'move'; }}
+            onDragStart={(e) => { e.dataTransfer.setData('text/x-rumoria-row', String(i)); e.dataTransfer.effectAllowed = 'move'; }}
             onDragOver={(e) => { if (reorder) { e.preventDefault(); setDragOver(i); } }}
             onDragLeave={() => setDragOver(null)}
             onDrop={(e) => {
               e.preventDefault();
               setDragOver(null);
-              const from = Number(e.dataTransfer.getData('text/x-clmusic-row'));
+              const from = Number(e.dataTransfer.getData('text/x-rumoria-row'));
               if (reorder && Number.isInteger(from) && from !== i) reorder(from, i);
             }}
           >

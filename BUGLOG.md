@@ -1,4 +1,4 @@
-# Bug Log — CLMusic
+# Bug Log — Rumoria
 
 El historial anterior a la separación (cuando era la pestaña «Escuchar») está en el `BUGLOG.md` de TubeGrab.
 
@@ -55,3 +55,13 @@ Revisado: `server/lib/browse.js`, `/api/browse` y `/api/browse/:id`, la lectura 
   - Que las listas de Explorar se hacen con playlists públicas de terceros, que los nombres de las categorías son propios y cómo pedir una retirada.
 - README: aviso sobre las condiciones de YouTube, la falta de afiliación y enlaces a `LEGAL.md` y `third-party/`.
 - `THIRD-PARTY-NOTICES.txt` se vuelve a generar en cada compilación (`npm run notices`). Ninguna dependencia nueva: todas siguen con licencias permisivas.
+
+---
+
+## 2026-10-07 — El nombre: Rumoria
+
+### [Legal] La app se llamaba «CLMusic»
+- **Conflictos de «CLMusic»:** ya existía «CLMusicPlayer», un reproductor de música para Windows en itch.io; además hay una empresa británica «CL MUSIC LTD» y la cantante «CL».
+- **Rumoria:** no tiene marcas registradas en EE. UU. (Trademarkia/USPTO; el buscador se comprobó con «Deezer» y «Sonora»), ni uso en la web, ni repos en GitHub, y `rumoria.com`, `.app` y `.es` están libres. Se descartaron, entre otros, Melovia, Sonvia y Sonaro, demasiado parecidos a apps de música que ya existen, y Muselo, que es una marca registrada.
+- **Pendiente:** buscarla en TMview (EUIPO y OEPM) antes de registrarla; su API no responde a consultas automáticas.
+- **Cambiado:** nombre, `appId` (`com.rumoria.app`), los tres `.exe`, la carpeta de datos (`%APPDATA%\rumoria`), las variables `RUMORIA_*`, la cabecera `X-Rumoria`, el canal IPC `rumoria:*`, las claves de `localStorage`, el User-Agent y la documentación. TubeGrab enlaza a `Cid736/rumoria`.

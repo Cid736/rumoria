@@ -8,7 +8,7 @@ const path = require('path');
 const stream = require('../../server/lib/stream');
 const { StreamLists, cleanTrack, cleanList, pickVideo, MAX_TRACKS } = require('../../server/lib/streamlists');
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'clm-lists-'));
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rum-lists-'));
 const songs = (...names) => names.map((title) => ({ title, artist: 'X' }));
 
 test('stream: only YouTube video ids, only YouTube media servers', () => {

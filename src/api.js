@@ -1,6 +1,6 @@
 // The page's only way to the local server. The secret travels by itself (an
 // httpOnly cookie the desktop app set, or the dev proxy); changes add the
-// X-CLMusic header the server requires against cross-site requests.
+// X-Rumoria header the server requires against cross-site requests.
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -12,7 +12,7 @@ export class ApiError extends Error {
 async function call(method, url, body) {
   const opts = { method, credentials: 'same-origin', headers: { Accept: 'application/json' } };
   if (method !== 'GET') {
-    opts.headers['X-CLMusic'] = '1';
+    opts.headers['X-Rumoria'] = '1';
     if (body !== undefined) {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
@@ -51,4 +51,4 @@ export const urls = {
 };
 
 /** The desktop app's extras (absent in a plain browser during development). */
-export const desktop = typeof window !== 'undefined' && window.clmusic ? window.clmusic : null;
+export const desktop = typeof window !== 'undefined' && window.rumoria ? window.rumoria : null;

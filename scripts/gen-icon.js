@@ -1,4 +1,4 @@
-// `node scripts/gen-icon.js`: draws CLMusic's icon (no image editor, no
+// `node scripts/gen-icon.js`: draws Rumoria's icon (no image editor, no
 // dependencies): an ink rounded square with four coral equalizer bars, the
 // app's own colours. Writes build/icon.ico (16–256 px), build/icon.png (512 px,
 // for the window) and public/icon.png (the page's favicon).

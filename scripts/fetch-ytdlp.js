@@ -15,7 +15,7 @@ function get(u, redirects = 5) {
   return new Promise((resolve, reject) => {
     const url = new URL(u);
     if (url.protocol !== 'https:' || !ALLOWED_HOSTS.has(url.hostname)) return reject(new Error(`origen no permitido: ${url.hostname}`));
-    https.get(url, { headers: { 'User-Agent': 'clmusic-fetch' } }, (res) => {
+    https.get(url, { headers: { 'User-Agent': 'rumoria-fetch' } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects > 0) {
         res.resume();
         return get(new URL(res.headers.location, url).toString(), redirects - 1).then(resolve, reject);
