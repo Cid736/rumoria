@@ -74,6 +74,8 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 | `POST /api/history`, `GET /api/history/{smart,summary}`, `PATCH /api/history/settings`, `DELETE /api/history` | Historial de escucha |
 | `GET/POST /api/likes`, `POST /api/likes/remove` | Favoritas |
 | `GET /api/news` | Novedades de tus artistas |
+| `POST /api/lists/auto` | Lista que se llena sola: `{ q, every, folder? }`. El tema es texto plano (sin caracteres de control, 100 como máximo) y solo va detrás de `--` (`ytsearch30:` o la URL de búsqueda de playlists). Se guardan títulos e ids, nunca audio. `POST /api/lists/:id/refresh` busca canciones nuevas y `PATCH` cambia la frecuencia o la para (`auto: null`) |
+| `GET` / `PATCH /api/curator`, `POST /api/curator/run` | «Para ti» (`server/lib/curator.js`): estado, encendido, renovar cada 3/7/14 días y renovar ahora. Los géneros se calculan en local cruzando los artistas de tu historial con los de cada categoría de Explorar; la predicción es la categoría que comparte más artistas con las tuyas y que aún no escuchas, alternando semana a semana entre las 3 mejores |
 | `GET /api/browse`, `GET /api/browse/:id` | «Explorar»: listas ya hechas. Cada id tiene una búsqueda fija de playlists de YouTube (nunca texto de la página); solo canciones, en caché 6 h |
 | `GET /api/local`, `POST /api/local/rescan`, `GET /api/local/file?id=` | Tu carpeta de música (por id, nunca por ruta) |
 
@@ -186,7 +188,7 @@ Después, en GitHub: *Settings → Code security* activa **Dependabot alerts**, 
 
 | Riesgo | Qué se comprueba |
 |---|---|
-| **Acceso sin autorización** (OWASP A01/A07) | Las 31 rutas (también `/api/browse`) devuelven 401 sin el secreto; un secreto falso (misma longitud, más corto, con un carácter de más) se rechaza; el servidor no arranca sin un secreto de 64 hex |
+| **Acceso sin autorización** (OWASP A01/A07) | Las 35 rutas (también `/api/browse`, `/api/lists/auto` y `/api/curator`) devuelven 401 sin el secreto; un secreto falso (misma longitud, más corto, con un carácter de más) se rechaza; el servidor no arranca sin un secreto de 64 hex |
 | **DNS rebinding** | Solo responde a `Host` 127.0.0.1/localhost con su puerto; otro host, otro puerto o ningún `Host` → rechazado |
 | **CSRF / CORS** | Un POST «simple» de otra web, aunque lleve la cookie, se rechaza (403) sin cambiar nada; nunca hay `Access-Control-Allow-Origin` |
 | **Inyección** (A03) | Ids de vídeo con `--exec`, `;`, `../`, `%00`, parámetros duplicados → 400 y **nada llega a yt-dlp**; la búsqueda va en una sola línea y siempre después de `--`; ids de lista con trucos de ruta → 404; *prototype pollution* por JSON sin efecto; el texto guardado vuelve como JSON con `nosniff` y la interfaz lo pinta como texto (test de XSS en React) |

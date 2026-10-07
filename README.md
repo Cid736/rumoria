@@ -10,6 +10,8 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Importa** una playlist o un perfil entero de Spotify; las listas de un enlace se mantienen al día solas
 - **Reproductor abajo**: aleatorio, repetir (todo / una), radio al acabar la cola, volumen, teclas multimedia
 - **Cola y letra sincronizada** en el panel derecho (pulsa una línea para ir a ella)
+- **Listas que se llenan solas**: escribe un estilo, un artista o un momento («Rock de los 80», «Bad Bunny», «lo-fi para estudiar»), o pulsa ✨ junto a una carpeta para usar su nombre, y Rumoria la llena al momento y le añade canciones nuevas cada 6 h, 12 h, día o semana. Si quitas una, no vuelve
+- **«Para ti»**: nada más instalarla ya tienes una carpeta con 6 listas llenas. Según lo que escuchas, Rumoria deduce tus géneros (cruzando tus artistas con los de cada categoría), crea sus listas con tus artistas primero, añade una para **descubrir** el género que más se parece a lo tuyo y las **renueva** cada 3 días, semana o 2 semanas. Las que renombres o muevas pasan a ser tuyas; se puede apagar en Ajustes
 - **Inicio con recomendaciones**, sin tener que añadir nada:
   - **Hecho para ti**: «Descubre algo nuevo» (cada semana, solo canciones que aún no has escuchado), una **Mezcla del día** por cada uno de tus seis artistas favoritos, novedades de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
   - **Lo que más vuelves a poner** y **Recientes** (listas, mezclas, radios…)

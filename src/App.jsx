@@ -59,7 +59,12 @@ export default function App() {
   const panel = useUi((s) => s.panel);
   const theme = useUi((s) => s.theme);
 
-  useEffect(() => { useLibrary.getState().loadAll(); }, []);
+  useEffect(() => {
+    useLibrary.getState().loadAll();
+    // Lists made or filled in the background ("Para ti", lists that fill themselves) show up by themselves.
+    const t = setInterval(() => useLibrary.getState().refreshLists(), 60_000);
+    return () => clearInterval(t);
+  }, []);
   useEffect(() => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

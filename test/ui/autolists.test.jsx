@@ -2,7 +2,9 @@
 // what it says about itself, and its menu.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { api } from '../../src/api.js';
 import Overlays from '../../src/components/Overlays.jsx';
+import Settings from '../../src/views/Settings.jsx';
 import Sidebar from '../../src/components/Sidebar.jsx';
 import { autoMenuItems, autoSub, everyLabel } from '../../src/lib/autoLists.js';
 import { useLibrary } from '../../src/store/library.js';
@@ -60,5 +62,28 @@ describe('lists that fill themselves', () => {
     items[2].onClick();
     expect(patchList).toHaveBeenCalledWith(AUTO.id, { auto: null });
     expect(autoMenuItems({ ...AUTO, auto: null })).toEqual([]);
+  });
+});
+
+describe('"Para ti" in Ajustes', () => {
+  it('shows your genres, switches it, changes how often and renews now', async () => {
+    const view = { enabled: true, every: 7, at: 1, next: Date.now() + 86400000, genres: [{ id: 'rock', name: 'Rock de siempre' }, { id: 'indie', name: 'Indie' }] };
+    const get = vi.spyOn(api, 'get').mockResolvedValue(view);
+    const patch = vi.spyOn(api, 'patch').mockImplementation(async (url, body) => ({ ...view, ...body }));
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ ...view, made: 2, removed: 1 });
+    const refreshLists = vi.fn(async () => {});
+    useLibrary.setState({ refreshLists });
+    render(<><Settings /><Overlays /></>);
+    expect(await screen.findByText('Rock de siempre, Indie')).toBeInTheDocument();
+    expect(screen.getByText(/No se descarga nada/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Renovar las listas/), { target: { value: '14' } });
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/api/curator', { every: 14 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Renovar' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/api/curator/run'));
+    await waitFor(() => expect(refreshLists).toHaveBeenCalled());
+    expect(useUi.getState().toasts.at(-1).text).toBe('«Para ti» renovada: 2 listas nuevas');
+    fireEvent.click(screen.getByLabelText(/Crear listas para mí/));
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/api/curator', { enabled: false }));
+    get.mockRestore(); patch.mockRestore(); post.mockRestore();
   });
 });

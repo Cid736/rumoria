@@ -1,8 +1,53 @@
-// Ajustes: the look, your music folder, the listening history (pause, wipe).
+// Ajustes: the look, your music folder, "Para ti", the listening history (pause, wipe).
 import { useEffect, useState } from 'react';
 import { api, desktop } from '../api.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
+
+const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
+
+/** "Para ti": the lists Rumoria makes and rotates (your genres, one to discover). */
+function ParaTi() {
+  const [cur, setCur] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useUi.getState().toast;
+  useEffect(() => { api.get('/api/curator').then(setCur, () => {}); }, []);
+  const set = async (patch) => { try { setCur(await api.patch('/api/curator', patch)); } catch (err) { toast(err.message); } };
+  const now = async () => {
+    setBusy(true);
+    try {
+      const r = await api.post('/api/curator/run');
+      setCur(r);
+      await useLibrary.getState().refreshLists();
+      toast(r.made || r.removed ? `«Para ti» renovada: ${r.made} listas nuevas` : '«Para ti» ya estaba al día');
+    } catch (err) { toast(err.message); } finally { setBusy(false); }
+  };
+  if (!cur) return null;
+  return (
+    <section className="set-group">
+      <h2>Para ti</h2>
+      <p className="muted">
+        Listas que Rumoria crea y llena sola en la carpeta «Para ti»: al principio, unas de los estilos más populares (las mismas para todos; Rumoria no recoge datos de nadie); después, las de tus géneros
+        y una para descubrir lo que más se parece a lo tuyo. No se descarga nada. Si cambias el nombre o la carpeta de una, pasa a ser tuya; si la borras, ese género no vuelve en un tiempo.
+      </p>
+      {cur.genres.length > 0 && <p className="muted"><strong>Tus géneros:</strong> {cur.genres.map((g) => g.name).join(', ')}</p>}
+      <label className="set-row">
+        <span><strong>Crear listas para mí</strong><small>Apagado, las que ya hay se quedan como están.</small></span>
+        <input type="checkbox" className="switch" checked={cur.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+      </label>
+      <label className="set-row">
+        <span><strong>Renovar las listas</strong><small>{cur.next ? `Próxima vez: ${new Date(cur.next).toLocaleDateString()}` : 'Pronto'}</small></span>
+        <select value={cur.every} onChange={(e) => set({ every: Number(e.target.value) })} disabled={!cur.enabled}>
+          {ROTATE.map(([d, label]) => <option key={d} value={d}>{label}</option>)}
+        </select>
+      </label>
+      <div className="set-row">
+        <span><strong>Renovar ahora</strong><small>Vuelve a calcular tus géneros y cambia las listas que ya no encajan.</small></span>
+        <button type="button" className="btn btn-ghost" onClick={now} disabled={busy || !cur.enabled}>{busy ? 'Buscando…' : 'Renovar'}</button>
+      </div>
+    </section>
+  );
+}
 
 export default function Settings() {
   const theme = useUi((s) => s.theme);
@@ -50,6 +95,7 @@ export default function Settings() {
           </div>
         </section>
       )}
+      <ParaTi />
       <section className="set-group">
         <h2>Historial de escucha</h2>
         <p className="muted">Se guarda solo en este ordenador y alimenta «Hecho para ti» y las novedades de tus artistas.</p>

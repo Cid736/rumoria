@@ -49,7 +49,10 @@ function cleanAuto(a) {
   const q = clean(a.q, 100);
   if (!q) return null;
   const blocked = [...new Set((Array.isArray(a.blocked) ? a.blocked : []).map(String).filter((id) => YT_RE.test(id)))].slice(-AUTO_BLOCKED);
-  return { q, every: AUTO_EVERY.includes(a.every) ? a.every : 24, at: Number.isFinite(a.at) ? a.at : 0, blocked };
+  const out = { q, every: AUTO_EVERY.includes(a.every) ? a.every : 24, at: Number.isFinite(a.at) ? a.at : 0, blocked };
+  // Made by Rumoria for "Para ti" (which category, and why): it may rotate it.
+  if (a.by === 'rumoria' && /^[a-z0-9-]{1,40}$/.test(String(a.cat || '')) && ['genre', 'discover', 'starter'].includes(a.kind)) Object.assign(out, { by: 'rumoria', cat: a.cat, kind: a.kind });
+  return out;
 }
 
 function cleanList(l) {
@@ -93,7 +96,7 @@ class StreamLists {
       return {
         id: l.id, name: l.name, source: l.source, url: l.url, count: l.tracks.length, updatedAt: l.updatedAt,
         thumbnail: thumbs[0] || null, thumbs, folder: l.folder, sync: l.sync, syncedAt: l.syncedAt, keep: Boolean(l.keep),
-        auto: l.auto ? { q: l.auto.q, every: l.auto.every, at: l.auto.at } : null,
+        auto: l.auto ? { q: l.auto.q, every: l.auto.every, at: l.auto.at, ...(l.auto.by ? { by: l.auto.by, kind: l.auto.kind } : {}) } : null,
       };
     });
   }
@@ -156,8 +159,10 @@ class StreamLists {
   update(id, patch) {
     const l = this.get(id);
     if (!l) return null;
-    if (patch.name !== undefined) l.name = clean(patch.name, 150) || l.name;
-    if (typeof patch.folder === 'string') l.folder = clean(patch.folder, 60) || null;
+    // Renamed or moved by you: one of Rumoria's lists becomes yours (never rotated away).
+    const adopt = () => { if (l.auto && l.auto.by) { delete l.auto.by; delete l.auto.cat; delete l.auto.kind; } };
+    if (patch.name !== undefined) { const name = clean(patch.name, 150) || l.name; if (name !== l.name) adopt(); l.name = name; }
+    if (typeof patch.folder === 'string') { const folder = clean(patch.folder, 60) || null; if (folder !== l.folder) adopt(); l.folder = folder; }
     if (typeof patch.sync === 'boolean') l.sync = Boolean(l.url) && patch.sync;
     // Filling itself: how often, or stop (it stays as a list of yours).
     if (patch.auto === null && l.auto) { l.auto = null; if (l.source === 'auto') l.source = 'own'; }

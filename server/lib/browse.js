@@ -152,10 +152,10 @@ class Browse {
 
   has(id) { return BY_ID.has(String(id)); }
 
-  /** Read less than six hours ago (else worth reading again). */
-  isFresh(id) {
+  /** Read less than `ms` ago (six hours by default; else worth reading again). */
+  isFresh(id, ms = CACHE_MS) {
     const hit = this.cache[String(id)];
-    return Boolean(hit && hit.tracks.length && this.now() - hit.at < CACHE_MS);
+    return Boolean(hit && hit.tracks.length && this.now() - hit.at < ms);
   }
 
   /** One list's songs: from the cache while fresh, else looked up (once at a time). */

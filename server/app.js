@@ -19,7 +19,8 @@ const { ListenLog } = require('./lib/listenlog');
 const { Likes } = require('./lib/likes');
 const { News } = require('./lib/news');
 const { LocalMusic } = require('./lib/localmusic');
-const { Browse, findSongs } = require('./lib/browse');
+const { Browse, findSongs, CATEGORIES } = require('./lib/browse');
+const { Curator, EVERY_DAYS } = require('./lib/curator');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
@@ -83,6 +84,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const local = new LocalMusic(musicDir);
   if (musicDir) local.scan();
   const browse = new Browse(path.join(dataDir, 'browse-cache.json'));
+  const curator = new Curator(path.join(dataDir, 'curator.json'));
 
   const ytSlots = slots(3);
   const listSlots = slots(2);
@@ -289,7 +291,10 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     try { res.json(lists.update(l.id, { tracks: (await readListLink(l.url)).tracks })); } catch (err) { res.status(400).json({ error: shortError(err, 'No se pudo leer esa lista.') }); }
   });
   app.delete('/api/lists/:id', writeLimiter, (req, res) => {
-    if (!listFor(req, res)) return;
+    const l = listFor(req, res);
+    if (!l) return;
+    // One of Rumoria's lists: you didn't want it, so its genre stays away for a while.
+    if (l.auto && l.auto.by === 'rumoria') curator.dismiss(l.auto.cat);
     res.json({ ok: lists.remove(String(req.params.id)) });
   });
 
@@ -336,6 +341,20 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     } finally { ytSlots.release(); }
   });
 
+  // ---- "Para ti": lists Rumoria makes and rotates for you ----
+  app.get('/api/curator', (req, res) => res.json(curator.view(CATEGORIES)));
+  app.patch('/api/curator', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    curator.set({ enabled: typeof b.enabled === 'boolean' ? b.enabled : undefined, every: EVERY_DAYS.includes(b.every) ? b.every : undefined });
+    res.json(curator.view(CATEGORIES));
+  });
+  // Work "Para ti" out again now (your genres, one to discover).
+  app.post('/api/curator/run', ytLimiter, async (req, res) => {
+    const r = await curate({ force: true }).catch(() => null);
+    if (!r) return res.status(429).json(BUSY);
+    return res.json({ ...curator.view(CATEGORIES), made: r.made.length, removed: r.removed.length });
+  });
+
   // ---- news of your artists ----
   app.get('/api/news', (req, res) => res.json({ news: news.list() }));
 
@@ -376,6 +395,26 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
     }
   }
+  // "Para ti": ready-made lists for everyone, then your genres and one to
+  // discover, worked out again every few days (see lib/curator.js).
+  let curating = false;
+  async function curate({ force = false } = {}) {
+    if (curating || !ytSlots.take()) return null;
+    curating = true;
+    try {
+      return await curator.run({
+        lists, smart: history.paused ? null : history.smart(), browse, categories: CATEGORIES,
+        splitTitle: streamLib.splitTitle, fill: (q) => songsFor(q).catch(() => []), force,
+        // Who else plays with an artist no category knows: the mix of one of
+        // their songs and the public playlists they are in (the artist's name, after "--").
+        similar: async (id, name) => {
+          const radio = await stream.radio(id, ytEnv(), yt.flatList).catch(() => []);
+          const inLists = await findSongs(topicOf(name), (target, limit) => yt.flatList(target, ytEnv(), limit)).catch(() => []);
+          return [...radio, ...inLists].map((e) => streamLib.splitTitle(e.title, e.channel).artist).filter(Boolean);
+        },
+      });
+    } finally { curating = false; ytSlots.release(); }
+  }
   async function lookForNews() {
     if (history.paused) return;
     const artists = (history.smart().artists || []).map((a) => a.name).filter(Boolean).slice(0, 8);
@@ -387,11 +426,14 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       });
     } finally { ytSlots.release(); }
   }
-  // The featured "Explorar" lists and radios, read ahead one at a time (so their
-  // covers show on the home page), only those not read lately; a list being
-  // listened to always comes first (this one waits for a free slot or skips).
+  // Every "Explorar" list and radio read ahead, one at a time, so they open
+  // at once for everyone and "Para ti" can tell your genres: the featured ones
+  // when older than 6 h (their covers are on the home page), the rest once a
+  // day. A list being listened to always comes first (this waits or skips).
   async function warmBrowse() {
-    for (const b of browse.list().filter((x) => x.featured && !browse.isFresh(x.id))) {
+    const all = browse.list();
+    const due = [...all.filter((x) => x.featured && !browse.isFresh(x.id)), ...all.filter((x) => !x.featured && !browse.isFresh(x.id, 24 * 3600_000))];
+    for (const b of due) {
       if (!ytSlots.take()) return;
       try { await browse.get(b.id, (target, limit) => yt.flatList(target, ytEnv(), limit)); } catch { /* next time */ } finally { ytSlots.release(); }
       await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
@@ -401,6 +443,9 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   if (background) {
     timers.push(setTimeout(() => { warmBrowse().catch(() => {}); }, 90_000));
     timers.push(setInterval(() => { warmBrowse().catch(() => {}); }, 6 * 3600_000));
+    // Soon after starting (a new install gets its lists right away), then a look every 30 min.
+    timers.push(setTimeout(() => { curate().catch(() => {}); }, 20_000));
+    timers.push(setInterval(() => { curate().catch(() => {}); }, 30 * 60_000));
     timers.push(setTimeout(() => { fillAutoLists().catch(() => {}); }, 2 * 60_000));
     timers.push(setInterval(() => { fillAutoLists().catch(() => {}); }, 3600_000));
     timers.push(setTimeout(() => { syncLists().catch(() => {}); }, 3 * 60_000));
@@ -415,7 +460,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
     _state: { lists, history, likes, news, local, browse },
-    _run: { fillAutoLists },
+    _run: { fillAutoLists, curate, warmBrowse },
   };
 }
 

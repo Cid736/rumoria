@@ -106,3 +106,38 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 - **Pruebas:** `test/security/hardening.test.js`. En total, 59 del servidor y de seguridad y 37 de la interfaz, todas superadas.
 - **Migración:** también se comprueba que el archivo abierto es el mismo que se miró (mismo identificador de archivo, `ino` en `bigint`; en Windows `lstat` no da número de dispositivo), así que no cuela uno cambiado entre medias.
 - v1.0.1 con estos arreglos.
+
+---
+
+## 2026-10-08 — v1.1.0: listas que se llenan solas y «Para ti»
+
+### [Función] Listas que se llenan solas
+- **Qué hacen:** a partir de un tema («Rock de los 80», «Bad Bunny»…) o del nombre de una carpeta (botón ✨), Rumoria busca canciones en YouTube y llena la lista al momento. Después añade las nuevas cada 6 h, 12 h, día o semana.
+- **Sin descargas:** se guardan títulos e ids de YouTube; todo suena al momento, como el resto de listas.
+- **Reglas:** las canciones nuevas van arriba, como mucho 100 canciones por lista, y las que quites no vuelven (se recuerdan hasta 500).
+- **Seguridad:** el tema es texto plano (sin caracteres de control, 100 como máximo) y solo llega a yt-dlp detrás de `--`, como `ytsearch30:…` o dentro de la URL de búsqueda. Un test usa `--exec calc` como tema.
+- **Recursos:** el relleno en segundo plano mira cada hora, rellena una lista cada vez y solo si hay un hueco libre.
+
+### [Función] «Para ti»
+- **Para todos:** una instalación nueva tiene en 1–2 minutos una carpeta «Para ti» con 6 listas de las categorías destacadas. Probado en un perfil vacío: 38–40 canciones por lista a los 80 s.
+- **Según lo que escuchas:** tus géneros se calculan en local, cruzando los artistas de tu historial (ponderados por escuchas) con los de cada categoría de Explorar. Cada género tuyo tiene su lista, con tus artistas primero.
+- **Predicción:** «Descubre: …» es la categoría que comparte más artistas con las tuyas y que aún no escuchas, alternando semana a semana entre las 3 mejores.
+- **Rotación:** cada 3, 7 o 14 días se recalcula. Se quitan las listas de Rumoria que ya no encajan y se crean las nuevas; si antes no se podían saber tus géneros y ahora sí, se adelanta.
+- **Lo tuyo se respeta:** una lista renombrada o movida pasa a ser tuya y nunca se rota. Si borras una, su género no vuelve en 60 días. Apagado en Ajustes, lo que ya hay se queda como está.
+- **Explorar:** todas las categorías se precargan (las destacadas cada 6 h, el resto una vez al día), así que abren al momento y sirven para calcular tus géneros.
+
+### [Bug] La cookie de sesión aún se llamaba `clm_t`
+- Era un resto del nombre antiguo; ahora es `rum_t`.
+
+### [Legal] `LEGAL.md`
+- Añadido qué guarda «Para ti» (`curator.json`) y las nuevas consultas en segundo plano, incluidos los temas que escribes. Tus géneros se calculan en tu equipo y el historial no sale de él.
+- En Ajustes se aclara que las listas iniciales son las mismas para todos y que Rumoria no recoge datos de nadie.
+
+### [Ajuste] Saber bien tus géneros (probado con tus datos reales)
+- **Primera prueba, con 135 escuchas:** solo detectó J-pop. Cris Leiva, tu artista más escuchado (109 escuchas), no salía en ninguna categoría, y «Descubre» eligió Cumbia por un único artista que coincidía por casualidad («dax»).
+- **Nombres limpios:** se quitan «Official», «YouTube Channel», «VEVO» y «- Topic», y los nombres se comparan por palabras completas («kenshi yonezu» casa con «米津玄師 kenshi yonezu»).
+- **«Descubre» más exigente:** pide al menos 2 artistas en común.
+- **Artistas que no salen en ninguna categoría:** se miran los artistas que suenan con ellos, en la radio de una de sus canciones y en las playlists públicas donde aparecen (como mucho 3 artistas por vez, guardado 30 días). La radio sola no servía: casi solo ponía al mismo artista.
+- **Resultado:** Pop en español (por Cris Leiva, a través de Morad, DELLAFUENTE y JC Reyes), J-pop, Éxitos y Urbano latino, y para descubrir, Pop internacional.
+- **Legal:** `LEGAL.md` dice que el nombre de esos artistas se busca en YouTube para esto.
+- **Pruebas:** 67 de servidor y seguridad, 41 de interfaz.

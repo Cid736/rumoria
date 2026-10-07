@@ -10,7 +10,7 @@ const netfetch = require('../../server/lib/netfetch');
 const stream = require('../../server/lib/stream');
 
 const ROUTES = [
-  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/auto'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
+  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/auto'], ['GET', '/api/curator'], ['PATCH', '/api/curator'], ['POST', '/api/curator/run'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['POST', '/api/lists/aaaaaaaaaaaaaaaa/remove'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/restore'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/refresh'], ['DELETE', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['GET', `/api/stream/info?id=${VIDEO}`], ['GET', `/api/stream/audio?id=${VIDEO}`], ['GET', `/api/stream/radio?id=${VIDEO}`], ['GET', `/api/stream/lyrics?id=${VIDEO}`],
   ['GET', '/api/search?q=x'], ['GET', '/api/find?q=x'], ['POST', '/api/history'], ['GET', '/api/history/smart'], ['GET', '/api/history/summary'],
