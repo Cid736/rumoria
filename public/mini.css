@@ -1,4 +1,5 @@
-/* The mini player: Rumoria's colours (and your accent, if you picked one). */
+/* The mini player v2: Rumoria's colours (and your accent), the cover blurred
+   behind, the lyric line, and the video clip on top when it's on. */
 :root {
   --bg: #14121c; --surface: #1d1a28; --line: #2c2838; --text: #f5f3fa; --muted: #a7a2b8;
   --accent: #ff7a59; --accent-ink: #1a0f0b; color-scheme: dark;
@@ -8,42 +9,54 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font: 13px/1.3 system-ui, "Segoe UI", sans-serif; user-select: none; }
-.mini { position: relative; display: flex; gap: 12px; align-items: center; height: 100%; padding: 12px; cursor: grab; border: 1px solid var(--line); }
+.mini { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 10px 12px; cursor: grab; border: 1px solid var(--line); overflow: hidden; }
 .mini.dragging { cursor: grabbing; }
-.art { flex: none; width: 104px; height: 104px; border-radius: 8px; object-fit: cover; background: var(--surface); }
-.art-empty { display: grid; place-items: center; font-size: 40px; color: var(--muted); }
-.info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* The cover, blurred and faint, behind everything. */
+.backdrop { position: absolute; inset: -30px; z-index: -1; background-image: var(--cover, none); background-size: cover; background-position: center; filter: blur(28px) saturate(1.4); opacity: 0.32; pointer-events: none; transition: background-image 0.4s; }
+.mini.no-cover .backdrop { display: none; }
+.clip { position: relative; flex: none; margin: -10px -12px 0; aspect-ratio: 16 / 9; background: #000; }
+.clip video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.clip-note { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #cfc9dc; font-size: 12px; text-align: center; padding: 12px; }
+.top { display: flex; gap: 10px; align-items: center; min-height: 0; }
+.art { flex: none; width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+.art-empty { display: grid; place-items: center; font-size: 30px; color: var(--muted); }
+.mini.no-cover .art, .mini.no-cover .art-empty { display: none; }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .artist { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar { position: relative; height: 4px; margin: 6px 0 4px; border-radius: 2px; background: var(--line); cursor: pointer; }
-.bar:hover, .bar:focus-visible { height: 6px; margin: 5px 0 3px; outline: none; }
+.lyric { color: var(--accent); font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 15px; }
+.upnext { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side { flex: none; display: flex; flex-direction: column; gap: 2px; align-self: flex-start; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar { position: relative; flex: 1; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text) 18%, transparent); cursor: pointer; }
+.bar:hover, .bar:focus-visible { height: 6px; outline: none; }
 .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; background: var(--accent); }
-.controls { display: flex; align-items: center; gap: 4px; }
+.time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; white-space: nowrap; min-width: 30px; }
+.time:last-child { text-align: right; }
+.controls { display: flex; align-items: center; justify-content: center; gap: 2px; }
 .btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text); font-size: 15px; cursor: pointer; }
-.btn:hover:not(:disabled) { background: var(--surface); }
+.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 10%, transparent); }
 .btn:disabled { opacity: 0.35; cursor: default; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.btn.main { width: 34px; height: 34px; background: var(--text); color: var(--bg); font-size: 14px; }
+.btn.main { width: 36px; height: 36px; background: var(--text); color: var(--bg); font-size: 14px; }
 .btn.main:hover:not(:disabled) { background: var(--text); transform: scale(1.05); }
-.btn.small { font-size: 16px; }
+.btn.small { width: 26px; height: 26px; font-size: 14px; color: var(--muted); }
 .btn.on { color: var(--accent); }
 .btn.tiny { width: 22px; height: 22px; font-size: 12px; color: var(--muted); }
-.time { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; white-space: nowrap; }
-.side { flex: none; display: flex; flex-direction: column; gap: 4px; align-self: flex-start; }
-.menu { position: absolute; inset: 6px 38px 6px auto; z-index: 2; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px 10px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: default; font-size: 12px; }
+.vol { width: 64px; margin-left: 6px; accent-color: var(--accent); }
+.menu { position: absolute; top: 8px; right: 38px; bottom: 8px; z-index: 3; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px 10px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: default; font-size: 12px; }
 .menu label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
 .menu .range { flex-wrap: wrap; }
 .menu input[type="range"] { width: 100%; accent-color: var(--accent); }
 .menu input[type="checkbox"] { accent-color: var(--accent); }
-/* Compact: one line, no cover, no bar. */
-.mini.compact { padding: 8px 10px; gap: 8px; }
-.mini.compact .art, .mini.compact .art-empty { width: 46px; height: 46px; font-size: 20px; }
-.mini.compact .artist, .mini.compact .bar, .mini.compact .time, .mini.compact #like { display: none; }
-.mini.compact .info { flex-direction: row; align-items: center; gap: 8px; }
-.mini.compact .title { flex: 1; min-width: 0; }
+/* Compact: one line — cover, title, play and next. */
+.mini.compact { flex-direction: row; align-items: center; padding: 8px 10px; gap: 8px; }
+.mini.compact .clip, .mini.compact .lyric, .mini.compact .upnext, .mini.compact .artist, .mini.compact .bar-row,
+.mini.compact #shuffle, .mini.compact #repeat, .mini.compact #like, .mini.compact #videoBtn, .mini.compact #lyricsBtn, .mini.compact .vol { display: none; }
+.mini.compact .top { flex: 1; min-width: 0; }
+.mini.compact .art, .mini.compact .art-empty { width: 44px; height: 44px; font-size: 20px; }
 .mini.compact .side { flex-direction: row; align-self: center; }
-.mini.compact .menu { inset: 4px 4px 4px auto; flex-direction: row; flex-wrap: wrap; }
-.mini.no-cover .art, .mini.no-cover .art-empty { display: none; }
+.mini.compact .menu { top: 4px; bottom: 4px; right: 4px; flex-direction: row; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* Your accent (Ajustes → Personalizar), as in the main window. */

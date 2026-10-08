@@ -4,7 +4,7 @@ import { api, desktop } from '../api.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
-import { Customize, MiniSettings } from './Customize.jsx';
+import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
 
@@ -108,7 +108,9 @@ export default function Settings() {
         </label>
       </section>
       <Customize />
+      <PlaybackSettings />
       <MiniSettings />
+      <PerfSettings />
       {desktop && (
         <section className="set-group">
           <h2>Tu música</h2>

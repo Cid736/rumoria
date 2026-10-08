@@ -18,6 +18,10 @@ const SOURCES = ['spotify', 'apple', 'youtube', 'own', 'auto'];
 const AUTO_EVERY = [6, 12, 24, 168];
 const AUTO_MAX = 100;
 const AUTO_BLOCKED = 500;
+const GONE_MAX = 500;
+const fold = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+/** How a song is recognised again when its list is re-read: by artist and title, and by its video. */
+const keysOf = (t) => [`n:${fold(t.artist).slice(0, 200)}|${fold(t.title).slice(0, 200)}`, ...(t.yt ? [`y:${t.yt}`] : [])];
 const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 function cleanTrack(t) {
@@ -33,6 +37,8 @@ function cleanTrack(t) {
   if (typeof t.thumbnail === 'string' && /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]{1,200}(\?[\w\-=&%.]{0,300})?$/.test(t.thumbnail)) out.thumbnail = t.thumbnail;
   // v3.12: already sent to be downloaded ("keep it downloaded").
   if (t.got === true) out.got = true;
+  // v1.3: added by you to a list from a link (kept when it's read again).
+  if (t.mine === true) out.mine = true;
   return out;
 }
 /** "Keep it downloaded": who asked (their client id) and with which download options (checked again when used). */
@@ -70,6 +76,8 @@ function cleanList(l) {
     keep: cleanKeep(l.keep),
     // v1.1: fills itself from its topic (titles and YouTube ids only; nothing is downloaded).
     auto: cleanAuto(l.auto),
+    // v1.3: songs you took out of a list from a link (not brought back when it's read again).
+    gone: [...new Set((Array.isArray(l.gone) ? l.gone : []).map(String).filter((k) => k.length <= 420 && /^[yn]:/.test(k)))].slice(-GONE_MAX),
   };
 }
 
@@ -128,10 +136,48 @@ class StreamLists {
     return { list: l, added: fresh.length };
   }
 
-  /** Songs taken out of a list that fills itself: never put back by it. */
+  /**
+   * Songs you took out: a list that fills itself never adds them again, and a
+   * list from a link doesn't bring them back when it's read again.
+   */
   _block(l, tracks) {
-    if (!l.auto) return;
-    l.auto.blocked = [...new Set([...l.auto.blocked, ...tracks.map((t) => t && t.yt).filter(Boolean)])].slice(-AUTO_BLOCKED);
+    if (l.auto) l.auto.blocked = [...new Set([...l.auto.blocked, ...tracks.map((t) => t && t.yt).filter(Boolean)])].slice(-AUTO_BLOCKED);
+    if (l.url) l.gone = [...new Set([...(l.gone || []), ...tracks.filter(Boolean).flatMap(keysOf)])].slice(-GONE_MAX);
+  }
+
+  /**
+   * A list from a link, read again: its songs now, without the ones you took
+   * out, keeping the videos already found and what you added yourself (at the
+   * end). Returns how many came and went.
+   */
+  _reread(l, fresh) {
+    const before = new Set(l.tracks.filter((t) => !t.mine).map((t) => keysOf(t)[0]));
+    const gone = new Set(l.gone || []);
+    const tracks = fresh.slice(0, MAX_TRACKS).map(cleanTrack).filter(Boolean).filter((t) => !keysOf(t).some((k) => gone.has(k)));
+    // Keep the YouTube videos already found (by artist and title).
+    const known = new Map(l.tracks.filter((t) => t.yt || t.got).map((t) => [keysOf(t)[0], t]));
+    for (const t of tracks) {
+      const k = known.get(keysOf(t)[0]);
+      if (k && k.yt && !t.yt) { t.yt = k.yt; if (k.thumbnail) t.thumbnail = k.thumbnail; }
+      // Sent to be downloaded once: not again when the list is read again.
+      if (k && k.got) t.got = true;
+    }
+    const now = new Set(tracks.map((t) => keysOf(t)[0]));
+    const mine = l.tracks.filter((t) => t.mine && !now.has(keysOf(t)[0]));
+    l.tracks = [...tracks, ...mine].slice(0, MAX_TRACKS);
+    l.syncedAt = Date.now();
+    return { added: [...now].filter((k) => !before.has(k)).length, removed: [...before].filter((k) => !now.has(k)).length };
+  }
+
+  /** Read again from its link: the new songs, or an error if the read came back empty (the list is left as it was). */
+  reread(id, fresh) {
+    const l = this.get(id);
+    if (!l) return null;
+    if (!Array.isArray(fresh) || !fresh.map(cleanTrack).filter(Boolean).length) throw new Error('No se pudo leer la lista ahora mismo; se queda como estaba.');
+    const diff = this._reread(l, fresh);
+    l.updatedAt = Date.now();
+    this.save();
+    return { list: l, ...diff };
   }
 
   /** Lists from a link with "keep it up to date" on, not read again for `maxAgeMs`. */
@@ -167,19 +213,7 @@ class StreamLists {
     // Filling itself: how often, or stop (it stays as a list of yours).
     if (patch.auto === null && l.auto) { l.auto = null; if (l.source === 'auto') l.source = 'own'; }
     if (patch.auto && typeof patch.auto === 'object' && l.auto && AUTO_EVERY.includes(patch.auto.every)) l.auto.every = patch.auto.every;
-    if (Array.isArray(patch.tracks)) {
-      const tracks = patch.tracks.slice(0, MAX_TRACKS).map(cleanTrack).filter(Boolean);
-      // Re-read from Spotify: keep the YouTube videos already found.
-      const known = new Map(l.tracks.filter((t) => t.yt || t.got).map((t) => [`${t.artist}|${t.title}`, t]));
-      for (const t of tracks) {
-        const k = known.get(`${t.artist}|${t.title}`);
-        if (k && k.yt && !t.yt) { t.yt = k.yt; if (k.thumbnail) t.thumbnail = k.thumbnail; }
-        // Sent to be downloaded once: not again when the list is read again.
-        if (k && k.got) t.got = true;
-      }
-      l.tracks = tracks;
-      l.syncedAt = Date.now();
-    }
+    if (Array.isArray(patch.tracks)) this._reread(l, patch.tracks);
     if (patch.keep === null) l.keep = null;
     else if (patch.keep && typeof patch.keep === 'object') l.keep = cleanKeep(patch.keep);
     // Several songs moved together, to before the song at `to` (places as they were).
@@ -201,6 +235,8 @@ class StreamLists {
       for (const it of patch.insert.slice(0, MAX_TRACKS).filter((x) => x && Number.isInteger(x.at)).sort((a, b) => a.at - b.at)) {
         const t = cleanTrack(it.track);
         if (t && l.tracks.length < MAX_TRACKS) l.tracks.splice(Math.max(0, Math.min(l.tracks.length, it.at)), 0, t);
+        // Put back: no longer "taken out" (a re-read keeps it).
+        if (t && l.gone) { const ks = new Set(keysOf(t)); l.gone = l.gone.filter((k) => !ks.has(k)); }
       }
     }
     // A song dragged to another place in the list.
@@ -209,7 +245,8 @@ class StreamLists {
       if (from >= 0 && to >= 0 && from < l.tracks.length && to < l.tracks.length && from !== to) l.tracks.splice(to, 0, l.tracks.splice(from, 1)[0]);
     }
     if (Array.isArray(patch.add)) {
-      for (const t of patch.add.map(cleanTrack).filter(Boolean)) if (l.tracks.length < MAX_TRACKS) l.tracks.push(t);
+      // Added by you to a list from a link: kept when it's read again.
+      for (const t of patch.add.map(cleanTrack).filter(Boolean)) if (l.tracks.length < MAX_TRACKS) l.tracks.push(l.url ? { ...t, mine: true } : t);
     }
     l.updatedAt = Date.now();
     this.save();

@@ -3,8 +3,66 @@
 // Every change shows at once.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
-import { ACCENTS, CORNERS, DENSITIES, SECTIONS, SIZES, useLook } from '../store/look.js';
+import { ACCENTS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, useLook } from '../store/look.js';
+import { CHOICES, PROFILES, usePerf } from '../store/perf.js';
+import { useSound } from '../store/sound.js';
 import { useUi } from '../store/ui.js';
+
+const ON = (v) => (v ? 'sí' : 'no');
+
+/** Rendimiento: the profile (or Automático) and what it switches. */
+export function PerfSettings() {
+  const choice = usePerf((s) => s.choice);
+  const detected = usePerf((s) => s.detected);
+  const profile = usePerf((s) => s.profile);
+  const p = PROFILES[profile];
+  return (
+    <section className="set-group">
+      <h2>Rendimiento</h2>
+      <p className="muted">Ajusta cuánto trabaja Rumoria para que vaya fluida en cualquier ordenador, sin bajar la calidad del sonido.</p>
+      <label className="set-row">
+        <span><strong>Perfil</strong><small>{choice === 'auto' ? `Automático: este ordenador va con «${PROFILES[detected].label}».` : 'Elegido a mano.'}</small></span>
+        <select value={choice} onChange={(e) => usePerf.getState().setChoice(e.target.value)} aria-label="Perfil de rendimiento">
+          {CHOICES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+      </label>
+      <p className="muted perf-what">
+        Ahora: animaciones y desenfoques: {ON(p.motion)} · visualizador: {ON(profile !== 'min')} · canciones buscadas por adelantado: {p.prefetch} ·
+        portadas: {p.coverSize === 'mq' ? 'pequeñas' : 'normales'} · Explorar leído por adelantado: {profile === 'min' ? 'no' : profile === 'mid' ? 'las destacadas' : 'todas'}.
+      </p>
+    </section>
+  );
+}
+
+/** Reproducción: carry on where you left off, start playing on open, the tray. */
+export function PlaybackSettings() {
+  const resume = useSound((s) => s.resume);
+  const autoplay = useSound((s) => s.autoplay);
+  const [tray, setTray] = useState(null);
+  useEffect(() => { if (desktop) desktop.settings().then((s) => setTray(Boolean(s && s.closeToTray)), () => {}); }, []);
+  return (
+    <section className="set-group">
+      <h2>Reproducción</h2>
+      <label className="set-row">
+        <span><strong>Seguir donde lo dejaste</strong><small>Al abrir Rumoria vuelven la cola, la canción y el segundo en que estabas.</small></span>
+        <input type="checkbox" className="switch" checked={resume} onChange={(e) => useSound.getState().set({ resume: e.target.checked })} />
+      </label>
+      {resume && (
+        <label className="set-row">
+          <span><strong>Empezar a sonar al abrir</strong><small>Si no, se queda en pausa hasta que le des a reproducir.</small></span>
+          <input type="checkbox" className="switch" checked={autoplay} onChange={(e) => useSound.getState().set({ autoplay: e.target.checked })} />
+        </label>
+      )}
+      {desktop && tray !== null && (
+        <label className="set-row">
+          <span><strong>Al cerrar, seguir sonando en la bandeja</strong><small>La ventana se oculta y la música sigue; desde el icono de la bandeja la manejas o sales.</small></span>
+          <input type="checkbox" className="switch" checked={tray} onChange={async (e) => { const v = e.target.checked; setTray(v); await desktop.setCloseToTray(v); }} />
+        </label>
+      )}
+      <p className="muted">Ecualizador, velocidad, fundido, karaoke, temporizador y salida de sonido: en el botón <strong>Sonido</strong> de la barra del reproductor.</p>
+    </section>
+  );
+}
 
 function Choice({ label, hint, value, options, onChange }) {
   return (
@@ -38,6 +96,13 @@ export function Customize() {
       <Choice label="Tamaño del texto" hint="Toda la ventana, más grande o más pequeña." value={look.size} options={SIZES} onChange={(v) => set({ size: Number(v) })} />
       <Choice label="Densidad de las listas" hint="Cuánto espacio ocupa cada canción." value={look.density} options={DENSITIES} onChange={(v) => set({ density: v })} />
       <Choice label="Esquinas" value={look.corners} options={CORNERS} onChange={(v) => set({ corners: v })} />
+      <Choice label="Tipo de letra" hint="De las que ya tiene Windows." value={look.font} options={FONTS} onChange={(v) => set({ font: v })} />
+      <Choice label="Ancho de la biblioteca" value={look.sidebar} options={SIDEBARS} onChange={(v) => set({ sidebar: v })} />
+      <Choice label="Al abrir Rumoria" value={look.start} options={STARTS} onChange={(v) => set({ start: v })} />
+      <label className="set-row">
+        <span><strong>Portada detrás del reproductor</strong><small>La barra de abajo toma los colores de lo que suena.</small></span>
+        <input type="checkbox" className="switch" checked={look.playerCover} onChange={(e) => set({ playerCover: e.target.checked })} />
+      </label>
       <label className="set-row">
         <span><strong>Menos animaciones</strong><small>Sin transiciones ni movimientos.</small></span>
         <input type="checkbox" className="switch" checked={look.motion === 'reduce'} onChange={(e) => set({ motion: e.target.checked ? 'reduce' : 'auto' })} />

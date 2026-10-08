@@ -5,6 +5,7 @@ import { api, urls } from '../api.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
+import SoundPanel from './SoundPanel.jsx';
 import { Close } from './Icons.jsx';
 
 function QueueRow({ t, i, now, onPlay, onRemove }) {
@@ -92,9 +93,9 @@ export default function SidePanel() {
   const panel = useUi((s) => s.panel);
   if (!panel) return null;
   return (
-    <aside className="sidepanel" aria-label={panel === 'queue' ? 'Cola' : 'Letra'}>
+    <aside className="sidepanel" aria-label={panel === 'queue' ? 'Cola' : panel === 'sound' ? 'Sonido' : 'Letra'}>
       <button type="button" className="icon-btn panel-close" aria-label="Cerrar" onClick={() => useUi.getState().togglePanel(panel)}><Close size={18} /></button>
-      {panel === 'queue' ? <QueuePanel /> : (<><h2 className="panel-title">Letra</h2><LyricsPanel /></>)}
+      {panel === 'queue' ? <QueuePanel /> : panel === 'sound' ? (<><h2 className="panel-title">Sonido</h2><SoundPanel /></>) : (<><h2 className="panel-title">Letra</h2><LyricsPanel /></>)}
     </aside>
   );
 }

@@ -111,12 +111,14 @@ export const useLibrary = create((set, get) => ({
   async patchList(id, patch) {
     try { get()._putList(await api.patch(urls.list(id), patch)); } catch (err) { toast(err.message); }
   },
-  async removeTracks(id, ns) {
+  /** Songs out of a list (with "Deshacer"); true when done. `message`: what the notice says instead. */
+  async removeTracks(id, ns, { message = null } = {}) {
     try {
       const r = await api.post(`${urls.list(id)}/remove`, { ns });
       get()._putList(r.list);
-      toast(ns.length === 1 ? 'Quitada de la lista' : `${ns.length} canciones quitadas`, { action: 'Deshacer', onAction: () => get().patchList(id, { insert: r.removed }) });
-    } catch (err) { toast(err.message); }
+      toast(message || (ns.length === 1 ? 'Quitada de la lista' : `${ns.length} canciones quitadas`), { action: 'Deshacer', onAction: () => get().patchList(id, { insert: r.removed }) });
+      return true;
+    } catch (err) { toast(err.message); return false; }
   },
   async refreshList(id) {
     try {

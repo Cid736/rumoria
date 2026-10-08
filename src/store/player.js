@@ -22,6 +22,7 @@ export const usePlayer = create((set, get) => ({
   radio: true,          // when the queue runs out, keep going with similar songs
   seekTo: null,         // { t, nonce } for the engine
   restartNonce: 0,      // "play this one again from the start"
+  resumeAt: null,       // { uid, t }: where the song kept from last time starts (once loaded)
 
   current: () => { const q = get().queue; return q.items[q.index] || null; },
   shuffle: () => Boolean(get().queue.original),
@@ -76,6 +77,25 @@ export const usePlayer = create((set, get) => ({
     set((s) => ({ queue: insert(s.queue, tracks, where), ...(wasEmpty ? { wantPlaying: true } : {}) }));
   },
   removeFromQueue(i) { set((s) => ({ queue: removeAt(s.queue, i) })); },
+
+  /** Back where you left off: the queue, the song, its second (paused unless `play`). */
+  restoreSession({ items, index, position = 0, repeat = 'off' }, { play = false } = {}) {
+    const queue = startQueue(items, index);
+    if (!queue.items.length) return;
+    const cur = queue.items[queue.index];
+    set({ queue, repeat, wantPlaying: play, position, duration: cur.duration || 0, resumeAt: position > 1 ? { uid: cur.uid, t: position } : null, error: null });
+  },
+  /** A song that couldn't be played even after trying again: out of the queue (the next one plays). */
+  _drop(uid) {
+    const q = get().queue;
+    const i = q.items.findIndex((x) => x.uid === uid);
+    if (i < 0) return;
+    if (i === q.index) get().next(true);
+    const q2 = get().queue;
+    const j = q2.items.findIndex((x) => x.uid === uid);
+    if (j >= 0 && j !== q2.index) set({ queue: removeAt(q2, j) });
+  },
+  _resumed() { set({ resumeAt: null }); },
 
   // ---- from the engine ----
   _status(status, error = null) { set({ status, error }); },

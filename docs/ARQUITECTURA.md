@@ -5,7 +5,7 @@ La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **Rumoria**
 | | TubeGrab | Rumoria |
 |---|---|---|
 | Para qué | Descargar y convertir; tu biblioteca de archivos | Escuchar sin descargar: listas, favoritas, «Hecho para ti» |
-| Repositorio | `Cid736/tubegrab` (`main`, v4.0.0) | `Cid736/rumoria` (público, `main`) |
+| Repositorio | `Cid736/tubegrab` (`main`) | `Cid736/rumoria` (público, `main`) |
 | Pila | Electron 44 + Express 5 + JavaScript sin framework | Electron 44 + Express 5 (servidor) · React 19 + Vite 8 + Zustand 5 (interfaz) |
 | Tests | `node --test` (242) | `node --test` (49: servidor y seguridad) + Vitest (31: interfaz) |
 | Datos | `%APPDATA%\tubegrab` | `%APPDATA%\rumoria` (copiados de TubeGrab la primera vez) |
@@ -83,6 +83,18 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 | `GET /api/local`, `POST /api/local/rescan`, `GET /api/local/file?id=` | Tu carpeta de música (por id, nunca por ruta) |
 
 - En segundo plano: las listas «al día» se releen cada pocas horas y las novedades de tus artistas se buscan cada 12 h.
+
+**v1.3: rendimiento, reproducción y recomendaciones**
+
+- **Perfiles de rendimiento (`src/store/perf.js`, `server/lib/prefs.js`):** Automático (con los núcleos y la memoria del equipo, que da el proceso principal), Mínimo, Medio o Alto. La página pone `data-perf` en `<html>` (los estilos apagan desenfoques, sombras y movimiento en Mínimo) y el servidor recibe el perfil por `PATCH /api/prefs` (Mínimo no lee Explorar por adelantado ni prepara canciones; Medio, las destacadas; Alto, todas). Además: portadas pequeñas en Mínimo, comprobaciones menos frecuentes y filas de listas largas con `content-visibility: auto`.
+- **Carga y reintentos (`src/player/engine.js`):** la siguiente canción (o las dos siguientes, en Alto) se resuelve por adelantado (`POST /api/stream/prepare`). Una canción que falla o se queda cargando 20 s se reintenta hasta 3 veces con `fresh=1`, y el servidor busca su dirección de nuevo, como mucho una vez cada 10 s por canción. Tras el tercer fallo se olvida (`POST /api/stream/forget`), y si viene de una lista de más de 50 canciones se quita de la lista (con «Deshacer») y de la cola. La caché de direcciones dura 4 h y guarda hasta 400.
+- **Listas que se vuelven a leer (`streamlists.reread`):** si la lectura llega vacía, la lista se queda como estaba. Las canciones que quitaste no vuelven (`gone`, por artista y título o por vídeo), las que añadiste tú se conservan al final (`mine`) y los vídeos ya encontrados se mantienen. Una lectura por lista a la vez. Spotify a veces devuelve la página sin canciones (1 de cada 3 lecturas en las pruebas): se reintenta hasta 4 veces.
+- **Sonido (`src/player/sound.js`, `src/store/sound.js`):** una cadena de Web Audio que solo se monta cuando hace falta: karaoke, ecualizador de 5 bandas, limitador, mismo volumen (medido mientras suena y recordado por canción), fundido, fundido del temporizador y salida. También velocidad con o sin mantener el tono, la salida elegida (`setSinkId`) y pausa al desconectar una salida de audio.
+- **Sesión (`src/player/session.js`):** la cola (hasta 500 canciones, cada campo comprobado), la canción, el segundo y el modo de repetir se guardan al cambiar de canción y cada 5 s, y vuelven al abrir. La canción arranca en su segundo cuando ya se puede (`resumeAt`).
+- **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
+- **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
+- **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+- **Permisos:** sigue sin concederse ninguna petición (micrófono, cámara…). La única comprobación que pasa es la de la ventana principal sobre su propio origen para ver las salidas de audio y elegir una (`media`, `speaker-selection`).
 
 **Interfaz (`src/`)**
 

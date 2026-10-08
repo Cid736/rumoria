@@ -10,7 +10,7 @@ const netfetch = require('../../server/lib/netfetch');
 const stream = require('../../server/lib/stream');
 
 const ROUTES = [
-  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/auto'], ['GET', '/api/curator'], ['PATCH', '/api/curator'], ['POST', '/api/curator/run'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
+  ['GET', '/api/lists'], ['GET', '/api/lists/aaaaaaaaaaaaaaaa'], ['POST', '/api/lists'], ['POST', '/api/lists/auto'], ['GET', '/api/curator'], ['PATCH', '/api/curator'], ['POST', '/api/curator/run'], ['GET', '/api/prefs'], ['PATCH', '/api/prefs'], ['POST', '/api/lists/import'], ['PATCH', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['POST', '/api/lists/aaaaaaaaaaaaaaaa/remove'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/restore'], ['POST', '/api/lists/aaaaaaaaaaaaaaaa/refresh'], ['DELETE', '/api/lists/aaaaaaaaaaaaaaaa'],
   ['GET', `/api/stream/info?id=${VIDEO}`], ['GET', `/api/stream/audio?id=${VIDEO}`], ['GET', `/api/stream/radio?id=${VIDEO}`], ['GET', `/api/stream/lyrics?id=${VIDEO}`],
   ['GET', '/api/search?q=x'], ['GET', '/api/find?q=x'], ['POST', '/api/history'], ['GET', '/api/history/smart'], ['GET', '/api/history/summary'],
@@ -261,10 +261,10 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   // ipcMain.on listeners too.
   const listeners = main.match(/ipcMain\.on\([^,]+,\s*\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
   for (const h of listeners) assert.ok(h.includes('isTrustedSender(event)'), h);
-  // The preload exposes a few named functions (settings, music folder, TubeGrab,
-  // updates, mini player, zoom), never ipcRenderer itself, and only fixed channel names.
+  // The preload exposes a few named functions (settings, music folder, the tray,
+  // TubeGrab, updates, mini player, zoom), never ipcRenderer itself, and only fixed channel names.
   assert.equal(/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(preload), false);
-  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 6);
+  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 7);
   assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 4);
   assert.match(preload, /setZoomFactor\(Math\.min\(1\.5, Math\.max\(0\.8, n\)\)\)/, 'zoom only within 80-150 %');
   const channels = [...preload.matchAll(/ipcRenderer\.(?:invoke|send|on|removeListener)\(\s*([^,)]+)/g)].map((m) => m[1].trim());

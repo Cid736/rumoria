@@ -7,12 +7,13 @@ import { api, urls } from '../api.js';
 import { fold, fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { useShows } from '../store/look.js';
+import { PROFILES, usePerf } from '../store/perf.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover, { gradientOf } from '../components/Cover.jsx';
 import { Play } from '../components/Icons.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
-import { discoverOf, radioOf, seedsOf } from './recommend.js';
+import { dailyOf, discoverOf, radioOf, seedsOf } from './recommend.js';
 
 const SIMILAR_KEY = 'rumoria_similar';
 
@@ -108,6 +109,7 @@ async function tracksOf(item) {
       return [{ key: `yt:${item.id}`, yt: item.id, title: p.title || item.name, artist: p.artist || '', thumbnail: p.thumb || null }, ...await radioOf({ yt: item.id })];
     }
     case 'discover': return discoverOf(lib.smart);
+    case 'today': return dailyOf(lib.smart);
     case 'liked': return lib.likes.map((s) => fromSaved(s, map)).filter(Boolean);
     case 'local': return lib.local.songs.map(fromLocal);
     case 'news': return lib.news.map((n) => fromYouTube({ ...n, id: n.yt }));
@@ -224,7 +226,7 @@ export default function Home() {
   useEffect(() => {
     useLibrary.getState().refreshSmart();
     // Covers of ready-made lists appear as the server reads them ahead.
-    const t = setInterval(() => useLibrary.getState().refreshBrowse(), 120_000);
+    const t = setInterval(() => useLibrary.getState().refreshBrowse(), (PROFILES[usePerf.getState().profile] || PROFILES.mid).browseEveryMs);
     return () => clearInterval(t);
   }, []);
 
@@ -248,6 +250,10 @@ export default function Home() {
       {shows('tiles') && tiles.length > 0 && <div className="tiles">{tiles.map(({ key, ...t }) => <Tile key={key} {...t} />)}</div>}
 
       {shows('made') && (<Shelf title="Hecho para ti">
+        {smart && smart.lately && smart.lately.some((r) => r.yt) && (
+          <Card key="today" title="Para hoy" sub="Parecidas a lo último que has escuchado" cover={<Cover name="Para hoy" size={160} />}
+            onOpen={() => go({ name: 'today' })} onPlay={playFrom(() => dailyOf(smart), { kind: 'today', name: 'Para hoy', sub: 'Se renueva cada día' })} />
+        )}
         {smart && smart.count > 0 && (
           <Card key="discover" title="Descubre algo nuevo" sub="Canciones que aún no has escuchado · cambia cada semana" cover={<Cover name="Descubre algo nuevo" size={160} />}
             onOpen={() => go({ name: 'discover' })} onPlay={playFrom(() => discoverOf(smart), { kind: 'discover', name: 'Descubre algo nuevo', sub: 'Cambia cada semana' })} />

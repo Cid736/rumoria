@@ -21,7 +21,12 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - Todo suena directamente desde YouTube, sin descargar nada; cualquier lista se puede guardar como tuya, y descargar una canción es opcional («Descargar con TubeGrab»)
 - **Novedades de tus artistas** y **Tu resumen** del año
 - Botón derecho en cualquier canción: a continuación, a la cola, a una lista, favorita, radio, descargar con TubeGrab
-- **Mini reproductor** (Ctrl+M o el botón junto al volumen): una ventana pequeña encima de las demás con la canción, su portada, la barra y los botones. Se puede poner compacto, transparente, fijo o sin portada. Si cierras la ventana grande, la música sigue
+- **Mini reproductor v2** (Ctrl+M o el botón junto al volumen): una ventana pequeña encima de las demás con la portada de fondo, la línea de la letra que suena, la siguiente canción, aleatorio, repetir, volumen y el **videoclip** (botón 🎬: vídeo sin sonido sincronizado con la canción). Compacto, transparente, fijo o sin portada. Si cierras la ventana grande, la música sigue
+- **Sonido** (botón junto a la letra): ecualizador de 5 bandas con preajustes y los tuyos, mismo volumen para todas las canciones, velocidad (manteniendo el tono), fundido, karaoke, temporizador de apagado, salida de sonido y pausa al desconectar los auriculares — las opciones del reproductor de TubeGrab, de vuelta
+- **Seguir donde lo dejaste**: al abrir, la cola, la canción y el segundo en que estabas (en pausa, o sonando si lo eliges). **En segundo plano**: al cerrar, puede seguir sonando en la bandeja
+- **Perfiles de rendimiento** (Ajustes): Automático, Mínimo, Medio o Alto, según el ordenador: animaciones, visualizador, cuántas canciones se buscan por adelantado, tamaño de las portadas y cuánto se lee en segundo plano
+- **Carga más rápida**: la siguiente canción se busca mientras suena la actual. Si una no carga, se reintenta 3 veces; en listas de más de 50, si sigue fallando se quita (con «Deshacer»)
+- **Para hoy**: parecidas a lo último que has escuchado, se renueva cuando escuchas otras cosas; «Descubre algo nuevo» acierta más (deja fuera lo que saltas)
 - **Personalizar** (Ajustes): 8 colores (cada uno con contraste comprobado en tema claro y oscuro), tamaño del texto, densidad de las listas, esquinas, menos animaciones, portadas en la biblioteca y qué estanterías salen en Inicio
 - **Se actualiza sola** desde GitHub: descarga la versión nueva en segundo plano, la comprueba con su huella SHA-256 y la instala al reiniciar o al cerrar
 - Tema oscuro, claro o el del sistema; atajos de teclado (Espacio, Ctrl+←/→, Ctrl+S, Ctrl+R, Ctrl+L, Ctrl+M, Alt+←/→)

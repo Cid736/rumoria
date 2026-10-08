@@ -38,7 +38,12 @@ export function trackMenu(tracks, from = null) {
   if (one && one.yt) {
     items.push({ sep: true });
     items.push({ label: 'Radio de esta canción', onClick: () => startRadio(one) });
-    if (desktop) items.push({ label: 'Descargar con TubeGrab', onClick: () => desktop.downloadInTubeGrab(one.yt) });
+    if (desktop) {
+      items.push({
+        label: 'Descargar con TubeGrab',
+        onClick: () => desktop.downloadInTubeGrab(one.yt).then((r) => { if (r === 'missing') useUi.getState().toast('TubeGrab no está instalado: se abre su página de descarga'); }, () => {}),
+      });
+    }
     items.push({ label: 'Copiar enlace de YouTube', onClick: () => copy(`https://www.youtube.com/watch?v=${one.yt}`) });
   }
   if (from && from.listId) {

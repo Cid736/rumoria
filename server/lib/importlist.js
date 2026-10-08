@@ -72,11 +72,21 @@ function parseApple(html) {
 }
 
 /** Reads the list behind a link: { service, title, tracks: [{ title, artist, duration, query }] }. */
-async function readImport(raw, { fetchText = netfetch.text } = {}) {
+async function readImport(raw, { fetchText = netfetch.text, tries = 4, wait = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
   const ref = parseImportUrl(raw);
   if (!ref) throw new Error('Pega un enlace de una playlist, un álbum o una canción de Spotify o Apple Music.');
-  const html = await fetchText(ref.url, { headers: { Accept: 'text/html', 'Accept-Language': 'en' }, maxBytes: 8 * 1024 * 1024 });
-  const list = ref.service === 'spotify' ? parseSpotify(html) : parseApple(html);
+  // Spotify often serves a page without the songs (about 1 read in 3, measured
+  // 2026-10-08): it's read again, a little later each time, before giving up.
+  let list = null;
+  let lastErr = null;
+  for (let i = 0; i < tries && !(list && list.tracks.length); i++) {
+    if (i) await wait(350 * i);
+    try {
+      const html = await fetchText(ref.url, { headers: { Accept: 'text/html', 'Accept-Language': 'en' }, maxBytes: 8 * 1024 * 1024 });
+      list = ref.service === 'spotify' ? parseSpotify(html) : parseApple(html);
+    } catch (err) { lastErr = err; }
+  }
+  if (!list && lastErr) throw lastErr;
   if (!list || !list.tracks.length) throw new Error('No se encontraron canciones en ese enlace (¿es privado?).');
   return {
     service: ref.service,

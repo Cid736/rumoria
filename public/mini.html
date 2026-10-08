@@ -8,30 +8,49 @@
 </head>
 <body>
   <main class="mini" id="mini" aria-label="Mini reproductor">
-    <img class="art" id="art" alt="" draggable="false" hidden>
-    <div class="art art-empty" id="artEmpty" aria-hidden="true">♪</div>
-    <div class="info">
-      <div class="title" id="title">Nada sonando</div>
-      <div class="artist" id="artist">Pon algo en Rumoria</div>
-      <div class="bar" id="bar" role="slider" tabindex="0" aria-label="Posición" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div class="fill" id="fill"></div></div>
-      <div class="controls">
-        <button type="button" id="like" class="btn small" aria-label="Añadir a Favoritas" aria-pressed="false" title="Favorita">♡</button>
-        <button type="button" id="prev" class="btn" aria-label="Anterior" title="Anterior">⏮</button>
-        <button type="button" id="play" class="btn main" aria-label="Reproducir" title="Reproducir / pausa">▶</button>
-        <button type="button" id="next" class="btn" aria-label="Siguiente" title="Siguiente">⏭</button>
-        <span class="time" id="time">0:00</span>
+    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    <div class="clip" id="clip" hidden>
+      <video id="video" muted playsinline preload="auto" aria-label="Videoclip (sin sonido: suena la canción)"></video>
+      <p class="clip-note" id="clipNote" hidden>Esta canción no tiene videoclip disponible.</p>
+    </div>
+    <div class="top">
+      <img class="art" id="art" alt="" draggable="false" hidden>
+      <div class="art art-empty" id="artEmpty" aria-hidden="true">♪</div>
+      <div class="info">
+        <div class="title" id="title">Nada sonando</div>
+        <div class="artist" id="artist">Pon algo en Rumoria</div>
+        <div class="lyric" id="lyric" aria-live="off"></div>
+        <div class="upnext" id="upnext"></div>
+      </div>
+      <div class="side">
+        <button type="button" id="close" class="btn tiny" aria-label="Cerrar el mini reproductor" title="Cerrar">✕</button>
+        <button type="button" id="main" class="btn tiny" aria-label="Abrir Rumoria" title="Abrir Rumoria">⤢</button>
+        <button type="button" id="menu" class="btn tiny" aria-label="Opciones del mini reproductor" aria-expanded="false" title="Opciones">⋯</button>
       </div>
     </div>
-    <div class="side">
-      <button type="button" id="close" class="btn tiny" aria-label="Cerrar el mini reproductor" title="Cerrar">✕</button>
-      <button type="button" id="main" class="btn tiny" aria-label="Abrir Rumoria" title="Abrir Rumoria">⤢</button>
-      <button type="button" id="menu" class="btn tiny" aria-label="Opciones del mini reproductor" aria-expanded="false" title="Opciones">⋯</button>
+    <div class="bar-row">
+      <span class="time" id="now">0:00</span>
+      <div class="bar" id="bar" role="slider" tabindex="0" aria-label="Posición" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div class="fill" id="fill"></div></div>
+      <span class="time" id="total">0:00</span>
+    </div>
+    <div class="controls">
+      <button type="button" id="shuffle" class="btn small" aria-label="Aleatorio" aria-pressed="false" title="Aleatorio">⤮</button>
+      <button type="button" id="prev" class="btn" aria-label="Anterior" title="Anterior">⏮</button>
+      <button type="button" id="play" class="btn main" aria-label="Reproducir" title="Reproducir / pausa">▶</button>
+      <button type="button" id="next" class="btn" aria-label="Siguiente" title="Siguiente">⏭</button>
+      <button type="button" id="repeat" class="btn small" aria-label="Repetir: no" aria-pressed="false" title="Repetir">↻</button>
+      <button type="button" id="like" class="btn small" aria-label="Añadir a Favoritas" aria-pressed="false" title="Favorita">♡</button>
+      <button type="button" id="videoBtn" class="btn small" aria-label="Ver el videoclip" aria-pressed="false" title="Videoclip">🎬</button>
+      <button type="button" id="lyricsBtn" class="btn small" aria-label="Ver la letra" aria-pressed="false" title="Letra">♫</button>
+      <input type="range" id="volume" class="vol" min="0" max="1" step="0.05" aria-label="Volumen">
     </div>
     <div class="menu" id="menuPanel" role="menu" hidden>
       <label role="menuitemcheckbox"><input type="checkbox" data-pref="compact"> Compacto</label>
       <label role="menuitemcheckbox"><input type="checkbox" data-pref="onTop"> Siempre encima</label>
       <label role="menuitemcheckbox"><input type="checkbox" data-pref="locked"> Fijo (no se mueve)</label>
       <label role="menuitemcheckbox"><input type="checkbox" data-pref="showCover"> Portada</label>
+      <label role="menuitemcheckbox"><input type="checkbox" data-pref="video"> Videoclip</label>
+      <label role="menuitemcheckbox"><input type="checkbox" data-pref="lyrics"> Letra</label>
       <label role="menuitemcheckbox"><input type="checkbox" data-pref="hoverFull"> Opaco al pasar el ratón</label>
       <label class="range">Transparencia <input type="range" min="0.3" max="1" step="0.05" data-pref="opacity" aria-label="Opacidad"></label>
     </div>

@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer, webFrame } = require('electron');
 contextBridge.exposeInMainWorld('rumoria', {
   settings: () => ipcRenderer.invoke('rumoria:settings'),
   pickMusicDir: () => ipcRenderer.invoke('rumoria:pickMusicDir'),
+  setCloseToTray: (on) => ipcRenderer.invoke('rumoria:setCloseToTray', on === true),
   downloadInTubeGrab: (id) => ipcRenderer.invoke('rumoria:downloadInTubeGrab', String(id)),
   // Updates: the state, news of it (returns a way to stop listening), look now, restart to update.
   update: {

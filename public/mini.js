@@ -1,16 +1,18 @@
-// The mini player's page: shows what the main window plays and sends its
+// The mini player v2's page: shows what the main window plays and sends its
 // buttons back. Everything shown is text (textContent) or a YouTube cover
-// already checked by the desktop app; nothing here can reach the disk.
+// already checked by the desktop app. The video clip (when it's on) comes
+// from this app's own relay, without sound, kept in step with the song.
 (() => {
   const api = window.mini;
   const $ = (id) => document.getElementById(id);
   const root = $('mini');
+  const video = $('video');
   let state = null;
   let prefs = {};
+  let videoFor = null; // the video id whose clip is loaded
 
   // Your look (theme and accent), the same as the main window's — also when
-  // you change it there while this one is open (the browser tells every
-  // window of the app when its storage changes).
+  // you change it there while this one is open.
   function applyLook() {
     const d = document.documentElement.dataset;
     try {
@@ -24,22 +26,52 @@
   window.addEventListener('storage', (e) => { if (e.key === 'rumoria_look' || e.key === 'rumoria_theme' || e.key === null) applyLook(); });
 
   const clock = (s) => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const COVER_RE = /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]+(\?[\w\-=&%.]*)?$/;
+  const press = (el, on, label) => { el.classList.toggle('on', Boolean(on)); el.setAttribute('aria-pressed', String(Boolean(on))); if (label) el.setAttribute('aria-label', label); };
+
+  // ---- the clip: loaded for the song playing, muted, following its time ----
+  function syncVideo() {
+    const s = state;
+    const want = Boolean(prefs.video && !prefs.compact && s && s.yt);
+    $('clip').hidden = !(prefs.video && !prefs.compact);
+    if (!want) {
+      if (videoFor) { video.pause(); video.removeAttribute('src'); video.load(); videoFor = null; }
+      return;
+    }
+    if (videoFor !== s.yt) {
+      videoFor = s.yt;
+      $('clipNote').hidden = true;
+      video.src = `/api/stream/video?id=${encodeURIComponent(s.yt)}`;
+    }
+    if (Number.isFinite(s.time) && video.readyState >= 1 && Math.abs(video.currentTime - s.time) > 0.8) {
+      try { video.currentTime = s.time; } catch { /* not yet */ }
+    }
+    if (s.playing && video.paused) video.play().catch(() => {});
+    if (!s.playing && !video.paused) video.pause();
+  }
+  video.addEventListener('error', () => { if (videoFor) $('clipNote').hidden = false; });
+  video.addEventListener('loadedmetadata', () => { if (state && Number.isFinite(state.time)) { try { video.currentTime = state.time; } catch { /* fine */ } } });
 
   function render() {
     const s = state;
     const has = Boolean(s && s.title);
     $('title').textContent = has ? s.title : 'Nada sonando';
     $('artist').textContent = has ? (s.artist || '') : 'Pon algo en Rumoria';
+    $('lyric').textContent = has && prefs.lyrics !== false && s.line ? `♪ ${s.line}` : '';
+    $('upnext').textContent = has && s.upNext ? `A continuación: ${s.upNext}` : '';
     document.title = has ? `${s.title} · Rumoria` : 'Rumoria · mini';
     const art = $('art');
-    if (has && s.cover && prefs.showCover !== false) {
-      if (art.getAttribute('src') !== s.cover) art.src = s.cover;
+    const cover = has && s.cover && COVER_RE.test(s.cover) ? s.cover : null;
+    if (cover && prefs.showCover !== false) {
+      if (art.getAttribute('src') !== cover) art.src = cover;
       art.hidden = false;
       $('artEmpty').hidden = true;
+      root.style.setProperty('--cover', `url("${cover}")`);
     } else {
       art.hidden = true;
       art.removeAttribute('src');
       $('artEmpty').hidden = false;
+      root.style.setProperty('--cover', 'none');
     }
     const play = $('play');
     play.textContent = has && s.playing ? '⏸' : '▶';
@@ -49,9 +81,14 @@
     const like = $('like');
     like.disabled = !has || !s.canLike;
     like.textContent = has && s.liked ? '♥' : '♡';
-    like.classList.toggle('on', Boolean(has && s.liked));
-    like.setAttribute('aria-pressed', String(Boolean(has && s.liked)));
-    like.setAttribute('aria-label', has && s.liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas');
+    press(like, has && s.liked, has && s.liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas');
+    press($('shuffle'), s && s.shuffle);
+    press($('repeat'), s && s.repeat !== 'off', `Repetir: ${!s || s.repeat === 'off' ? 'no' : s.repeat === 'all' ? 'todo' : 'esta canción'}`);
+    $('repeat').textContent = s && s.repeat === 'one' ? '↻¹' : '↻';
+    press($('videoBtn'), prefs.video);
+    press($('lyricsBtn'), prefs.lyrics !== false);
+    const vol = $('volume');
+    if (s && document.activeElement !== vol) vol.value = String(s.volume);
     const d = has ? s.duration : 0;
     const t = has ? Math.min(s.time, d || s.time) : 0;
     $('fill').style.width = d ? `${(t / d) * 100}%` : '0%';
@@ -59,7 +96,9 @@
     bar.setAttribute('aria-valuemax', String(Math.round(d)));
     bar.setAttribute('aria-valuenow', String(Math.round(t)));
     bar.setAttribute('aria-valuetext', `${clock(t)} de ${clock(d)}`);
-    $('time').textContent = d ? `${clock(t)} / ${clock(d)}` : clock(t);
+    $('now').textContent = clock(t);
+    $('total').textContent = d ? clock(d) : '–:––';
+    syncVideo();
   }
 
   function applyPrefs(p) {
@@ -82,6 +121,11 @@
   $('next').addEventListener('click', () => api.command('next'));
   $('prev').addEventListener('click', () => api.command('prev'));
   $('like').addEventListener('click', () => api.command('like'));
+  $('shuffle').addEventListener('click', () => api.command('shuffle'));
+  $('repeat').addEventListener('click', () => api.command('repeat'));
+  $('videoBtn').addEventListener('click', () => api.setPrefs({ video: !prefs.video }));
+  $('lyricsBtn').addEventListener('click', () => api.setPrefs({ lyrics: prefs.lyrics === false }));
+  $('volume').addEventListener('input', (e) => api.command('volume', Number(e.target.value)));
   $('close').addEventListener('click', () => api.close());
   $('main').addEventListener('click', () => api.showMain());
   const panel = $('menuPanel');
@@ -114,7 +158,7 @@
     if (e.key === ' ' && e.target === document.body) { e.preventDefault(); api.command('toggle'); }
   });
 
-  // Moved by dragging anywhere but its buttons, bar and options.
+  // Moved by dragging anywhere but its buttons, bar, video and options.
   let drag = null;
   root.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || e.target.closest('button, input, label, .bar, .menu')) return;

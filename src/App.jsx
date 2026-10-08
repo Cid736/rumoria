@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { desktop } from './api.js';
 import { startMiniBridge } from './player/miniBridge.js';
-import { applyLook, useLook } from './store/look.js';
+import { applyLook, lastView, rememberView, useLook } from './store/look.js';
+import { PROFILES, usePerf } from './store/perf.js';
 import { useLibrary } from './store/library.js';
 import { usePlayer } from './store/player.js';
 import { useUi } from './store/ui.js';
@@ -17,7 +18,7 @@ import { LikedPage, ListPage, LocalPage, MixPage, NewsPage } from './views/Pages
 import Search from './views/Search.jsx';
 import Settings from './views/Settings.jsx';
 import Summary from './views/Summary.jsx';
-import { BrowsePage, DiscoverPage, RadioPage } from './views/Discover.jsx';
+import { BrowsePage, DiscoverPage, RadioPage, TodayPage } from './views/Discover.jsx';
 
 function Page({ view }) {
   switch (view.name) {
@@ -31,6 +32,7 @@ function Page({ view }) {
     case 'browse': return <BrowsePage id={view.id} />;
     case 'radio': return <RadioPage id={view.id} payload={view.payload} />;
     case 'discover': return <DiscoverPage />;
+    case 'today': return <TodayPage />;
     case 'news': return <NewsPage />;
     default: return <Home />;
   }
@@ -65,10 +67,20 @@ export default function App() {
 
   useEffect(() => {
     useLibrary.getState().loadAll();
-    // Lists made or filled in the background ("Para ti", lists that fill themselves) show up by themselves.
-    const t = setInterval(() => useLibrary.getState().refreshLists(), 60_000);
-    return () => clearInterval(t);
+    // This PC's real cores and memory (for the "Automático" performance profile).
+    if (desktop) desktop.settings().then((s) => { if (s && s.cores) usePerf.getState().setHardware({ cores: s.cores, memGB: s.memGB }); }, () => {});
+    // "Al abrir Rumoria: lo último que viste".
+    if (useLook.getState().look.start === 'last') { const v = lastView(); if (v && v.name !== 'home') useUi.getState().go(v); }
   }, []);
+  // Lists made or filled in the background ("Para ti", lists that fill themselves) show up by
+  // themselves; less often on "Recursos mínimos".
+  const profile = usePerf((s) => s.profile);
+  useEffect(() => {
+    const t = setInterval(() => useLibrary.getState().refreshLists(), (PROFILES[profile] || PROFILES.mid).listsEveryMs);
+    return () => clearInterval(t);
+  }, [profile]);
+  // The page you're on, for next time.
+  useEffect(() => { rememberView(view); }, [view]);
   useEffect(() => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

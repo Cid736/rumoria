@@ -8,9 +8,10 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-const SIZES = { normal: { width: 360, height: 132 }, compact: { width: 300, height: 64 } };
-const DEFAULTS = { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true };
-const BOOLS = ['compact', 'hoverFull', 'onTop', 'locked', 'showCover'];
+// v2: a bit larger, and with the video clip (16:9 on top) taller still.
+const SIZES = { normal: { width: 380, height: 164 }, compact: { width: 320, height: 64 }, video: { width: 380, height: 378 } };
+const DEFAULTS = { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true };
+const BOOLS = ['compact', 'hoverFull', 'onTop', 'locked', 'showCover', 'video', 'lyrics'];
 const COMMANDS = ['toggle', 'next', 'prev', 'like', 'seek', 'volume', 'shuffle', 'repeat'];
 
 /** The mini player's settings, each checked (they drive window calls). */
@@ -33,6 +34,10 @@ function cleanState(s) {
     playing: s.playing === true, loading: s.loading === true, time: num(s.time, 86400), duration: num(s.duration, 86400),
     liked: s.liked === true, canLike: s.canLike === true, volume: num(s.volume, 1), shuffle: s.shuffle === true,
     repeat: ['off', 'all', 'one'].includes(s.repeat) ? s.repeat : 'off', hasNext: s.hasNext === true,
+    // v2: the video's id (its clip comes from this app's own relay), the lyric
+    // line now and the next one, and the next song's title.
+    yt: /^[A-Za-z0-9_-]{11}$/.test(String(s.yt || '')) ? s.yt : null,
+    line: text(s.line, 300), nextLine: text(s.nextLine, 300), upNext: text(s.upNext, 200),
   };
 }
 
@@ -48,13 +53,14 @@ function cleanCommand(cmd, value) {
  * `origin()`: the app's origin; `main()`: the main window; settings read/save;
  * `onClosed()`: the mini window went away.
  */
-function createMini({ origin, main, readSettings, saveSettings, icon, onClosed }) {
+function createMini({ origin, main, readSettings, saveSettings, icon, onClosed, onState = () => {} }) {
   let win = null;
   let hovered = false;
   let last = null; // what's playing, for a window that opens now
   let saveTimer = null;
   const prefs = () => cleanPrefs(readSettings().miniPrefs);
-  const size = () => SIZES[prefs().compact ? 'compact' : 'normal'];
+  const sizeOf = (p) => SIZES[p.compact ? 'compact' : p.video ? 'video' : 'normal'];
+  const size = () => sizeOf(prefs());
   const alive = () => win && !win.isDestroyed();
   const fromMini = (event) => alive() && event.sender === win.webContents && String(event.senderFrame && event.senderFrame.url).startsWith(`${origin()}/mini.html`);
   const fromMain = (event) => { const m = main(); return m && !m.isDestroyed() && event.sender === m.webContents && String(event.senderFrame && event.senderFrame.url).startsWith(`${origin()}/`); };
@@ -86,12 +92,16 @@ function createMini({ origin, main, readSettings, saveSettings, icon, onClosed }
     const before = prefs();
     const next = cleanPrefs({ ...before, ...(patch && typeof patch === 'object' ? patch : {}) });
     try { saveSettings({ miniPrefs: next }); } catch { /* not fatal */ }
-    // Compact or not: another size, the bottom-right corner kept on screen.
-    if (alive() && next.compact !== before.compact) {
+    // Compact, normal or with the clip: another size, growing or shrinking
+    // from its bottom-right corner, always inside its screen.
+    const a = sizeOf(before);
+    const s = sizeOf(next);
+    if (alive() && (s.height !== a.height || s.width !== a.width)) {
       const [x, y] = win.getPosition();
-      const s = size();
       const { workArea: w } = screen.getDisplayMatching({ x, y, width: s.width, height: s.height });
-      win.setBounds({ x: Math.min(x, w.x + w.width - s.width), y: Math.min(y, w.y + w.height - s.height), ...s });
+      const nx = Math.max(w.x, Math.min(x + a.width - s.width, w.x + w.width - s.width));
+      const ny = Math.max(w.y, Math.min(y + a.height - s.height, w.y + w.height - s.height));
+      win.setBounds({ x: nx, y: ny, ...s });
     }
     apply();
     return next;
@@ -125,6 +135,7 @@ function createMini({ origin, main, readSettings, saveSettings, icon, onClosed }
     if (!clean) return;
     last = clean;
     if (alive()) win.webContents.send('mini:state', clean);
+    onState(clean);
   });
   ipcMain.handle('rumoria:mini:prefs', (event) => (fromMain(event) || fromMini(event) ? prefs() : null));
   ipcMain.handle('rumoria:mini:setPrefs', (event, patch) => (fromMain(event) || fromMini(event) ? setPrefs(patch) : null));
@@ -152,7 +163,7 @@ function createMini({ origin, main, readSettings, saveSettings, icon, onClosed }
     if (m && !m.isDestroyed()) { m.show(); if (m.isMinimized()) m.restore(); m.focus(); }
   });
 
-  return { open, isOpen: alive, close: () => { if (alive()) win.close(); } };
+  return { open, isOpen: alive, close: () => { if (alive()) win.close(); }, now: () => last };
 }
 
 module.exports = { createMini, cleanPrefs, cleanState, cleanCommand, SIZES };

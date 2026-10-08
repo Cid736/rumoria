@@ -21,6 +21,7 @@ const { News } = require('./lib/news');
 const { LocalMusic } = require('./lib/localmusic');
 const { Browse, findSongs, CATEGORIES } = require('./lib/browse');
 const { Curator, EVERY_DAYS } = require('./lib/curator');
+const { Prefs } = require('./lib/prefs');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
@@ -85,6 +86,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   if (musicDir) local.scan();
   const browse = new Browse(path.join(dataDir, 'browse-cache.json'));
   const curator = new Curator(path.join(dataDir, 'curator.json'));
+  const prefs = new Prefs(path.join(dataDir, 'prefs.json'));
 
   const ytSlots = slots(3);
   const listSlots = slots(2);
@@ -128,9 +130,31 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!ytSlots.take()) return res.status(429).json(BUSY);
     try { res.json(stream.publicInfo(req.query.id, await stream.resolve(req.query.id, ytEnv()))); } catch (err) { res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); } finally { ytSlots.release(); }
   });
-  app.get('/api/stream/audio', needId, async (req, res) => {
-    try { await stream.pipe(req.query.id, ytEnv(), req, res); } catch (err) { if (!res.headersSent) res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); else res.destroy(); }
+  // The sound (and, for the mini player, a light video without sound): relayed
+  // in pieces from YouTube's media servers only. `fresh=1`: the player is
+  // trying again after a failure, so the address is looked up anew.
+  // A fresh look-up runs yt-dlp: at most once per song every 10 s, however often it's asked.
+  const freshAt = new Map();
+  const allowFresh = (id) => {
+    const now = Date.now();
+    if (now - (freshAt.get(id) || 0) < 10_000) return false;
+    freshAt.set(id, now);
+    if (freshAt.size > 500) freshAt.delete(freshAt.keys().next().value);
+    return true;
+  };
+  const relay = (kind) => async (req, res) => {
+    const fresh = req.query.fresh === '1' && allowFresh(`${kind}:${req.query.id}`);
+    try { await stream.pipe(req.query.id, ytEnv(), req, res, { kind, fresh }); } catch (err) { if (!res.headersSent) res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); else res.destroy(); }
+  };
+  app.get('/api/stream/audio', fileLimiter, needId, relay('audio'));
+  app.get('/api/stream/video', fileLimiter, needId, relay('video'));
+  // The next song, looked up ahead so it starts at once (answers straight away).
+  app.post('/api/stream/prepare', ytLimiter, needId, (req, res) => {
+    if (prefs.get().perf === 'min') return res.json({ ok: false });
+    res.json({ ok: stream.prepare(req.query.id, ytEnv()) });
   });
+  // A song that kept failing: its addresses forgotten.
+  app.post('/api/stream/forget', writeLimiter, needId, (req, res) => res.json({ ok: stream.forget(req.query.id) }));
   app.get('/api/stream/radio', ytLimiter, needId, async (req, res) => {
     if (!listSlots.take()) return res.status(429).json(BUSY);
     try { res.json({ entries: await stream.radio(req.query.id, ytEnv(), yt.flatList) }); } catch { res.json({ entries: [] }); } finally { listSlots.release(); }
@@ -279,16 +303,23 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!l) return res.status(404).json({ error: 'Ya no se puede recuperar esa lista.' });
     return res.json(l);
   });
+  // "Actualizar" inside a list: one read at a time per list (a second click
+  // waits for the same answer), and an empty read never empties the list.
+  const refreshing = new Map();
+  async function refreshList(l) {
+    if (l.auto) {
+      if (!ytSlots.take()) throw Object.assign(new Error(BUSY.error), { status: 429 });
+      try { const r = lists.autoFill(l.id, await songsFor(l.auto.q)); return { ...r.list, added: r.added, removed: 0 }; } finally { ytSlots.release(); }
+    }
+    if (!l.url) throw new Error('Esta lista es tuya: no viene de un enlace ni se llena sola.');
+    const r = lists.reread(l.id, (await readListLink(l.url)).tracks);
+    return { ...r.list, added: r.added, removed: r.removed };
+  }
   app.post('/api/lists/:id/refresh', ytLimiter, async (req, res) => {
     const l = listFor(req, res);
     if (!l) return;
-    // Filling itself: look for new songs now.
-    if (l.auto) {
-      if (!ytSlots.take()) return res.status(429).json(BUSY);
-      try { const r = lists.autoFill(l.id, await songsFor(l.auto.q)); return res.json({ ...r.list, added: r.added }); } catch (err) { return res.status(400).json({ error: shortError(err, 'No se pudo buscar ahora.') }); } finally { ytSlots.release(); }
-    }
-    if (!l.url) return res.status(400).json({ error: 'Esta lista no viene de un enlace.' });
-    try { res.json(lists.update(l.id, { tracks: (await readListLink(l.url)).tracks })); } catch (err) { res.status(400).json({ error: shortError(err, 'No se pudo leer esa lista.') }); }
+    if (!refreshing.has(l.id)) refreshing.set(l.id, refreshList(l).finally(() => refreshing.delete(l.id)));
+    try { res.json(await refreshing.get(l.id)); } catch (err) { res.status(err.status || 400).json({ error: shortError(err, 'No se pudo actualizar esa lista.') }); }
   });
   app.delete('/api/lists/:id', writeLimiter, (req, res) => {
     const l = listFor(req, res);
@@ -355,6 +386,10 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     return res.json({ ...curator.view(CATEGORIES), made: r.made.length, removed: r.removed.length });
   });
 
+  // ---- your settings the server needs: the performance profile ----
+  app.get('/api/prefs', (req, res) => res.json(prefs.get()));
+  app.patch('/api/prefs', writeLimiter, (req, res) => res.json(prefs.set(req.body || {})));
+
   // ---- news of your artists ----
   app.get('/api/news', (req, res) => res.json({ news: news.list() }));
 
@@ -381,7 +416,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     for (const id of lists.dueForSync()) {
       const l = lists.get(id);
       if (!l) continue;
-      try { const fresh = await readListLink(l.url); if (fresh.tracks.length) lists.update(id, { tracks: fresh.tracks }); } catch { /* next round */ }
+      if (refreshing.has(id)) continue;
+      try { const fresh = await readListLink(l.url); lists.reread(id, fresh.tracks); } catch { /* next round (the list stays as it was) */ }
     }
   }
   // Lists that fill themselves, whose time has come: one at a time, and only
@@ -431,8 +467,12 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // when older than 6 h (their covers are on the home page), the rest once a
   // day. A list being listened to always comes first (this waits or skips).
   async function warmBrowse() {
+    // The performance profile decides how much: nothing ahead on a modest PC
+    // (each list is read when opened), the featured ones on a middling one, all on a strong one.
+    const perf = prefs.get().perf;
+    if (perf === 'min') return;
     const all = browse.list();
-    const due = [...all.filter((x) => x.featured && !browse.isFresh(x.id)), ...all.filter((x) => !x.featured && !browse.isFresh(x.id, 24 * 3600_000))];
+    const due = [...all.filter((x) => x.featured && !browse.isFresh(x.id)), ...(perf === 'high' ? all.filter((x) => !x.featured && !browse.isFresh(x.id, 24 * 3600_000)) : [])];
     for (const b of due) {
       if (!ytSlots.take()) return;
       try { await browse.get(b.id, (target, limit) => yt.flatList(target, ytEnv(), limit)); } catch { /* next time */ } finally { ytSlots.release(); }

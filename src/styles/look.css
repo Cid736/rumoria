@@ -40,3 +40,35 @@
 .swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .swatch-dot { width: 24px; height: 24px; border-radius: 50%; }
 .chips-wrap { flex-wrap: wrap; }
+
+/* The player's "Sonido" panel. */
+.sound .set-row.snd-row { padding: 8px 0; gap: 12px; }
+.sound select { max-width: 150px; }
+.eq-presets { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.eq-presets select { flex: 1; max-width: none; }
+.btn-small { padding: 4px 10px; font-size: 12px; }
+.eq { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
+.eq-band { display: grid; grid-template-columns: 56px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.eq-band input[type="range"] { width: 100%; accent-color: var(--accent); }
+.eq-db { font-variant-numeric: tabular-nums; color: var(--text); text-align: right; }
+.viz { flex: none; width: 60px; height: 28px; opacity: 0.9; }
+
+/* Performance profile "Recursos mínimos": no blur, shadows or motion. */
+:root[data-perf="min"] *, :root[data-perf="min"] *::before, :root[data-perf="min"] *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; backdrop-filter: none !important; box-shadow: none !important; }
+/* Long lists: rows off screen aren't laid out or painted (less CPU and memory). */
+.tracks-row:not(.tracks-head) { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+
+/* Letters: only fonts that come with Windows (nothing is downloaded). */
+:root[data-font="trebuchet"] body { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
+:root[data-font="serif"] body { font-family: Georgia, Cambria, "Times New Roman", serif; }
+:root[data-font="mono"] body { font-family: "Cascadia Code", Consolas, "Courier New", monospace; }
+:root[data-font] button, :root[data-font] input, :root[data-font] select { font-family: inherit; }
+
+/* The library's width. */
+:root[data-sidebar="narrow"] { --sidebar-w: 240px; }
+:root[data-sidebar="wide"] { --sidebar-w: 400px; }
+
+/* The cover behind the player bar: its colours, blurred and faint. */
+.playerbar { position: relative; isolation: isolate; overflow: hidden; }
+:root[data-player-cover="on"] .playerbar::before { content: ""; position: absolute; inset: -40px; z-index: -1; background-image: var(--pb-cover, none); background-size: cover; background-position: center; filter: blur(40px) saturate(1.4); opacity: 0.28; pointer-events: none; }
+:root[data-perf="min"] .playerbar::before { display: none; }

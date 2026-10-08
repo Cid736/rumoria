@@ -37,7 +37,7 @@ test('mini: its buttons can only ask for known things, with sane values', () => 
 });
 
 test('mini: settings within bounds', () => {
-  assert.deepEqual(cleanPrefs(null), { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true });
+  assert.deepEqual(cleanPrefs(null), { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true });
   assert.equal(cleanPrefs({ opacity: 0 }).opacity, 0.3, 'never invisible');
   assert.equal(cleanPrefs({ opacity: 5 }).opacity, 1);
   assert.equal(cleanPrefs({ compact: 'yes' }).compact, false);

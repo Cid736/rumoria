@@ -143,7 +143,27 @@ class ListenLog {
     }
     const topArtists = [...artists.values()].filter((a) => a.plays > 0).sort((a, b) => b.plays - a.plays || b.secs - a.secs).slice(0, 8)
       .map((a) => ({ name: a.name, plays: a.plays, seed: a.seed, songs: a.songs.sort((x, y) => y.plays - x.plays).slice(0, 10) }));
-    return { top, lately, forgotten, artists: topArtists, count: this.events.length, paused: this.paused, autoSave: this.autoSave };
+    // What you skip (a few seconds, never really played), in one pass over the
+    // last 60 days: recommendations leave those songs out and go easy on
+    // artists you mostly skip.
+    const perSong = new Map();
+    const perArtist = new Map();
+    for (const [at, key, secs] of this.events) {
+      if (at < now - 60 * DAY) continue;
+      const t = this.tracks.get(key);
+      const played = isPlay(secs, t && t.dur);
+      const s = perSong.get(key) || { plays: 0, short: 0 };
+      if (played) s.plays += 1; else s.short += 1;
+      perSong.set(key, s);
+      const name = t && mainArtist(t.artist);
+      if (!name) continue;
+      const a = perArtist.get(name.toLowerCase()) || { name, plays: 0, skips: 0 };
+      if (played) a.plays += 1; else a.skips += 1;
+      perArtist.set(name.toLowerCase(), a);
+    }
+    const skipped = [...perSong].filter(([, s]) => s.plays === 0 && s.short >= 2).map(([k]) => k).slice(0, 300);
+    const cold = [...perArtist.values()].filter((a) => a.skips >= 3 && a.skips > 2 * a.plays).map((a) => a.name).slice(0, 50);
+    return { top, lately, forgotten, artists: topArtists, skipped, cold, count: this.events.length, paused: this.paused, autoSave: this.autoSave };
   }
 
   /** The summary of a year (or of everything): totals, top songs and artists, by month and by hour. */

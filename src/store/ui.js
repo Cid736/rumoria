@@ -9,7 +9,7 @@ let toastId = 1;
 // What you put on lately (lists, mixes, radios…), and how often: "Recientes"
 // and "Lo que más vuelves a poner". Only on this computer.
 const RECENT_KEY = 'rumoria_recent';
-const KINDS = ['list', 'liked', 'local', 'mix', 'browse', 'radio', 'discover', 'news'];
+const KINDS = ['list', 'liked', 'local', 'mix', 'browse', 'radio', 'discover', 'today', 'news'];
 const YT_IMG = /^https:\/\/i\d?\.ytimg\.com\//;
 // A radio's song (what it starts with and what it's called): only those texts.
 const cleanPayload = (p) => {

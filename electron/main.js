@@ -11,6 +11,8 @@ const { fork, execFile } = require('child_process');
 const { migrateFromTubeGrab } = require('../server/lib/migrate');
 const { createUpdater } = require('./updater');
 const { createMini } = require('./mini');
+const { createTray } = require('./tray');
+const os = require('os');
 
 // Isolated runs (tests, a second profile): their own data folder.
 if (process.env.RUMORIA_USER_DATA && path.isAbsolute(process.env.RUMORIA_USER_DATA)) app.setPath('userData', process.env.RUMORIA_USER_DATA);
@@ -39,7 +41,16 @@ const mini = createMini({
   readSettings: (...a) => readSettings(...a),
   saveSettings: (...a) => saveSettings(...a),
   icon: path.join(__dirname, '..', 'build', 'icon.png'),
-  onClosed: () => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) app.quit(); },
+  onClosed: () => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible() && !tray.isShown()) app.quit(); },
+  onState: () => tray.refresh(),
+});
+// Playing in the background, in the tray (see tray.js): its buttons drive the main window's player.
+const tray = createTray({
+  icon: path.join(__dirname, '..', 'build', 'icon.png'),
+  main: () => mainWindow,
+  now: () => mini.now(),
+  send: (c) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:player:command', c); },
+  quit: () => { app.isQuitting = true; app.quit(); },
 });
 
 // === Settings (userData/settings.json) ===
@@ -196,13 +207,26 @@ function createWindow(port) {
   mainWindow.on('close', (e) => {
     try { saveSettings({ bounds: mainWindow.getNormalBounds() }); } catch { /* not fatal */ }
     // The mini player is open: the main window only hides, the music goes on.
-    if (mini.isOpen() && !app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
+    if (app.isQuitting) return;
+    if (mini.isOpen()) { e.preventDefault(); mainWindow.hide(); return; }
+    // "Al cerrar, seguir sonando en la bandeja": hidden, the music goes on.
+    if (readSettings().closeToTray === true) { e.preventDefault(); mainWindow.hide(); tray.show(); }
   });
+  mainWindow.on('show', () => tray.hide());
   mainWindow.loadURL(`http://127.0.0.1:${port}/`);
 }
 
 // === What the page may ask for ===
-ipcMain.handle('rumoria:settings', (event) => (isTrustedSender(event) ? { musicDir: musicDir(), tubegrab: fs.existsSync(TUBEGRAB_DATA) } : null));
+// This PC (for the "Automático" performance profile) and the settings kept here.
+ipcMain.handle('rumoria:settings', (event) => (isTrustedSender(event) ? {
+  musicDir: musicDir(), tubegrab: fs.existsSync(TUBEGRAB_DATA), closeToTray: readSettings().closeToTray === true,
+  cores: os.cpus().length, memGB: Math.round(os.totalmem() / 1024 ** 3),
+} : null));
+ipcMain.handle('rumoria:setCloseToTray', (event, on) => {
+  if (!isTrustedSender(event) || typeof on !== 'boolean') return null;
+  saveSettings({ closeToTray: on });
+  return on;
+});
 ipcMain.handle('rumoria:pickMusicDir', async (event) => {
   if (!isTrustedSender(event)) return null;
   const r = await dialog.showOpenDialog(mainWindow, { title: 'Tu carpeta de música', defaultPath: musicDir(), properties: ['openDirectory'] });
@@ -216,8 +240,13 @@ ipcMain.handle('rumoria:update:state', (event) => (isTrustedSender(event) ? upda
 ipcMain.on('rumoria:update:check', (event) => { if (isTrustedSender(event)) updater.check(); });
 ipcMain.on('rumoria:update:restart', (event) => { if (isTrustedSender(event)) updater.restart(); });
 // "Descargar con TubeGrab": TubeGrab opens with the song in its download box (it asks before downloading).
+// Without TubeGrab installed, `tubegrab://` goes nowhere: its download page opens instead.
 ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
   if (!isTrustedSender(event) || !/^[A-Za-z0-9_-]{11}$/.test(String(id))) return false;
+  if (!app.getApplicationNameForProtocol('tubegrab://')) {
+    shell.openExternal('https://github.com/Cid736/tubegrab/releases/latest');
+    return 'missing';
+  }
   shell.openExternal(`tubegrab://download?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`);
   return true;
 });
@@ -230,9 +259,14 @@ app.on('window-all-closed', () => app.quit());
 app.on('quit', () => { if (serverProcess) serverProcess.kill(); });
 
 app.whenReady().then(async () => {
-  // No camera, microphone, notifications…: nothing is ever granted.
+  // No camera, microphone, notifications…: nothing is ever granted (every
+  // request is refused). The only check that passes: the main window, on its
+  // own page, may list the sound outputs and pick one ("Salida de sonido") —
+  // seeing the devices' names, never opening a microphone.
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
-  session.defaultSession.setPermissionCheckHandler(() => false);
+  session.defaultSession.setPermissionCheckHandler((wc, perm, origin) => (
+    ['media', 'speaker-selection'].includes(perm) && Boolean(mainWindow) && wc === mainWindow.webContents && isAppUrl(String(origin || ''))
+  ));
   const copied = migrateFromTubeGrab(TUBEGRAB_DATA, userData());
   if (copied.length) console.log(`Rumoria: copiado de TubeGrab: ${copied.join(', ')}`);
   try { await ensureYtDlp(); updateYtDlpSoon(); } catch (err) {

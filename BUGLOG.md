@@ -180,3 +180,73 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 - **Resultado:** a los pocos segundos encontró la 1.2.0 en GitHub, descargó `Rumoria.exe`, comprobó su SHA-256 y su tamaño, y mostró «Actualizar a 1.2.0». Al pulsarlo se cerró, el `.exe` quedó cambiado (su huella es la de la 1.2.0 publicada) y se abrió de nuevo, ya en la 1.2.0, con el mismo perfil.
 - **Pendiente menor:** queda una carpeta temporal vacía (`%TEMP%\rumoria-update-…`) por actualización. Es inofensivo; se limpiará en la próxima versión.
 - **CodeQL:** sin avisos en el código de la app. El único nuevo era un test (comprueba que la página del mini no tiene `<script>` en línea) y se descartó con ese motivo.
+
+---
+
+## 2026-10-08 — v1.3.0: rendimiento, reproducción como en TubeGrab, mini v2, recomendaciones
+
+### [Bug] Actualizar una lista podía vaciarla o deshacer lo que habías hecho
+- **Archivos:** `server/lib/streamlists.js`, `server/app.js`, `server/lib/importlist.js`
+- **Vaciaba la lista:** «Leer de nuevo» dejaba la lista vacía si Spotify o Apple Music devolvían 0 canciones (la sincronización automática sí lo comprobaba).
+- **Volvían las quitadas:** las canciones que quitabas de una lista importada reaparecían al releerla.
+- **Se perdían las añadidas:** las que añadías tú desaparecían.
+- **Doble lectura:** dos clics lanzaban dos lecturas.
+- **Spotify a medias:** a veces sirve la página sin canciones. Lo medí con tus listas: falló 1 de cada 3 lecturas.
+- **Fix:**
+  - `reread`: una lectura vacía no cambia nada, las canciones quitadas se recuerdan (`gone`), las tuyas se conservan (`mine`, al final) y los vídeos ya encontrados se mantienen;
+  - una lectura por lista a la vez;
+  - Spotify se lee hasta 4 veces (20 de 20 lecturas bien después del arreglo).
+- **Función:** «Actualizar» dentro de cada lista (de un enlace o que se llena sola) dice cuántas canciones llegaron.
+
+### [Función] Rendimiento
+- **Perfiles:** Automático, Mínimo, Medio o Alto. En este PC (12 núcleos, 32 GB) el automático elige «Alto».
+- **Optimizaciones:**
+  - la siguiente canción se resuelve por adelantado;
+  - la caché de direcciones dura 4 h y guarda 400;
+  - las filas de las listas largas que no se ven no se pintan;
+  - en «Mínimo», sin animaciones ni desenfoques y con portadas pequeñas.
+- **Canciones que no cargan:** hasta 3 intentos, y tras 20 s cargando cuenta como fallo. En listas de más de 50, si sigue fallando se quita de la lista (con «Deshacer») y de la caché.
+
+### [Función] Reproducción
+- **Seguir donde lo dejaste:** probado cerrando la app a la 1:57 de «Bohemian Rhapsody»; al abrirla, la misma canción en ese segundo, en pausa.
+- **Segundo plano:** con la opción de la bandeja, cerrar la ventana la oculta y la música sigue (probado: 2:48 → 2:53 con la ventana cerrada).
+- **Opciones de TubeGrab, de vuelta:**
+  - ecualizador de 5 bandas con preajustes y los tuyos;
+  - mismo volumen para todas las canciones;
+  - velocidad, manteniendo el tono o no;
+  - fundido;
+  - karaoke;
+  - temporizador (minutos o al acabar la canción);
+  - salida de sonido (8 salidas detectadas);
+  - pausa al desconectar los auriculares;
+  - visualizador.
+- **Prueba en la app real:** con el preajuste Rock y 1,25×, la canción avanzó 5 s en 4 s.
+
+### [Función] Mini reproductor v2
+- **Qué trae:** portada de fondo, línea de la letra («♪ When I look into your eyes» en «November Rain»), siguiente canción, aleatorio, repetir y volumen.
+- **Videoclip** (🎬): vídeo de 360p sin sonido, por el propio relé de la app, sincronizado con la canción (probado: 1:19 en los dos).
+
+### [Función] Recomendaciones
+- **«Descubre algo nuevo»:** cuenta más una canción que aparece en las mezclas de varias tuyas, deja fuera las que saltas y pone al final a los artistas que sueles saltar. Como mucho 2 por artista, reconocido por el título y no por el canal: Queen salía 3 veces («Queen», «Queen Official», «Live Aid»).
+- **«Para hoy»:** parecidas a lo último que escuchaste; probado con 17 canciones (Queen, Bon Jovi, Aerosmith, Amy Winehouse).
+
+### [Bug] El mini reproductor nunca bajaba la letra
+- `usePlayer.getState().current()` siempre lee el estado actual, así que comparar «antes» y «ahora» con él nunca veía el cambio de canción. Ahora se comparan las canciones de la cola.
+
+### [Bug] Los deslizadores del ecualizador se salían de su caja
+- En vertical tapaban la sección «Reproducción»; ahora son filas horizontales.
+
+### [Legacy] TubeGrab
+- **«Descargar con TubeGrab»:** sin TubeGrab instalado, abre su página de descarga y lo avisa (antes, el protocolo no hacía nada).
+- **Documentación:** quitadas la rama `split/listen-app`, ya fusionada, y la versión fija de TubeGrab en ARQUITECTURA.
+- **TubeGrab v4.0.4:** el texto de su pestaña Rumoria cuenta lo nuevo.
+
+### Seguridad
+- **Rutas nuevas:** `/api/stream/video`, `/prepare`, `/forget` y `/api/prefs`. Todas exigen el token y validan el id (o solo aceptan valores conocidos), con límite de peticiones. El vídeo usa el mismo relé que el audio (solo `*.googlevideo.com`). `fresh=1` relanza yt-dlp como mucho una vez cada 10 s por canción.
+- **Permisos:** sigue sin concederse ninguna petición. La única comprobación que pasa es la de la ventana principal sobre su propio origen, para listar las salidas de audio.
+- **Datos guardados:** todo lo que se lee de `localStorage` (sesión, sonido, perfil, aspecto, última página) se limpia campo a campo. Las portadas que van en CSS solo se aceptan de `i.ytimg.com`.
+- **Comprobaciones:**
+  - `recheck` sobre 72 expresiones: ninguna exponencial;
+  - `npm audit`: 0 vulnerabilidades;
+  - 80 pruebas de servidor y seguridad y 58 de interfaz, todas superadas;
+  - lint: 0 errores.

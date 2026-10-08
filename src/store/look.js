@@ -19,7 +19,13 @@ export const SECTIONS = [
   ['lists', 'Tus listas'], ['categories', 'Todas las categorías'],
 ];
 
-export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [] };
+// v1.3: the letters (only fonts already on Windows: nothing is downloaded), the
+// library's width, the page Rumoria opens on, the cover behind the player bar.
+export const FONTS = [['system', 'Del sistema'], ['trebuchet', 'Trebuchet'], ['serif', 'Clásica (Georgia)'], ['mono', 'Monoespaciada']];
+export const SIDEBARS = [['narrow', 'Estrecha'], ['normal', 'Normal'], ['wide', 'Ancha']];
+export const STARTS = [['home', 'Inicio'], ['last', 'Lo último que viste']];
+
+export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true };
 
 /** Only known values: what's read back from storage can't set anything else. */
 export function cleanLook(raw) {
@@ -33,6 +39,10 @@ export function cleanLook(raw) {
     motion: ['auto', 'reduce'].includes(r.motion) ? r.motion : DEFAULT_LOOK.motion,
     sideCovers: r.sideCovers !== false,
     hidden: Array.isArray(r.hidden) ? [...new Set(r.hidden.filter((k) => SECTIONS.some(([s]) => s === k)))] : [],
+    font: one(r.font, FONTS, DEFAULT_LOOK.font),
+    sidebar: one(r.sidebar, SIDEBARS, DEFAULT_LOOK.sidebar),
+    start: one(r.start, STARTS, DEFAULT_LOOK.start),
+    playerCover: r.playerCover !== false,
   };
 }
 
@@ -46,8 +56,23 @@ export function applyLook(look, doc = document, zoom = (f) => { if (window.rumor
   d.corners = look.corners;
   d.motion = look.motion;
   d.sideCovers = look.sideCovers ? 'on' : 'off';
+  d.font = look.font;
+  d.sidebar = look.sidebar;
+  d.playerCover = look.playerCover ? 'on' : 'off';
   try { zoom(look.size); } catch { /* not where it can zoom */ }
 }
+
+// ---- "Lo último que viste": the page you were on, opened again next time ----
+const LAST_KEY = 'rumoria_lastview';
+const VIEWS = ['home', 'search', 'list', 'liked', 'local', 'mix', 'browse', 'discover', 'today', 'news', 'summary', 'settings'];
+/** Only plain views (a name and, for some, an id) are kept and read back. */
+export function cleanView(v) {
+  if (!v || typeof v !== 'object' || !VIEWS.includes(v.name)) return null;
+  const id = typeof v.id === 'string' && /^[\w-]{1,40}$/.test(v.id) ? v.id : undefined;
+  return id ? { name: v.name, id } : { name: v.name };
+}
+export function rememberView(v) { const c = cleanView(v); if (c) { try { localStorage.setItem(LAST_KEY, JSON.stringify(c)); } catch { /* only for now */ } } }
+export function lastView() { try { return cleanView(JSON.parse(localStorage.getItem(LAST_KEY))); } catch { return null; } }
 
 export const useLook = create((set, get) => ({
   look: saved(),

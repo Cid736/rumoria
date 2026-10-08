@@ -7,7 +7,12 @@ import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
-import { Heart, Mic, MiniPlayer, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Volume } from './Icons.jsx';
+import Visualizer from './Visualizer.jsx';
+import { useSound } from '../store/sound.js';
+import { coverAt } from '../store/perf.js';
+
+const SAFE_IMG = /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]+(\?[\w\-=&%.]*)?$/;
+import { Heart, Mic, MiniPlayer, Moon, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Sliders, Volume } from './Icons.jsx';
 
 /** A bar you can click or drag (position, volume), and move with the arrow keys. */
 export function Slider({ value, max, onChange, onCommit, label, step, format }) {
@@ -59,13 +64,17 @@ export default function PlayerBar() {
   const [dragPos, setDragPos] = useState(null);
   const p = usePlayer.getState();
   const vol = muted ? 0 : volume;
+  const sleeping = useSound((s) => Boolean(s.sleep));
+  // The cover behind the bar (Personalizar): only a YouTube image address, small.
+  const backdrop = cur && typeof cur.thumbnail === 'string' && SAFE_IMG.test(cur.thumbnail) ? { '--pb-cover': `url("${coverAt(cur.thumbnail, 'mq')}")` } : undefined;
 
   return (
-    <footer className="playerbar" aria-label="Reproductor">
+    <footer className="playerbar" aria-label="Reproductor" style={backdrop}>
       <div className="pb-now">
         {cur ? (
           <>
             <Cover src={cur.thumbnail} name={cur.title} size={56} />
+            <Visualizer />
             <div className="pb-text">
               <span className="pb-title" title={cur.title}>{cur.title}</span>
               <span className="pb-artist" title={cur.artist}>{cur.artist || '—'}</span>
@@ -98,6 +107,8 @@ export default function PlayerBar() {
 
       <div className="pb-side">
         <button type="button" className={`icon-btn toggle ${radio ? 'on' : ''}`} aria-pressed={radio} aria-label="Seguir con canciones parecidas" title="Al acabar, seguir con canciones parecidas" onClick={p.toggleRadio}><Radio size={18} /></button>
+        {sleeping && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" title="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
+        <button type="button" className={`icon-btn toggle ${panel === 'sound' ? 'on' : ''}`} aria-pressed={panel === 'sound'} aria-label="Sonido" title="Sonido: ecualizador, velocidad, temporizador…" onClick={() => useUi.getState().togglePanel('sound')}><Sliders size={18} /></button>
         <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" title="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
         {desktop && desktop.mini && <button type="button" className="icon-btn" aria-label="Mini reproductor" title="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" title="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>

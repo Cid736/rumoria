@@ -6,7 +6,7 @@ import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
 import { Plus } from '../components/Icons.jsx';
 import Collection, { BigCover } from './Collection.jsx';
-import { discoverOf, radioOf, seedsOf } from './recommend.js';
+import { dailyOf, discoverOf, radioOf, seedsOf, todaySignature } from './recommend.js';
 
 /** "Guardar como lista": these songs become a list of yours. */
 function SaveButton({ name, tracks }) {
@@ -80,6 +80,22 @@ export function DiscoverPage() {
       recent={{ kind: 'discover', name, sub: 'Cambia cada semana' }}
       actions={<SaveButton name={`${name} (${new Date().toLocaleDateString()})`} tracks={tracks} />}
       empty={<p className="muted pad">Escucha unas cuantas canciones y aquí aparecerán otras nuevas parecidas.</p>} />
+  );
+}
+
+/** "Para hoy": like the songs you've just been listening to. */
+export function TodayPage() {
+  const smart = useLibrary((s) => s.smart);
+  const got = useLoad(smart ? `today:${todaySignature(smart)}` : 'today-wait', () => (smart ? dailyOf(smart) : new Promise(() => {})));
+  const tracks = got.value || [];
+  const name = 'Para hoy';
+  if (got.error) return <p className="muted pad">{got.error}</p>;
+  return (
+    <Collection kind="Recomendado para ti" name={name} sub="Parecidas a lo último que has escuchado · se renueva cuando escuchas otras cosas"
+      cover={<BigCover name={name} thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} />} tracks={tracks} loading={!got.value}
+      recent={{ kind: 'today', name, sub: 'Se renueva cada día' }}
+      actions={<SaveButton name={`${name} (${new Date().toLocaleDateString()})`} tracks={tracks} />}
+      empty={<p className="muted pad">Escucha unas canciones y aquí aparecerán otras parecidas para hoy.</p>} />
   );
 }
 

@@ -21,7 +21,7 @@ class FakeAudio extends EventTarget {
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 beforeEach(() => {
-  usePlayer.setState({ queue: emptyQueue(), wantPlaying: false, status: 'idle', position: 0, duration: 0, repeat: 'off', radio: false, muted: false, volume: 0.8 });
+  usePlayer.setState({ queue: emptyQueue(), wantPlaying: false, status: 'idle', position: 0, duration: 0, repeat: 'off', radio: false, muted: false, volume: 0.8, resumeAt: null });
 });
 
 describe('player store', () => {
@@ -118,18 +118,85 @@ describe('engine', () => {
     engine.stop();
   });
 
-  it('a song that can\'t play: says so and skips to the next', async () => {
+  it('a song that can\'t play: tried again twice (a fresh address each time), then says so and skips', async () => {
     vi.useFakeTimers();
     const audio = new FakeAudio();
+    audio.play = function play() { this.paused = false; return Promise.resolve(); }; // never really starts
     const toast = vi.fn();
-    const engine = startEngine({ audio, toast, get: vi.fn(), post: vi.fn(async () => ({})), media: null });
+    const post = vi.fn(async () => ({}));
+    const engine = startEngine({ audio, toast, get: vi.fn(), post, media: null });
     usePlayer.getState().playTracks([A, B], 0);
     await vi.advanceTimersByTimeAsync(0);
+    const srcs = [audio.src];
     audio.emit('error');
+    await vi.advanceTimersByTimeAsync(600);
+    srcs.push(audio.src);
+    audio.emit('error');
+    await vi.advanceTimersByTimeAsync(1100);
+    srcs.push(audio.src);
+    expect(toast).not.toHaveBeenCalled();
+    expect(srcs[1]).toContain('fresh=1');
+    expect(srcs[2]).toContain('a=2');
+    audio.emit('error');
+    await vi.advanceTimersByTimeAsync(0);
     expect(toast).toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith(expect.stringContaining('/api/stream/forget?id='));
     await vi.advanceTimersByTimeAsync(1600);
     expect(usePlayer.getState().current().title).toBe('B');
     engine.stop();
     vi.useRealTimers();
+  });
+
+  it('a song stuck loading for 20 s counts as a failure', async () => {
+    vi.useFakeTimers();
+    const audio = new FakeAudio();
+    audio.play = function play() { this.paused = false; return Promise.resolve(); };
+    const engine = startEngine({ audio, toast: vi.fn(), get: vi.fn(), post: vi.fn(async () => ({})), media: null });
+    usePlayer.getState().playTracks([A, B], 0);
+    await vi.advanceTimersByTimeAsync(0);
+    const first = audio.src;
+    await vi.advanceTimersByTimeAsync(20_600);
+    expect(audio.src).not.toBe(first);
+    expect(audio.src).toContain('fresh=1');
+    engine.stop();
+    vi.useRealTimers();
+  });
+
+  it('in a list of more than 50 songs, one that fails 3 times is taken out of the list and the queue', async () => {
+    vi.useFakeTimers();
+    const audio = new FakeAudio();
+    audio.play = function play() { this.paused = false; return Promise.resolve(); };
+    const LIST = 'aaaaaaaaaaaaaaaa';
+    const songs = Array.from({ length: 60 }, (_, n) => ({ title: `S${n}`, artist: 'X', yt: `vid${String(n).padStart(8, '0')}` }));
+    const removeTracks = vi.fn(async () => true);
+    const library = { getState: () => ({ lists: [{ id: LIST, count: 60 }], loadList: async () => ({ id: LIST, name: 'Grande', tracks: songs }), removeTracks }) };
+    const toast = vi.fn();
+    const engine = startEngine({ audio, library, toast, get: vi.fn(), post: vi.fn(async () => ({})), media: null });
+    usePlayer.getState().playTracks(songs.map((t, n) => ({ ...t, key: `yt:${t.yt}`, list: LIST, n })), 3);
+    await vi.advanceTimersByTimeAsync(0);
+    for (let i = 0; i < 3; i++) { audio.emit('error'); await vi.advanceTimersByTimeAsync(1600); }
+    expect(removeTracks).toHaveBeenCalledWith(LIST, [3], expect.objectContaining({ message: expect.stringContaining('no cargó tras 3 intentos') }));
+    expect(usePlayer.getState().current().title).toBe('S4');
+    expect(usePlayer.getState().queue.items.some((t) => t.title === 'S3')).toBe(false);
+    expect(toast).not.toHaveBeenCalled(); // the list's own notice (with "Deshacer") says it
+    engine.stop();
+    vi.useRealTimers();
+  });
+
+  it('looks the next song up ahead once it plays, and starts the kept song at its second', async () => {
+    const audio = new FakeAudio();
+    const post = vi.fn(async () => ({}));
+    usePlayer.getState().restoreSession({ items: [A, B], index: 0, position: 42 }, { play: false });
+    const engine = startEngine({ audio, toast: vi.fn(), get: vi.fn(), post, media: null });
+    await flush();
+    expect(audio.src).toContain('/api/stream/audio');
+    expect(usePlayer.getState().wantPlaying).toBe(false);
+    audio.emit('loadedmetadata');
+    expect(audio.currentTime).toBe(42);
+    expect(usePlayer.getState().resumeAt).toBe(null);
+    usePlayer.getState().play();
+    await flush();
+    expect(post).toHaveBeenCalledWith(expect.stringContaining(`/api/stream/prepare?id=${B.yt}`));
+    engine.stop();
   });
 });
