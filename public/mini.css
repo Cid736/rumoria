@@ -20,8 +20,11 @@ svg.solid { fill: currentColor; stroke: none; }
 .shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 0%, var(--shade) 70%); pointer-events: none; }
 .mini.no-cover .backdrop, .mini.no-cover .shade { display: none; }
 
-.clip { position: relative; flex: none; margin: -10px -12px 0; aspect-ratio: 16 / 9; background: #000; }
-.clip video { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* Always 16:9, whatever the video: it's laid over the box (not in it), so a
+   square or upright clip (a still cover, say) can't make the box grow and push
+   the bar and the buttons out of the window. It's shown whole, with bands. */
+.clip { position: relative; flex: none; margin: -10px -12px 0; aspect-ratio: 16 / 9; min-height: 0; overflow: hidden; background: #000; }
+.clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .clip-note { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #cfc9dc; font-size: 12px; text-align: center; padding: 12px; }
 
 .top { display: flex; gap: 10px; align-items: center; min-height: 0; }

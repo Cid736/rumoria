@@ -75,3 +75,13 @@ test('mini v3: jump only to a sane place in the queue, mute; the next five songs
   assert.ok(s.queue.every((q) => Number.isInteger(q.i) && q.i >= 0));
   assert.deepEqual(cleanState({ title: 'x', queue: 'evil' }).queue, []);
 });
+
+test('mini: a square or upright clip can never push the bar and buttons out of the window (v1.6.3 bug)', () => {
+  const css = fs.readFileSync(path.join(root, 'public', 'mini.css'), 'utf8');
+  const clip = /^\.clip \{([^}]*)\}/m.exec(css)[1];
+  const video = /^\.clip video \{([^}]*)\}/m.exec(css)[1];
+  assert.match(clip, /aspect-ratio: 16 \/ 9/);
+  assert.match(clip, /overflow: hidden/);
+  assert.match(video, /position: absolute/, 'the video lies over its box, so its own size never grows the box');
+  assert.match(video, /inset: 0/);
+});

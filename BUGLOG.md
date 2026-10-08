@@ -183,6 +183,16 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-09 — v1.6.4: el videoclip cuadrado bloqueaba el mini
+
+### [Bug] Con algunas canciones, el mini solo enseñaba la portada y no se podía usar
+- **Archivo:** `public/mini.css`
+- **Reproducido** con «Carita De Mala» (FSC, Rasel, Jay Herre) en su versión de «FSC - Topic»: su «videoclip» es la portada fija, un vídeo cuadrado de 360×360.
+- **Causa:** el recuadro del clip es 16:9, pero el vídeo estaba dentro de él. En una columna flexible, el tamaño mínimo del recuadro es el de su contenido, así que un vídeo cuadrado lo hacía crecer hasta 378 px, la ventana entera. La barra y los botones quedaban fuera (empezaban en el píxel 411 de una ventana de 378) y no se podía hacer nada.
+- **Solución:** el vídeo va encima del recuadro (`position: absolute`), así que su tamaño ya no cuenta. El recuadro mide siempre 16:9 (213 px en la forma normal, 168 px en la tarjeta) y el vídeo cuadrado o vertical se ve entero, con bandas. Un test comprueba esa regla del CSS.
+
+---
+
 ## 2026-10-09 — v1.6.3: vídeos no disponibles fuera, y la tarjeta del mini
 
 ### [Bug] Cuadros grises con «•••» y filas sin título («—»)
