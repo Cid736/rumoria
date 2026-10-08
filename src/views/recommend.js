@@ -7,8 +7,10 @@
 // songs counts more (and nearer the top of a mix counts more); songs you
 // skip are left out; artists you mostly skip go to the back; at most two
 // songs per artist, so a list isn't one artist all over.
+// v1.5: nothing you asked not to be recommended (songs or artists), not even as a seed.
 import { api, urls } from '../api.js';
 import { fromYouTube } from '../lib/tracks.js';
+import { notHidden, useHidden } from '../store/hidden.js';
 
 const DISCOVER_KEY = 'rumoria_discover';
 const TODAY_KEY = 'rumoria_today';
@@ -31,7 +33,7 @@ export function seedsOf(smart, max = 4) {
   const out = [];
   const artists = new Set();
   for (const r of [...(smart.top || []), ...(smart.lately || [])]) {
-    if (!r.yt || artists.has(fold(r.artist)) || out.length >= max) continue;
+    if (!r.yt || artists.has(fold(r.artist)) || out.length >= max || useHidden.getState().hides(r)) continue;
     artists.add(fold(r.artist));
     out.push({ yt: r.yt, key: r.key, title: r.title, artist: r.artist, thumb: r.thumb || null, weight: Math.max(1, Number(r.plays) || 1) });
   }
@@ -45,7 +47,7 @@ export function latestSeeds(smart, max = 6) {
   const artists = new Set();
   const lately = (smart.lately || []).slice().sort((a, b) => (b.last || 0) - (a.last || 0));
   for (const r of lately) {
-    if (!r.yt || artists.has(fold(r.artist)) || out.length >= max) continue;
+    if (!r.yt || artists.has(fold(r.artist)) || out.length >= max || useHidden.getState().hides(r)) continue;
     artists.add(fold(r.artist));
     // The newest weighs most.
     out.push({ yt: r.yt, key: r.key, title: r.title, artist: r.artist, thumb: r.thumb || null, weight: max - out.length });
@@ -65,7 +67,7 @@ export function heardKeys(smart) {
 /** Songs like this one (YouTube's mix of it), without it. */
 export async function radioOf(seed, { get = api.get } = {}) {
   const r = await get(urls.radio(seed.yt));
-  return (r.entries || []).map(fromYouTube).filter((t) => t.yt && t.yt !== seed.yt);
+  return notHidden((r.entries || []).map(fromYouTube).filter((t) => t.yt && t.yt !== seed.yt));
 }
 
 /**
@@ -116,12 +118,12 @@ export async function discoverOf(smart, { get = api.get, storage = globalThis.lo
   const week = weekOf(now);
   try {
     const cached = JSON.parse(storage.getItem(DISCOVER_KEY));
-    if (cached && cached.week === week && Array.isArray(cached.tracks) && cached.tracks.length) return cached.tracks;
+    if (cached && cached.week === week && Array.isArray(cached.tracks) && cached.tracks.length) return notHidden(cached.tracks);
   } catch { /* build it */ }
   const exclude = new Set([...heardKeys(smart), ...((smart && smart.skipped) || [])]);
   const out = rank(await mixesOf(seedsOf(smart, 5), get), { exclude, cold: (smart && smart.cold) || [], max: 30 });
   if (out.length) { try { storage.setItem(DISCOVER_KEY, JSON.stringify({ week, tracks: out })); } catch { /* only for now */ } }
-  return out;
+  return notHidden(out);
 }
 
 /** What "Para hoy" is built from: today's date and the songs you've just listened to. */
@@ -140,7 +142,7 @@ export async function dailyOf(smart, { get = api.get, storage = globalThis.local
   try {
     const c = JSON.parse(storage.getItem(TODAY_KEY));
     const fresh = c && c.day === day && Array.isArray(c.tracks) && c.tracks.length && (c.sig === sig || now.getTime() - c.at < 2 * 3600_000);
-    if (fresh) return c.tracks;
+    if (fresh) return notHidden(c.tracks);
   } catch { /* build it */ }
   const seeds = latestSeeds(smart, 6);
   if (!seeds.length) return [];
@@ -152,5 +154,5 @@ export async function dailyOf(smart, { get = api.get, storage = globalThis.local
   const known = ranked.filter((t) => heard.has(t.key)).slice(0, 5);
   const out = [...fresh.slice(0, 25 - Math.min(5, known.length)), ...known].slice(0, 25);
   if (out.length) { try { storage.setItem(TODAY_KEY, JSON.stringify({ day, sig, at: now.getTime(), tracks: out })); } catch { /* only for now */ } }
-  return out;
+  return notHidden(out);
 }

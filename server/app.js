@@ -22,6 +22,7 @@ const { LocalMusic } = require('./lib/localmusic');
 const { Browse, findSongs, CATEGORIES } = require('./lib/browse');
 const { Curator, EVERY_DAYS } = require('./lib/curator');
 const { Prefs } = require('./lib/prefs');
+const { Hidden, artistKey } = require('./lib/hidden');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
@@ -87,6 +88,9 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const browse = new Browse(path.join(dataDir, 'browse-cache.json'));
   const curator = new Curator(path.join(dataDir, 'curator.json'));
   const prefs = new Prefs(path.join(dataDir, 'prefs.json'));
+  const hidden = new Hidden(path.join(dataDir, 'hidden.json'));
+  // Your listening summary without the artists you asked not to be suggested (their mixes, news, radios).
+  const smartNow = () => { const sm = history.smart(); return { ...sm, artists: sm.artists.filter((a) => !hidden.artistKeys.has(artistKey(a.name))) }; };
 
   const ytSlots = slots(3);
   const listSlots = slots(2);
@@ -157,7 +161,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   app.post('/api/stream/forget', writeLimiter, needId, (req, res) => res.json({ ok: stream.forget(req.query.id) }));
   app.get('/api/stream/radio', ytLimiter, needId, async (req, res) => {
     if (!listSlots.take()) return res.status(429).json(BUSY);
-    try { res.json({ entries: await stream.radio(req.query.id, ytEnv(), yt.flatList) }); } catch { res.json({ entries: [] }); } finally { listSlots.release(); }
+    try { res.json({ entries: hidden.filter(await stream.radio(req.query.id, ytEnv(), yt.flatList)) }); } catch { res.json({ entries: [] }); } finally { listSlots.release(); }
   });
   app.get('/api/stream/lyrics', ytLimiter, needId, async (req, res) => {
     try {
@@ -262,7 +266,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const songsFor = async (q) => (await findSongs(q, (target, limit) => yt.flatList(target, ytEnv(), limit))).map((s) => {
     const { artist, track } = streamLib.splitTitle(s.title, s.channel);
     return { title: track || s.title, artist, yt: s.id, duration: s.duration, thumbnail: s.thumbnail };
-  });
+  }).filter((t) => !hidden.hides(t));
   app.post('/api/lists/auto', ytLimiter, async (req, res) => {
     const b = req.body || {};
     const q = topicOf(b.q || b.name);
@@ -297,6 +301,11 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     const r = lists.removeTracks(String(req.params.id), (req.body || {}).ns);
     if (!r) return res.status(400).json({ error: 'No se encuentran esas canciones.' });
     return res.json(r);
+  });
+  // v1.5: the same song twice in a list: the later ones go ("Deshacer" puts them back with insert).
+  app.post('/api/lists/:id/dedupe', writeLimiter, (req, res) => {
+    if (!listFor(req, res)) return;
+    return res.json(lists.dedupe(String(req.params.id)));
   });
   app.post('/api/lists/:id/restore', writeLimiter, (req, res) => {
     const l = LIST_ID_RE.test(String(req.params.id)) ? lists.restore(String(req.params.id)) : null;
@@ -334,7 +343,13 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     const b = req.body || {};
     res.json({ ok: history.add(b.song, b.secs) !== null });
   });
-  app.get('/api/history/smart', (req, res) => res.json(history.smart()));
+  app.get('/api/history/smart', (req, res) => res.json(smartNow()));
+  // v1.5: what you heard lately (Historial) and every song's plays (sorting a list by them).
+  app.get('/api/history/recent', (req, res) => {
+    const days = Number.isInteger(Number(req.query.days)) ? Number(req.query.days) : 30;
+    res.json({ items: history.recent({ days, limit: 500 }) });
+  });
+  app.get('/api/history/counts', (req, res) => res.json({ counts: history.counts() }));
   app.get('/api/history/summary', (req, res) => {
     const year = /^\d{4}$/.test(String(req.query.year || '')) ? Number(req.query.year) : null;
     const tz = Number.isInteger(Number(req.query.tz)) && Math.abs(Number(req.query.tz)) <= 840 ? Number(req.query.tz) : 0;
@@ -371,7 +386,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!ytSlots.take()) return res.status(429).json(BUSY);
     try {
       const l = await browse.get(req.params.id, (target, limit) => yt.flatList(target, ytEnv(), limit));
-      return res.json(l);
+      return res.json({ ...l, tracks: hidden.filter(l.tracks) });
     } catch {
       return res.status(502).json({ error: 'YouTube no respondió.' });
     } finally { ytSlots.release(); }
@@ -395,8 +410,21 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   app.get('/api/prefs', (req, res) => res.json(prefs.get()));
   app.patch('/api/prefs', writeLimiter, (req, res) => res.json(prefs.set(req.body || {})));
 
+  // ---- v1.5, «No me recomiendes esto»: songs and artists left out of suggestions ----
+  app.get('/api/hidden', (req, res) => res.json(hidden.list()));
+  app.post('/api/hidden', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    const r = hidden.add({ song: b.song && typeof b.song === 'object' ? b.song : undefined, artist: typeof b.artist === 'string' ? b.artist : undefined });
+    return r ? res.json(r) : res.status(400).json({ error: 'No se puede ocultar eso.' });
+  });
+  app.post('/api/hidden/remove', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    const r = hidden.remove({ key: typeof b.key === 'string' ? b.key : undefined, artist: typeof b.artist === 'string' ? b.artist : undefined });
+    return r ? res.json(r) : res.status(400).json({ error: 'No se encuentra.' });
+  });
+
   // ---- news of your artists ----
-  app.get('/api/news', (req, res) => res.json({ news: news.list() }));
+  app.get('/api/news', (req, res) => res.json({ news: hidden.filter(news.list()) }));
 
   // ---- your own music folder ----
   app.get('/api/local', (req, res) => res.json({ folder: Boolean(local.root), songs: local.list() }));
@@ -458,7 +486,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   }
   async function lookForNews() {
     if (history.paused) return;
-    const artists = (history.smart().artists || []).map((a) => a.name).filter(Boolean).slice(0, 8);
+    const artists = (smartNow().artists || []).map((a) => a.name).filter(Boolean).slice(0, 8);
     if (!artists.length || !ytSlots.take()) return;
     try {
       await news.check(artists, {
@@ -504,7 +532,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
-    _state: { lists, history, likes, news, local, browse, curator },
+    _state: { lists, history, likes, news, local, browse, curator, hidden },
     _run: { fillAutoLists, curate, warmBrowse },
   };
 }

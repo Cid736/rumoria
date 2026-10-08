@@ -4,6 +4,7 @@ import { api, desktop } from '../api.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
+import { HiddenSettings, ShortcutSettings } from './MoreSettings.jsx';
 import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
@@ -121,6 +122,7 @@ export default function Settings() {
         </section>
       )}
       <ParaTi />
+      <HiddenSettings />
       <section className="set-group">
         <h2>Historial de escucha</h2>
         <p className="muted">Se guarda solo en este ordenador y alimenta «Hecho para ti» y las novedades de tus artistas.</p>
@@ -134,8 +136,9 @@ export default function Settings() {
         </div>
       </section>
       <Updates />
+      <ShortcutSettings />
       <section className="set-group">
-        <h2>Atajos de teclado</h2>
+        <h2>Atajos de teclado (en la ventana)</h2>
         <dl className="keys">
           <dt>Espacio</dt><dd>Reproducir / pausa</dd>
           <dt>Ctrl + → / ←</dt><dd>Siguiente / anterior</dd>
@@ -144,6 +147,7 @@ export default function Settings() {
           <dt>Ctrl + R</dt><dd>Repetir</dd>
           <dt>Ctrl + M</dt><dd>Mini reproductor</dd>
           <dt>Ctrl + L</dt><dd>Buscar</dd>
+          <dt>F11 o Ctrl + Mayús + F</dt><dd>Sonando a pantalla completa</dd>
           <dt>Alt + ← / →</dt><dd>Atrás / adelante</dd>
         </dl>
       </section>

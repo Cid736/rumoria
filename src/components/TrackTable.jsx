@@ -17,7 +17,8 @@ function isCurrent(cur, t, listId) {
   return Boolean(t.key) && cur.key === t.key;
 }
 
-export default function TrackTable({ tracks, listId = null, showCover = true, showAdded = false, reorder = null, startShuffle = false, onPlay = null }) {
+/** `addedAs`: the extra column shows the date a song was added ('date') or the time it was heard ('time', in Historial). */
+export default function TrackTable({ tracks, listId = null, showCover = true, showAdded = false, addedAs = 'date', reorder = null, startShuffle = false, onPlay = null }) {
   const [sel, setSel] = useState(() => new Set());
   const anchor = useRef(null);
   const [dragOver, setDragOver] = useState(null);
@@ -54,7 +55,7 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
       <div className={`tracks-row tracks-head ${showAdded ? 'with-added' : ''}`} role="row">
         <span className="t-n">#</span>
         <span>Título</span>
-        {showAdded && <span className="t-added">Añadida</span>}
+        {showAdded && <span className="t-added">{addedAs === 'time' ? 'Hora' : 'Añadida'}</span>}
         <span className="t-dur" aria-label="Duración"><Clock size={16} /></span>
       </div>
       {tracks.map((t, i) => {
@@ -66,7 +67,7 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
             role="row"
             tabIndex={0}
             aria-selected={sel.has(i)}
-            className={`tracks-row ${showAdded ? 'with-added' : ''} ${sel.has(i) ? 'selected' : ''} ${now ? 'now' : ''} ${dragOver === i ? 'drop-here' : ''}`}
+            className={`tracks-row ${showAdded ? 'with-added' : ''} ${sel.has(i) ? 'selected' : ''} ${now ? 'now' : ''} ${dragOver === i ? 'drop-here' : ''} ${t.played === false ? 'skipped' : ''}`}
             onClick={(e) => select(i, e)}
             onDoubleClick={() => play(i)}
             onKeyDown={(e) => { if (e.key === 'Enter') play(i); }}
@@ -93,7 +94,7 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
                 <span className="t-artist">{t.artist || '—'}</span>
               </span>
             </span>
-            {showAdded && <span className="t-added">{t.at ? new Date(t.at).toLocaleDateString() : ''}</span>}
+            {showAdded && <span className="t-added">{!t.at ? '' : addedAs === 'time' ? new Date(t.at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : new Date(t.at).toLocaleDateString()}</span>}
             <span className="t-dur">
               <button type="button" className={`t-like ${liked ? 'on' : ''}`} aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'} aria-pressed={Boolean(liked)}
                 onClick={(e) => { e.stopPropagation(); useLibrary.getState().setLike(t, !liked); }} disabled={!t.key}>

@@ -9,10 +9,12 @@ const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
 // v2: a bit larger, and with the video clip (16:9 on top) taller still.
-const SIZES = { normal: { width: 380, height: 164 }, compact: { width: 320, height: 64 }, video: { width: 380, height: 378 } };
-const DEFAULTS = { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true };
-const BOOLS = ['compact', 'hoverFull', 'onTop', 'locked', 'showCover', 'video', 'lyrics'];
-const COMMANDS = ['toggle', 'next', 'prev', 'like', 'seek', 'volume', 'shuffle', 'repeat'];
+// v3 (Rumoria 1.5): "Tarjeta", upright with a big cover (or the clip) on top.
+const SIZES = { normal: { width: 380, height: 164 }, compact: { width: 320, height: 64 }, video: { width: 380, height: 378 }, card: { width: 300, height: 470 } };
+const DEFAULTS = { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true, card: false };
+const BOOLS = ['compact', 'hoverFull', 'onTop', 'locked', 'showCover', 'video', 'lyrics', 'card'];
+const COMMANDS = ['toggle', 'next', 'prev', 'like', 'seek', 'volume', 'shuffle', 'repeat', 'mute', 'jump'];
+const SNAP = 24; // let go this near a screen's edge: it sticks to it
 
 /** The mini player's settings, each checked (they drive window calls). */
 function cleanPrefs(raw) {
@@ -38,6 +40,10 @@ function cleanState(s) {
     // line now and the next one, and the next song's title.
     yt: /^[A-Za-z0-9_-]{11}$/.test(String(s.yt || '')) ? s.yt : null,
     line: text(s.line, 300), nextLine: text(s.nextLine, 300), upNext: text(s.upNext, 200),
+    // v3: muted, and the next five songs (their place in the queue, to jump there).
+    muted: s.muted === true,
+    queue: (Array.isArray(s.queue) ? s.queue : []).slice(0, 5).filter((q) => q && Number.isInteger(q.i) && q.i >= 0 && q.i <= 100000)
+      .map((q) => ({ i: q.i, title: text(q.title, 200), artist: text(q.artist, 120) })),
   };
 }
 
@@ -46,6 +52,7 @@ function cleanCommand(cmd, value) {
   if (!COMMANDS.includes(cmd)) return null;
   if (cmd === 'seek') return Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 86400 ? { cmd, value: Number(value) } : null;
   if (cmd === 'volume') return Number.isFinite(Number(value)) ? { cmd, value: Math.min(1, Math.max(0, Number(value))) } : null;
+  if (cmd === 'jump') return Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100000 ? { cmd, value: Number(value) } : null;
   return { cmd };
 }
 
@@ -59,7 +66,7 @@ function createMini({ origin, main, readSettings, saveSettings, icon, onClosed, 
   let last = null; // what's playing, for a window that opens now
   let saveTimer = null;
   const prefs = () => cleanPrefs(readSettings().miniPrefs);
-  const sizeOf = (p) => SIZES[p.compact ? 'compact' : p.video ? 'video' : 'normal'];
+  const sizeOf = (p) => SIZES[p.compact ? 'compact' : p.card ? 'card' : p.video ? 'video' : 'normal'];
   const size = () => sizeOf(prefs());
   const alive = () => win && !win.isDestroyed();
   const fromMini = (event) => alive() && event.sender === win.webContents && String(event.senderFrame && event.senderFrame.url).startsWith(`${origin()}/mini.html`);
@@ -154,6 +161,18 @@ function createMini({ origin, main, readSettings, saveSettings, icon, onClosed, 
     const [px, py] = win.getPosition();
     win.setPosition(px + x, py + y);
     savePosSoon();
+  });
+  // Let go near a screen's edge: it sticks to it.
+  ipcMain.on('mini:dragEnd', (event) => {
+    if (!fromMini(event) || prefs().locked) return;
+    const b = win.getBounds();
+    const { workArea: w } = screen.getDisplayMatching(b);
+    let { x, y } = b;
+    if (Math.abs(x - w.x) <= SNAP) x = w.x;
+    if (Math.abs(w.x + w.width - (x + b.width)) <= SNAP) x = w.x + w.width - b.width;
+    if (Math.abs(y - w.y) <= SNAP) y = w.y;
+    if (Math.abs(w.y + w.height - (y + b.height)) <= SNAP) y = w.y + w.height - b.height;
+    if (x !== b.x || y !== b.y) { win.setPosition(x, y); savePosSoon(); }
   });
   ipcMain.on('mini:hover', (event, on) => { if (fromMini(event)) { hovered = on === true; apply(); } });
   ipcMain.on('mini:close', (event) => { if (fromMini(event)) win.close(); });

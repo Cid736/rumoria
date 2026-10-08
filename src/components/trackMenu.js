@@ -1,6 +1,7 @@
 // What a song's right-click (or "…") offers, wherever it's shown.
 import { api, desktop, urls } from '../api.js';
-import { fromYouTube, toListTrack } from '../lib/tracks.js';
+import { fromYouTube, keyOf, toListTrack } from '../lib/tracks.js';
+import { mainArtistOf, useHidden } from '../store/hidden.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
@@ -45,6 +46,19 @@ export function trackMenu(tracks, from = null) {
       });
     }
     items.push({ label: 'Copiar enlace de YouTube', onClick: () => copy(`https://www.youtube.com/watch?v=${one.yt}`) });
+  }
+  // «No me recomiendes esto»: out of suggestions (still yours to search and play).
+  if (one && (keyOf(one) || mainArtistOf(one))) {
+    const hidden = useHidden.getState();
+    const artist = mainArtistOf(one);
+    items.push({ sep: true });
+    items.push({
+      label: 'No me recomiendes…',
+      sub: [
+        ...(keyOf(one) ? [{ label: 'Esta canción', onClick: () => hidden.hideSong(one) }] : []),
+        ...(artist ? [{ label: `Nada de ${artist}`, onClick: () => hidden.hideArtist(artist) }] : []),
+      ],
+    });
   }
   if (from && from.listId) {
     items.push({ sep: true });

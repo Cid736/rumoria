@@ -1,7 +1,7 @@
 // Right: the queue (what's playing and what comes next), or the lyrics
 // following the song (click a line to jump there).
-import { useEffect, useRef, useState } from 'react';
-import { api, urls } from '../api.js';
+import { useEffect, useRef } from 'react';
+import { lineIndex, useLyrics } from '../player/useLyrics.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
@@ -46,27 +46,10 @@ function QueuePanel() {
 function LyricsPanel() {
   const cur = usePlayer((s) => s.queue.items[s.queue.index] || null);
   const position = usePlayer((s) => s.position);
-  // The lyrics found, and for which video (anything else is still loading).
-  const [found, setFound] = useState({ for: null, synced: null, plain: null });
   const box = useRef(null);
   const yt = cur && cur.yt;
-
-  useEffect(() => {
-    if (!yt) return undefined;
-    let gone = false;
-    // A song from one of your lists knows its real artist and title; for a
-    // video, the server reads them from it better than its channel's name.
-    const known = Boolean(cur.list);
-    api.get(urls.lyrics(yt, known ? cur.artist : undefined, known ? cur.title : undefined, cur.duration))
-      .then((r) => { if (!gone) setFound({ for: yt, synced: r.synced, plain: r.plain }); })
-      .catch(() => { if (!gone) setFound({ for: yt, synced: null, plain: null }); });
-    return () => { gone = true; };
-    // Only when the song changes (not its title being filled in).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [yt]);
-
-  const lyrics = found.for === yt ? found : { synced: null, plain: null, loading: true };
-  const line = lyrics.synced ? lyrics.synced.reduce((at, l, i) => (l.t <= position + 0.25 ? i : at), -1) : -1;
+  const lyrics = useLyrics(cur);
+  const line = lineIndex(lyrics.synced, position);
   useEffect(() => {
     const el = box.current && box.current.querySelector('.lyric.on');
     if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });

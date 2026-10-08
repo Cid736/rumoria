@@ -166,6 +166,37 @@ class ListenLog {
     return { top, lately, forgotten, artists: topArtists, skipped, cold, count: this.events.length, paused: this.paused, autoSave: this.autoSave };
   }
 
+  /**
+   * v1.5, "Historial": what you heard in the last `days` days, newest first,
+   * one row per listen (a song heard twice in a row is one row, its seconds
+   * added up), at most `limit` rows.
+   */
+  recent({ days = 30, limit = 500 } = {}) {
+    const from = Math.floor(this.now() / 1000) - Math.min(366, Math.max(1, days)) * 86400;
+    const rows = [];
+    for (let i = this.events.length - 1; i >= 0 && rows.length < limit; i--) {
+      const [at, key, secs] = this.events[i];
+      if (at < from) break;
+      const t = this.tracks.get(key);
+      if (!t) continue;
+      const last = rows[rows.length - 1];
+      // Heard again right before (within the song's length plus a minute): the same listen.
+      if (last && last.key === key && last.at - at * 1000 <= ((t.dur || 600) + 60) * 1000) { last.secs += secs; continue; }
+      rows.push({ at: at * 1000, key, title: t.title, artist: t.artist, yt: t.yt || null, thumb: t.thumb || null, dur: t.dur || null, secs });
+    }
+    return rows.map((r) => ({ ...r, played: isPlay(r.secs, r.dur) }));
+  }
+
+  /** v1.5: every song's plays (for "Más escuchadas" in a list). { key: plays } */
+  counts() {
+    const out = {};
+    for (const [, key, secs] of this.events) {
+      const t = this.tracks.get(key);
+      if (isPlay(secs, t && t.dur)) out[key] = (out[key] || 0) + 1;
+    }
+    return out;
+  }
+
   /** The summary of a year (or of everything): totals, top songs and artists, by month and by hour. */
   summary(year = null, tzOffsetMin = 0) {
     const years = [...new Set(this.events.map((e) => new Date((e[0] - tzOffsetMin * 60) * 1000).getUTCFullYear()))].sort();

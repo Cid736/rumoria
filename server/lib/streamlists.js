@@ -24,6 +24,42 @@ const fold = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 const keysOf = (t) => [`n:${fold(t.artist).slice(0, 200)}|${fold(t.title).slice(0, 200)}`, ...(t.yt ? [`y:${t.yt}`] : [])];
 const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
+// ---- v1.5: the same song twice ("Quitar duplicadas") ----
+// What in brackets doesn't make it another song ("(Official Video)", "[Lyrics]", "(feat. X)");
+// "(Remix)", "(Live)", "(Acoustic)" do, and stay.
+const SAME_SONG_WORDS = /(?<![\p{L}\p{N}])(official|oficial|video|videoclip|audio|lyrics?|letra|visualizer|hd|4k|hq|remaster(ed)?|feat|ft|con)(?![\p{L}\p{N}])/u;
+const words = (s) => s.replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+/** A song's name, comparable: first artist and title, without what doesn't change the song. */
+function sameSongKey(t) {
+  let title = fold(t.title).replace(/[([]([^)\]]{0,80})[)\]]/g, (m, inner) => (SAME_SONG_WORDS.test(inner) ? ' ' : m));
+  // "… feat. X": the title ends before it (found once, nothing to backtrack).
+  const ft = title.search(/ (feat|ft)\.? /);
+  if (ft > 0) title = title.slice(0, ft);
+  // The channel's extras out ("Queen Official", "EdSheeranVEVO", "… - Topic"); spaces don't count.
+  let artist = words(fold(t.artist).split(/,|&| x | feat\.? | ft\.? /)[0].replace(/ ?- ?topic$/, '').replace(/vevo$/, '')
+    .replace(/(?<![\p{L}\p{N}])(official|oficial)(?![\p{L}\p{N}])/gu, ' ')).replace(/ /g, '');
+  const dash = title.indexOf(' - ');
+  if (dash > 0) {
+    const before = words(title.slice(0, dash)).replace(/ /g, '');
+    // "Artist - Title" in the title: the title is what follows.
+    if (!artist || before === artist) { if (!artist) artist = before; title = title.slice(dash + 3); }
+  }
+  const a = artist;
+  const n = words(title);
+  return n ? `${a}|${n}` : null;
+}
+/** The places of songs already earlier in the list (by video, or by name). */
+function duplicatesOf(tracks) {
+  const seen = new Set();
+  const out = [];
+  tracks.forEach((t, i) => {
+    const keys = [t.yt ? `y:${t.yt}` : null, sameSongKey(t)].filter(Boolean);
+    if (keys.some((k) => seen.has(k))) out.push(i);
+    for (const k of keys) seen.add(k);
+  });
+  return out;
+}
+
 function cleanTrack(t) {
   if (!t || typeof t !== 'object') return null;
   const title = clean(t.title, 300);
@@ -281,6 +317,26 @@ class StreamLists {
     return { list: l, removed };
   }
 
+  /**
+   * v1.5, "Quitar duplicadas": the same song more than once (the same video,
+   * or the same artist and title once "(Official Video)", "[Lyrics]", "feat."…
+   * are set aside) keeps its first place; the others go. Unlike taking songs
+   * out by hand, nothing is remembered as removed: the one kept would be.
+   * Returns { list, removed } (removed: [{ at, track }], for "Deshacer"), or null.
+   */
+  dedupe(id) {
+    const l = this.get(id);
+    if (!l) return null;
+    const out = duplicatesOf(l.tracks);
+    if (!out.length) return { list: l, removed: [] };
+    const removed = out.map((at) => ({ at, track: l.tracks[at] }));
+    const gone = new Set(out);
+    l.tracks = l.tracks.filter((_, i) => !gone.has(i));
+    l.updatedAt = Date.now();
+    this.save();
+    return { list: l, removed };
+  }
+
   /** Marks songs as sent to be downloaded. */
   markGot(id, ns) {
     const l = this.get(id);
@@ -337,4 +393,4 @@ function pickVideo(results, duration) {
   return rs[0];
 }
 
-module.exports = { StreamLists, cleanTrack, cleanList, pickVideo, MAX_LISTS, MAX_TRACKS, ID_RE, AUTO_EVERY, AUTO_MAX };
+module.exports = { StreamLists, cleanTrack, cleanList, pickVideo, duplicatesOf, sameSongKey, MAX_LISTS, MAX_TRACKS, ID_RE, AUTO_EVERY, AUTO_MAX };

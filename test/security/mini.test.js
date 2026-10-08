@@ -37,7 +37,7 @@ test('mini: its buttons can only ask for known things, with sane values', () => 
 });
 
 test('mini: settings within bounds', () => {
-  assert.deepEqual(cleanPrefs(null), { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true });
+  assert.deepEqual(cleanPrefs(null), { compact: false, opacity: 1, hoverFull: true, onTop: true, locked: false, showCover: true, video: false, lyrics: true, card: false });
   assert.equal(cleanPrefs({ opacity: 0 }).opacity, 0.3, 'never invisible');
   assert.equal(cleanPrefs({ opacity: 5 }).opacity, 1);
   assert.equal(cleanPrefs({ compact: 'yes' }).compact, false);
@@ -61,4 +61,17 @@ test('mini: its window is locked down and every message checks who sent it', () 
   const pre = fs.readFileSync(path.join(root, 'electron', 'mini-preload.js'), 'utf8');
   assert.ok(!/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(pre));
   assert.ok([...pre.matchAll(/ipcRenderer\.(?:invoke|send|on)\(\s*'([^']+)'/g)].every((m) => /^(mini:|rumoria:mini:)/.test(m[1])));
+});
+
+test('mini v3: jump only to a sane place in the queue, mute; the next five songs as text only', () => {
+  assert.deepEqual(cleanCommand('jump', 4), { cmd: 'jump', value: 4 });
+  for (const bad of [-1, 1.5, 'x', 1e9]) assert.equal(cleanCommand('jump', bad), null, String(bad));
+  assert.deepEqual(cleanCommand('mute'), { cmd: 'mute' });
+  assert.equal(cleanCommand('volumeStep', 1), null, 'only the desktop shell sends that one');
+  const s = cleanState({ title: 'x', muted: 'yes', queue: [{ i: 3, title: 'A\u0000b', artist: 'C' }, { i: -2, title: 'bad' }, { i: 'x' }, null, ...Array(10).fill({ i: 9, title: 't' })] });
+  assert.equal(s.muted, false);
+  assert.deepEqual(s.queue[0], { i: 3, title: 'A b', artist: 'C' });
+  assert.ok(s.queue.length <= 5);
+  assert.ok(s.queue.every((q) => Number.isInteger(q.i) && q.i >= 0));
+  assert.deepEqual(cleanState({ title: 'x', queue: 'evil' }).queue, []);
 });

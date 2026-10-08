@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld('rumoria', {
   pickMusicDir: () => ipcRenderer.invoke('rumoria:pickMusicDir'),
   setCloseToTray: (on) => ipcRenderer.invoke('rumoria:setCloseToTray', on === true),
   downloadInTubeGrab: (id) => ipcRenderer.invoke('rumoria:downloadInTubeGrab', String(id)),
+  // Global shortcuts: how they are, and a change ({ enabled?, keys?, reset? }; checked in shortcuts.js).
+  shortcuts: {
+    get: () => ipcRenderer.invoke('rumoria:shortcuts'),
+    set: (patch) => ipcRenderer.invoke('rumoria:setShortcuts', patch),
+  },
   // Updates: the state, news of it (returns a way to stop listening), look now, restart to update.
   update: {
     state: () => ipcRenderer.invoke('rumoria:update:state'),

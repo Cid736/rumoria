@@ -5,9 +5,12 @@ import { desktop } from './api.js';
 import { startMiniBridge } from './player/miniBridge.js';
 import { applyLook, lastView, rememberView, useLook } from './store/look.js';
 import { PROFILES, usePerf } from './store/perf.js';
+import { useHidden } from './store/hidden.js';
 import { useLibrary } from './store/library.js';
 import { usePlayer } from './store/player.js';
 import { useUi } from './store/ui.js';
+import DropLink from './components/DropLink.jsx';
+import NowPlaying from './components/NowPlaying.jsx';
 import Overlays from './components/Overlays.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -18,6 +21,7 @@ import { LikedPage, ListPage, LocalPage, MixPage, NewsPage } from './views/Pages
 import Search from './views/Search.jsx';
 import Settings from './views/Settings.jsx';
 import Summary from './views/Summary.jsx';
+import History from './views/History.jsx';
 import { BrowsePage, DiscoverPage, RadioPage, TodayPage } from './views/Discover.jsx';
 
 function Page({ view }) {
@@ -29,6 +33,7 @@ function Page({ view }) {
     case 'mix': return <MixPage id={view.id} />;
     case 'settings': return <Settings />;
     case 'summary': return <Summary />;
+    case 'history': return <History />;
     case 'browse': return <BrowsePage id={view.id} />;
     case 'radio': return <RadioPage id={view.id} payload={view.payload} />;
     case 'discover': return <DiscoverPage />;
@@ -47,6 +52,8 @@ export function onKey(e) {
   if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); ui.back(); return; }
   if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); ui.forward(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') { e.preventDefault(); ui.go({ name: 'search' }); return; }
+  // "Sonando" a pantalla completa.
+  if (e.key === 'F11' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f')) { e.preventDefault(); ui.setNowPlaying(!ui.nowPlaying); return; }
   if (typing(e)) return;
   if (e.key === ' ' && !e.target.closest('button, [role="slider"]')) { e.preventDefault(); p.toggle(); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
@@ -67,6 +74,7 @@ export default function App() {
 
   useEffect(() => {
     useLibrary.getState().loadAll();
+    useHidden.getState().load();
     // This PC's real cores and memory (for the "Automático" performance profile).
     if (desktop) desktop.settings().then((s) => { if (s && s.cores) usePerf.getState().setHardware({ cores: s.cores, memGB: s.memGB }); }, () => {});
     // "Al abrir Rumoria: lo último que viste".
@@ -110,6 +118,8 @@ export default function App() {
       </main>
       <SidePanel />
       <PlayerBar />
+      <NowPlaying />
+      <DropLink />
       <Overlays />
     </div>
   );

@@ -18,7 +18,7 @@ export function lineAt(synced, t) {
 /** What the mini player shows, from the player, your favourites and the lyrics (if any). */
 export function miniState(p = usePlayer.getState(), lib = useLibrary.getState(), lyrics = null) {
   const t = p.current();
-  if (!t) return { title: '', artist: '', cover: null, playing: false, time: 0, duration: 0, liked: false, canLike: false, volume: p.volume, shuffle: p.shuffle(), repeat: p.repeat, hasNext: false, yt: null, line: '', nextLine: '', upNext: '' };
+  if (!t) return { title: '', artist: '', cover: null, playing: false, time: 0, duration: 0, liked: false, canLike: false, volume: p.volume, muted: p.muted, shuffle: p.shuffle(), repeat: p.repeat, hasNext: false, yt: null, line: '', nextLine: '', upNext: '', queue: [] };
   const next = p.queue.items[p.queue.index + 1];
   const words = lyrics && lyrics.yt === t.yt ? lineAt(lyrics.synced, p.position || 0) : { line: '', nextLine: '' };
   return {
@@ -29,6 +29,9 @@ export function miniState(p = usePlayer.getState(), lib = useLibrary.getState(),
     volume: p.volume, shuffle: p.shuffle(), repeat: p.repeat,
     hasNext: p.queue.index < p.queue.items.length - 1 || p.radio || p.repeat !== 'off',
     yt: t.yt || null, upNext: next ? `${next.title}${next.artist ? ` · ${next.artist}` : ''}` : '',
+    // v1.5: muted, and the next five (their place, to jump there from the mini player or the tray).
+    muted: p.muted,
+    queue: p.queue.items.slice(p.queue.index + 1, p.queue.index + 6).map((x, k) => ({ i: p.queue.index + 1 + k, title: x.title || '', artist: x.artist || '' })),
     ...words,
   };
 }
@@ -42,6 +45,10 @@ export function runMiniCommand(c, p = usePlayer.getState(), lib = useLibrary.get
     case 'prev': p.prev(); break;
     case 'seek': if (Number.isFinite(c.value)) p.seek(c.value); break;
     case 'volume': if (Number.isFinite(c.value)) p.setVolume(c.value); break;
+    // A global shortcut: a little louder or quieter.
+    case 'volumeStep': if (Number.isFinite(c.value)) p.setVolume(p.volume + Math.max(-0.2, Math.min(0.2, c.value))); break;
+    case 'mute': p.toggleMute(); break;
+    case 'jump': if (Number.isInteger(c.value) && c.value > p.queue.index) p.jump(c.value); break;
     case 'shuffle': p.toggleShuffle(); break;
     case 'repeat': p.cycleRepeat(); break;
     case 'like': { const t = p.current(); if (t && songOf(t)) lib.setLike(t, !lib.isLiked(keyOf(t))); break; }

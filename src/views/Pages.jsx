@@ -30,6 +30,7 @@ export function ListPage({ id }) {
       { label: 'Mover a una carpeta…', onClick: () => ui.openDialog({ kind: 'prompt', title: 'Carpeta', label: 'Nombre de la carpeta (vacío: ninguna)', value: list.folder || '', confirm: 'Guardar', allowEmpty: true, onConfirm: (folder) => lib.patchList(id, { folder }) }) },
       ...(list.url ? [{ label: list.sync ? 'No mantener al día' : 'Mantener al día (se lee de nuevo cada pocas horas)', onClick: () => lib.patchList(id, { sync: !list.sync }) }] : []),
       ...autoMenuItems(list),
+      { label: 'Quitar canciones repetidas', onClick: () => lib.dedupeList(id) },
       { sep: true },
       { label: 'Eliminar lista', danger: true, onClick: () => { lib.deleteList(id); ui.go({ name: 'home' }); } },
     ]);
@@ -39,7 +40,7 @@ export function ListPage({ id }) {
     <Collection
       kind={SOURCE[list.source] || 'Lista'} name={list.name} sub={[autoSub(list.auto), list.folder ? `Carpeta ${list.folder}` : null].filter(Boolean).join(' · ') || null}
       cover={<BigCover thumbs={thumbs} src={thumbs[0]} name={list.name} />}
-      tracks={tracks} listId={list.id} recent={{ kind: 'list', id: list.id, name: list.name, sub: SOURCE[list.source] || 'Lista' }}
+      tracks={tracks} listId={list.id} sortKey={`list:${list.id}`} recent={{ kind: 'list', id: list.id, name: list.name, sub: SOURCE[list.source] || 'Lista' }}
       reorder={(from, to) => lib.patchList(id, { move: { from, to } })}
       actions={(
         <>
@@ -59,7 +60,7 @@ export function LikedPage() {
   const map = new Map((local.songs || []).map((f) => [f.key, f]));
   const tracks = likes.map((s) => ({ ...fromSaved(s, map), at: s.at })).filter((t) => t.key);
   return (
-    <Collection kind="Lista" name="Favoritas" cover={<Cover liked size={200} className="col-cover" />} tracks={tracks} showAdded
+    <Collection kind="Lista" name="Favoritas" cover={<Cover liked size={200} className="col-cover" />} tracks={tracks} showAdded sortKey="liked"
       recent={{ kind: 'liked', name: 'Favoritas', sub: 'Tus canciones con corazón' }}
       empty={<p className="muted pad">Las canciones que marques con el corazón aparecerán aquí.</p>} />
   );
@@ -70,7 +71,7 @@ export function LocalPage() {
   const tracks = local.songs.map(fromLocal);
   const pick = async () => { if (desktop && await desktop.pickMusicDir()) useLibrary.getState().rescanLocal(); };
   return (
-    <Collection kind="Carpeta" name="Tu música" sub="Tus archivos, en este ordenador" cover={<BigCover name="Tu música" />} tracks={tracks}
+    <Collection kind="Carpeta" name="Tu música" sub="Tus archivos, en este ordenador" cover={<BigCover name="Tu música" />} tracks={tracks} sortKey="local"
       recent={{ kind: 'local', name: 'Tu música', sub: 'Tus archivos' }}
       actions={(
         <>

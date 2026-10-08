@@ -30,7 +30,8 @@ export const useUi = create((set, get) => ({
   // A view: { name: 'home' | 'search' | 'list' | 'liked' | 'local' | 'mix' | 'browse' | 'radio' | 'discover' | 'news' | 'summary' | 'settings', id?, payload? }
   history: [{ name: 'home' }],
   at: 0,
-  panel: null,          // null | 'queue' | 'lyrics'
+  panel: null,          // null | 'queue' | 'lyrics' | 'sound'
+  nowPlaying: false,    // v1.5: the full-screen "Sonando"
   toasts: [],
   menu: null,           // { x, y, items: [{ label, onClick, danger?, sub? }] }
   dialog: null,         // { kind: 'prompt' | 'import', ... }
@@ -61,6 +62,7 @@ export const useUi = create((set, get) => ({
   canBack: () => get().at > 0,
   canForward: () => get().at < get().history.length - 1,
 
+  setNowPlaying(on) { set({ nowPlaying: Boolean(on) }); },
   togglePanel(p) { set((s) => ({ panel: s.panel === p ? null : p })); },
   setSearchText(searchText) { set({ searchText }); },
 

@@ -183,6 +183,60 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-08 — v1.5.0: atajos globales, «No me recomiendes», Historial, listas, enlaces, «Sonando», bandeja y mini v3
+
+### [Función] Lo nuevo
+- **Atajos globales** (`electron/shortcuts.js`, Ajustes): se pueden cambiar o apagar, y avisa si otra aplicación ya usa una combinación.
+  - En este PC, otra aplicación ya tenía Ctrl + Alt + M, así que el mini queda por defecto en Ctrl + Alt + Mayús + M.
+  - Probado pulsando Ctrl + Alt + P a nivel del sistema: pausó y reanudó la canción.
+- **«No me recomiendes…»** en el menú de una canción, para esa canción o su artista.
+  - Probado con la radio real de «Bohemian Rhapsody»: de 25 canciones se quitaron las 8 de Queen.
+- **Historial** (barra lateral): por días, con la hora, buscador y «solo las que escuchaste».
+- **Listas:**
+  - ordenar por título, artista, fecha en que se añadió, más escuchadas o duración, y se recuerda por lista;
+  - «Quitar canciones repetidas», con «Deshacer».
+- **Arrastrar un enlace:** probado con un vídeo de YouTube, que empezó a sonar al soltarlo.
+- **Sonando a pantalla completa** (F11): portada o videoclip, letra sincronizada, siguientes y controles que se esconden.
+- **Bandeja:** las 5 siguientes canciones y Favorita.
+- **Mini v3:**
+  - forma «Tarjeta»;
+  - panel con las 5 siguientes;
+  - silenciar;
+  - rueda para el volumen y para avanzar;
+  - teclas;
+  - se pega a los bordes;
+  - iconos SVG;
+  - barra que avanza sin saltos;
+  - indicador de que suena;
+  - título largo que se desliza;
+  - dos líneas de letra en la tarjeta.
+
+### [Bug evitado] Quitar repetidas no podía usar «quitar canciones»
+- **Problema:** quitar una canción de una lista con enlace la anota como quitada (`gone`, por artista y título) para que no vuelva al releer la lista. Si se hacía así con una repetida, al releer la lista desaparecería también la copia que se queda.
+- **Solución:** `dedupe` quita sin anotar nada. Hay un test que relee la lista y comprueba que la canción sigue una vez.
+
+### [Bug] Pantalla completa denegada
+- **Problema:** Electron rechazaba todas las peticiones de permiso, y entre ellas la de pantalla completa.
+- **Solución:** solo se concede `fullscreen`, y solo a la ventana principal en su propio origen. Un test lo comprueba en el código.
+
+### Seguridad
+- **Rutas nuevas:** `/api/hidden` (GET y POST), `/api/hidden/remove`, `/api/history/recent`, `/api/history/counts` y `/api/lists/:id/dedupe`. Todas exigen el token y cambiar algo exige además `X-Rumoria` y límite de peticiones. Están en la lista del test de autenticación.
+- **Validación:**
+  - `hidden`: solo claves de canción válidas y nombres con alguna letra o número, con un máximo de entradas;
+  - `days`: se limita a entre 1 y 366;
+  - el mini: `jump` solo admite una posición entera y `cleanState` limpia `queue` y `muted`;
+  - el orden de las listas solo admite valores conocidos.
+- **Electron:**
+  - preload con 9 `invoke` (2 nuevos, los dos con `isTrustedSender`);
+  - el mini añade `mini:dragEnd`, que comprueba quién lo envía;
+  - el único permiso que se concede es la pantalla completa.
+- **Enlaces arrastrados:** solo http(s) de YouTube, Spotify o Apple Music, sin usuario ni contraseña. El servidor vuelve a validar al importar.
+- **Atajos:** solo combinaciones con Ctrl, Alt o Win; nunca se registra una tecla sola ni Mayús más una tecla.
+- **ReDoS (recheck):** ninguna expresión nueva es exponencial. Dos polinómicas nuevas se cambiaron por una búsqueda única (`search`): « feat.» en `sameSongKey` y el primer artista en `mainArtistOf`. La de los paréntesis (`[([]([^)\]]{0,80})[)\]]`) mira 80 caracteres como mucho desde cada paréntesis, así que su coste es lineal.
+- **Tests:** servidor y seguridad 94, interfaz 78. Lint sin errores. `npm audit`: 0.
+
+---
+
 ## 2026-10-08 — v1.4.0: Explorar, radios y «Si te gusta» que rotan según tus gustos
 
 ### [Función] Estanterías que rotan

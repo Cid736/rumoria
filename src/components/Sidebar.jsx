@@ -6,7 +6,7 @@ import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
-import { Folder, Home, Library, Link, Plus, Search, Sparkle } from './Icons.jsx';
+import { Clock, Folder, Home, Library, Link, Plus, Search, Sparkle } from './Icons.jsx';
 
 const SOURCE = { spotify: 'Spotify', apple: 'Apple Music', youtube: 'YouTube', own: 'Tu lista', auto: 'Se llena sola' };
 
@@ -77,6 +77,7 @@ export default function Sidebar() {
         <button type="button" className={`nav-btn ${view.name === 'home' ? 'active' : ''}`} onClick={() => go({ name: 'home' })}><Home /> Inicio</button>
         <button type="button" className={`nav-btn ${view.name === 'search' ? 'active' : ''}`} onClick={() => go({ name: 'search' })}><Search /> Buscar</button>
         <button type="button" className={`nav-btn ${view.name === 'summary' ? 'active' : ''}`} onClick={() => go({ name: 'summary' })}><Sparkle /> Tu resumen</button>
+        <button type="button" className={`nav-btn ${view.name === 'history' ? 'active' : ''}`} onClick={() => go({ name: 'history' })}><Clock /> Historial</button>
       </div>
       <div className="side-card side-library">
         <div className="side-head">

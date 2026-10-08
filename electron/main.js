@@ -2,7 +2,7 @@
 // and yt-dlp kept up to date. The page runs sandboxed with no Node access;
 // the few things it may ask for (pick the music folder, send a song to
 // TubeGrab) go through preload.js and are checked again here.
-const { app, BrowserWindow, dialog, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, globalShortcut, ipcMain, session, shell } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -12,6 +12,7 @@ const { migrateFromTubeGrab } = require('../server/lib/migrate');
 const { createUpdater } = require('./updater');
 const { createMini } = require('./mini');
 const { createTray } = require('./tray');
+const { createShortcuts } = require('./shortcuts');
 const os = require('os');
 
 // Isolated runs (tests, a second profile): their own data folder.
@@ -51,6 +52,24 @@ const tray = createTray({
   now: () => mini.now(),
   send: (c) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:player:command', c); },
   quit: () => { app.isQuitting = true; app.quit(); },
+});
+
+// Global shortcuts (see shortcuts.js): the player's go to the main window's page.
+const toPage = (c) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:player:command', c); };
+const shortcuts = createShortcuts({
+  globalShortcut,
+  read: () => readSettings(),
+  save: (p) => saveSettings(p),
+  run: (action) => {
+    if (action === 'mini') { mini.open(); return; }
+    if (action === 'show') {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      if (mainWindow.isVisible() && mainWindow.isFocused()) mainWindow.hide(); else { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); }
+      return;
+    }
+    if (action === 'volUp' || action === 'volDown') { toPage({ cmd: 'volumeStep', value: action === 'volUp' ? 0.05 : -0.05 }); return; }
+    toPage({ cmd: action });
+  },
 });
 
 // === Settings (userData/settings.json) ===
@@ -227,6 +246,9 @@ ipcMain.handle('rumoria:setCloseToTray', (event, on) => {
   saveSettings({ closeToTray: on });
   return on;
 });
+// Global shortcuts: how they are (and which another app already took), and a change.
+ipcMain.handle('rumoria:shortcuts', (event) => (isTrustedSender(event) ? shortcuts.state() : null));
+ipcMain.handle('rumoria:setShortcuts', (event, patch) => (isTrustedSender(event) ? shortcuts.set(patch) : null));
 ipcMain.handle('rumoria:pickMusicDir', async (event) => {
   if (!isTrustedSender(event)) return null;
   const r = await dialog.showOpenDialog(mainWindow, { title: 'Tu carpeta de música', defaultPath: musicDir(), properties: ['openDirectory'] });
@@ -254,16 +276,19 @@ ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
 app.on('second-instance', () => { if (mainWindow) { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.on('before-quit', () => { app.isQuitting = true; });
 // An update downloaded but not applied yet: put in place as Rumoria closes.
-app.on('will-quit', () => updater.onQuit());
+app.on('will-quit', () => { shortcuts.stop(); updater.onQuit(); });
 app.on('window-all-closed', () => app.quit());
 app.on('quit', () => { if (serverProcess) serverProcess.kill(); });
 
 app.whenReady().then(async () => {
-  // No camera, microphone, notifications…: nothing is ever granted (every
-  // request is refused). The only check that passes: the main window, on its
-  // own page, may list the sound outputs and pick one ("Salida de sonido") —
-  // seeing the devices' names, never opening a microphone.
-  session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+  // No camera, microphone, notifications…: nothing is granted. The one request
+  // that passes is full screen, for the main window on its own page ("Sonando").
+  // The only check that passes: the main window, on its own page, may list the
+  // sound outputs and pick one ("Salida de sonido") — seeing the devices'
+  // names, never opening a microphone.
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => cb(
+    perm === 'fullscreen' && Boolean(mainWindow) && wc === mainWindow.webContents && isAppUrl(String((details && details.requestingUrl) || '')),
+  ));
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin) => (
     ['media', 'speaker-selection'].includes(perm) && Boolean(mainWindow) && wc === mainWindow.webContents && isAppUrl(String(origin || ''))
   ));
@@ -276,6 +301,7 @@ app.whenReady().then(async () => {
   appOrigin = `http://127.0.0.1:${port}`;
   await session.defaultSession.cookies.set({ url: appOrigin, name: 'rum_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
+  shortcuts.apply();
   updater.start();
 }).catch((err) => {
   dialog.showErrorBox('Rumoria', err.message);

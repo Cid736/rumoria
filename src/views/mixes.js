@@ -2,6 +2,7 @@
 // YouTube's similar songs with yours by that artist, and stays the same all day.
 import { api, urls } from '../api.js';
 import { fromSaved, fromYouTube, mixOf, shuffled } from '../lib/tracks.js';
+import { notHidden } from '../store/hidden.js';
 
 const CACHE_KEY = 'rumoria_mixes';
 
@@ -37,5 +38,5 @@ export async function buildMix(artist, local, { storage = globalThis.localStorag
     if (radio.length) { cache[seed] = radio.slice(0, 40); try { storage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch { /* only for now */ } }
   }
   const map = localMap(local);
-  return mixOf(radio, shuffled(artist.songs.map((r) => fromSaved(r, map)).filter(Boolean)));
+  return mixOf(notHidden(radio), shuffled(artist.songs.map((r) => fromSaved(r, map)).filter(Boolean)));
 }

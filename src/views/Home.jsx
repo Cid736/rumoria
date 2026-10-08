@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api, urls } from '../api.js';
 import { fold, fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
+import { artistKey, useHidden } from '../store/hidden.js';
 import { useLook, useShows } from '../store/look.js';
 import { PROFILES, usePerf } from '../store/perf.js';
 import { usePlayer } from '../store/player.js';
@@ -175,7 +176,10 @@ function useWarmCovers(items) {
  * genres and changes from time to time (see rotation.js).
  */
 function RotatingShelf({ kind, title, rot, onOther }) {
-  const { browse, taste, smart } = useLibrary();
+  const { browse: all, taste, smart } = useLibrary();
+  // Radios of artists you asked not to be recommended: never picked.
+  const hiddenArtists = useHidden((s) => s.artistKeys);
+  const browse = all.filter((b) => b.group !== 'radio' || !hiddenArtists.has(artistKey(b.artist)));
   const fresh = kind === 'popular' ? popularOf(browse, taste, smart, rot) : exploreOf(browse, taste, rot);
   const shown = settled(kind, rot, fresh, new Map(browse.map((b) => [b.id, b])));
   const ids = shown.map((b) => b.id).join(',');

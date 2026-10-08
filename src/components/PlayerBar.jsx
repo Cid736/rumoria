@@ -12,7 +12,7 @@ import { useSound } from '../store/sound.js';
 import { coverAt } from '../store/perf.js';
 
 const SAFE_IMG = /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]+(\?[\w\-=&%.]*)?$/;
-import { Heart, Mic, MiniPlayer, Moon, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Sliders, Volume } from './Icons.jsx';
+import { Expand, Heart, Mic, MiniPlayer, Moon, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Sliders, Volume } from './Icons.jsx';
 
 /** A bar you can click or drag (position, volume), and move with the arrow keys. */
 export function Slider({ value, max, onChange, onCommit, label, step, format }) {
@@ -110,6 +110,7 @@ export default function PlayerBar() {
         {sleeping && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" title="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'sound' ? 'on' : ''}`} aria-pressed={panel === 'sound'} aria-label="Sonido" title="Sonido: ecualizador, velocidad, temporizador…" onClick={() => useUi.getState().togglePanel('sound')}><Sliders size={18} /></button>
         <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" title="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
+        <button type="button" className="icon-btn" aria-label="Sonando a pantalla completa" title="Sonando a pantalla completa (F11)" onClick={() => useUi.getState().setNowPlaying(true)} disabled={!cur}><Expand size={18} /></button>
         {desktop && desktop.mini && <button type="button" className="icon-btn" aria-label="Mini reproductor" title="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" title="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>
         <button type="button" className="icon-btn" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={p.toggleMute}><Volume level={vol} size={18} /></button>

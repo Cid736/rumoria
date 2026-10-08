@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('mini', {
   setPrefs: (patch) => ipcRenderer.invoke('rumoria:mini:setPrefs', patch),
   command: (cmd, value) => ipcRenderer.send('mini:command', String(cmd), value === undefined ? undefined : Number(value)),
   move: (dx, dy) => ipcRenderer.send('mini:move', Number(dx), Number(dy)),
+  dragEnd: () => ipcRenderer.send('mini:dragEnd'),
   hover: (on) => ipcRenderer.send('mini:hover', on === true),
   close: () => ipcRenderer.send('mini:close'),
   showMain: () => ipcRenderer.send('mini:showMain'),

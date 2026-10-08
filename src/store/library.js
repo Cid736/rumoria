@@ -122,6 +122,16 @@ export const useLibrary = create((set, get) => ({
       return true;
     } catch (err) { toast(err.message); return false; }
   },
+  /** «Quitar duplicadas»: the same song again further down goes (with "Deshacer"). */
+  async dedupeList(id) {
+    try {
+      const r = await api.post(`${urls.list(id)}/dedupe`);
+      get()._putList(r.list);
+      const n = r.removed.length;
+      if (!n) toast('No hay canciones repetidas');
+      else toast(n === 1 ? '1 canción repetida quitada' : `${n} canciones repetidas quitadas`, { action: 'Deshacer', onAction: () => get().patchList(id, { insert: r.removed }) });
+    } catch (err) { toast(err.message); }
+  },
   async refreshList(id) {
     try {
       const l = await api.post(`${urls.list(id)}/refresh`);
