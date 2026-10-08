@@ -85,7 +85,7 @@ export default function SoundPanel() {
         {custom && <button type="button" className="btn btn-ghost btn-small" onClick={askName}>Guardar</button>}
         {s.preset.startsWith('mine:') && <button type="button" className="btn btn-ghost btn-small" onClick={() => s.deleteMine(s.preset.slice(5))}>Borrar</button>}
       </div>
-      <div className="eq" role="group" aria-label="Bandas del ecualizador">
+      <div className="eq-bands" role="group" aria-label="Bandas del ecualizador">
         {BANDS.map((f, i) => (
           <label key={f} className="eq-band">
             <span className="eq-hz">{hz(f)}</span>

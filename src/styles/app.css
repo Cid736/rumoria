@@ -168,7 +168,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .col-cover { width: 200px !important; height: 200px !important; box-shadow: var(--shadow); border-radius: 10px; }
 .col-head-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: #fff; }
 .col-kind { font-size: 13px; font-weight: 600; }
-.col-name { font-size: clamp(32px, 5vw, 72px); font-weight: 900; line-height: 1.02; letter-spacing: -0.04em; overflow-wrap: anywhere; }
+.col-name { font-size: clamp(32px, 5vw, 72px); font-weight: 900; line-height: 1.12; letter-spacing: -0.04em; overflow-wrap: anywhere; }
 .col-name.long { font-size: clamp(28px, 3.4vw, 48px); }
 .col-sub { font-size: 14px; opacity: 0.85; }
 .col-actions { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 70%, transparent), var(--surface) 120px); }

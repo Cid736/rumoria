@@ -45,9 +45,9 @@
 .sound .set-row.snd-row { padding: 8px 0; gap: 12px; }
 .sound select { max-width: 150px; }
 .eq-presets { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.eq-presets select { flex: 1; max-width: none; }
+.eq-presets select { flex: 1; max-width: none; padding: 7px 10px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
 .btn-small { padding: 4px 10px; font-size: 12px; }
-.eq { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
+.eq-bands { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
 .eq-band { display: grid; grid-template-columns: 56px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .eq-band input[type="range"] { width: 100%; accent-color: var(--accent); }
 .eq-db { font-variant-numeric: tabular-nums; color: var(--text); text-align: right; }

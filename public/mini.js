@@ -206,6 +206,7 @@
       if (el.type === 'checkbox') el.checked = Boolean(prefs[k]);
       else if (Number.isFinite(prefs[k])) el.value = String(prefs[k]);
     }
+    $('opacityVal').textContent = `${Math.round((Number.isFinite(prefs.opacity) ? prefs.opacity : 1) * 100)} %`;
     const layout = prefs.compact ? 'compact' : prefs.card ? 'card' : 'normal';
     for (const el of document.querySelectorAll('[data-layout]')) el.checked = el.value === layout;
     lastLine = null;
@@ -253,13 +254,15 @@
   $('main').addEventListener('click', () => api.showMain());
   $('artWrap').addEventListener('dblclick', () => api.showMain());
   $('menu').addEventListener('click', () => toggleMenu());
+  $('menuClose').addEventListener('click', () => toggleMenu(false));
   for (const el of document.querySelectorAll('[data-pref]')) {
     el.addEventListener(el.type === 'range' ? 'input' : 'change', () => {
       api.setPrefs({ [el.dataset.pref]: el.type === 'checkbox' ? el.checked : Number(el.value) });
     });
   }
   for (const el of document.querySelectorAll('[data-layout]')) {
-    el.addEventListener('change', () => { if (el.checked) api.setPrefs({ compact: el.value === 'compact', card: el.value === 'card' }); });
+    // Another shape resizes the window: the options close.
+    el.addEventListener('change', () => { if (el.checked) { api.setPrefs({ compact: el.value === 'compact', card: el.value === 'card' }); toggleMenu(false); } });
   }
 
   // ---- the bar: click (or arrows) to jump; the time under the pointer ----

@@ -183,6 +183,32 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-08 — v1.6.2: revisión de los CSS y menú del mini
+
+### [Bug] Las bandas del ecualizador tapaban «Reproducción» en el panel Sonido
+- **Archivos:** `src/components/SoundPanel.jsx`, `src/styles/look.css`
+- **Causa:** la caja de las bandas usaba la clase `.eq`, que `app.css` ya usaba para las barritas animadas de «sonando» con `height: 14px`. La caja medía 14 px y las bandas se salían por encima de lo siguiente.
+- **Solución:** la caja pasa a llamarse `.eq-bands`. El desplegable de preajustes también tiene ya el mismo estilo que los demás (salía el nativo, con borde blanco).
+
+### Revisión de todos los CSS
+- **Choques de nombres:** un script listó cada clase con reglas en varios sitios y dónde se usa. El único choque entre componentes distintos era `.eq`; los demás son variantes de un mismo componente.
+- **Contenido que se sale:** en la app real, con los tres estilos, recorrí Inicio, Buscar, Tu resumen, Historial, una lista, Ajustes y los paneles Sonido, Letra y Cola, buscando elementos cuyo contenido sale de su caja sin barra de desplazamiento, o que se salen de la ventana.
+  - **Encontrado:** el título grande de las listas (`.col-name`, interlineado 1.02): la «g», la «p» o la «y» bajaban sobre el subtítulo. Ahora tiene 1.12.
+
+### Mini reproductor
+- **[Bug] Forma normal:** los cuatro botones pequeños en columna medían más que la cabecera, y «⋯» quedaba encima de la duración total. Ahora van en dos columnas.
+- **Forma compacta:** se quita el botón de abrir Rumoria (el doble clic en la portada sigue abriéndola), para que quepa más título.
+- **Revisión:** en las cinco formas (normal, con videoclip, tarjeta, tarjeta con videoclip, compacta) y con los tres estilos, comprobé que nada sale de la ventana ni se monta sobre otro botón, y que los paneles «A continuación» y «⋯» caben.
+- **Menú «⋯» rediseñado:**
+  - ocupa el mini entero, con fondo difuminado y un botón para cerrarlo;
+  - la forma se elige con tres botones con dibujo (Normal, Tarjeta, Compacto);
+  - lo que enseña, con etiquetas que se encienden;
+  - la ventana, con interruptores;
+  - la opacidad, con su porcentaje;
+  - en la forma compacta solo sale la fila de la forma, para poder volver a una más grande.
+
+---
+
 ## 2026-10-08 — v1.6.1: fondo a elegir con cualquier estilo
 
 ### [Bug] El estilo Mac teñía la ventana
