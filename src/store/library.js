@@ -16,6 +16,7 @@ export const useLibrary = create((set, get) => ({
   news: [],
   local: { folder: false, songs: [] },
   browse: [],           // "Explorar": ready-made lists (their covers once read)
+  taste: [],            // your genres ({ id, score }), for Inicio's rotating shelves
   loaded: false,
 
   async loadAll() {
@@ -30,15 +31,16 @@ export const useLibrary = create((set, get) => ({
       news: ok(n, { news: [] }).news || [],
       local: ok(f, { folder: false, songs: [] }),
       browse: ok(b, { lists: [] }).lists || [],
+      taste: ok(b, {}).taste || [],
       loaded: true,
     });
   },
   /** The "Explorar" lists again (covers read ahead since). */
-  async refreshBrowse() { try { set({ browse: (await api.get('/api/browse')).lists || get().browse }); } catch { /* keep */ } },
+  async refreshBrowse() { try { const b = await api.get('/api/browse'); set({ browse: b.lists || get().browse, taste: b.taste || get().taste }); } catch { /* keep */ } },
   /** One "Explorar" list's songs (and its cover, now known, on the home page). */
   async loadBrowse(id) {
     const l = await api.get(`/api/browse/${encodeURIComponent(id)}`);
-    try { set({ browse: (await api.get('/api/browse')).lists || get().browse }); } catch { /* keep */ }
+    await get().refreshBrowse();
     return l;
   },
   /** Anything playable kept as a list of yours. */

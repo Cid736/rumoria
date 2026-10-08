@@ -24,7 +24,8 @@ const fold = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 const NOT_ARTIST = /(?<![\p{L}\p{N}])(official|oficial|youtube|channel|canal|vevo)(?![\p{L}\p{N}])/gu;
 /** An artist's name, comparable: folded, without channel words or symbols. */
 function cleanArtist(s) {
-  return fold(s).replace(/\s*-\s*topic$/, '').replace(/vevo$/, '').replace(NOT_ARTIST, ' ').replace(/[^\p{L}\p{N}&' ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  // fold() leaves single spaces, so " ?" is enough (and can't backtrack).
+  return fold(s).replace(/ ?- ?topic$/, '').replace(/vevo$/, '').replace(NOT_ARTIST, ' ').replace(/[^\p{L}\p{N}&' ]+/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 /** Same artist: equal, or one name inside the other as whole words ("kenshi yonezu" in "米津玄師 kenshi yonezu"). */
 function sameArtist(a, b) {
@@ -171,10 +172,35 @@ class Curator {
    * `lists`: the StreamLists; `smart`: the listening summary; `browse`: the
    * Explorar catalogue and cache. Returns { made, removed }.
    */
+  /**
+   * Your genres from what you play (and, for artists no category knows, the
+   * artists YouTube plays next to them, already looked up by `run`).
+   */
+  genresOf(smart, byCat, lost = unplaced((smart && smart.artists) || [], byCat)) {
+    const yourArtists = [...((smart && smart.artists) || []), ...((smart && smart.top) || []).map((s) => ({ name: s.artist, plays: 1 }))];
+    const borrowed = lost.flatMap((a) => {
+      const me = cleanArtist(a.name);
+      const others = ((this.state.similar[me] || {}).names || []).filter((n) => !sameArtist(cleanArtist(n), me));
+      return others.map((name) => ({ name, plays: (Number(a.plays) || 1) / others.length }));
+    });
+    return scoreGenres([...yourArtists, ...borrowed], byCat);
+  }
+
+  /**
+   * Your genres right now, for Inicio's rotating shelves: worked out on this
+   * computer, without asking anyone (whether "Para ti" is on or not), kept a
+   * minute. [{ id, score }], best first.
+   */
+  taste({ smart, browse, categories, splitTitle }) {
+    if (this._taste && this.now() - this._taste.at < 60_000) return this._taste.genres;
+    const genres = smart ? this.genresOf(smart, artistsByCategory(browse.cache, categories, splitTitle)).slice(0, 10) : [];
+    this._taste = { at: this.now(), genres };
+    return genres;
+  }
+
   async run({ lists, smart, browse, categories, splitTitle, fill, similar = null, force = false }) {
     if (!this.state.enabled) return { made: [], removed: [] };
     const byCat = artistsByCategory(browse.cache, categories, splitTitle);
-    const yourArtists = [...((smart && smart.artists) || []), ...((smart && smart.top) || []).map((s) => ({ name: s.artist, plays: 1 }))];
     // Artists no category knows: their genre from the artists YouTube plays
     // next to them (the mix of one of their songs), each sharing their plays.
     const lost = unplaced((smart && smart.artists) || [], byCat).filter((a) => a.seed && a.seed.yt);
@@ -193,12 +219,7 @@ class Curator {
       }
     }
     this.state.similar = Object.fromEntries(Object.entries(this.state.similar).sort((x, y) => y[1].at - x[1].at).slice(0, SIMILAR_KEEP));
-    const borrowed = lost.flatMap((a) => {
-      const me = cleanArtist(a.name);
-      const others = ((this.state.similar[me] || {}).names || []).filter((n) => !sameArtist(cleanArtist(n), me));
-      return others.map((name) => ({ name, plays: (Number(a.plays) || 1) / others.length }));
-    });
-    const genres = scoreGenres([...yourArtists, ...borrowed], byCat);
+    const genres = this.genresOf(smart, byCat, lost);
     // Early: last time your genres couldn't be told yet, and now they can.
     const early = !this.state.genres.length && genres.length > 0;
     if (!force && !this.due() && !early) return { made: [], removed: [] };
@@ -212,6 +233,7 @@ class Curator {
       if (!w || w.kind !== l.auto.kind) { lists.remove(l.id); removed.push(l.auto.cat); }
     }
     const have = new Set(lists.lists.filter((l) => l.auto && l.auto.by === 'rumoria').map((l) => l.auto.cat));
+    const yourArtists = [...((smart && smart.artists) || []), ...((smart && smart.top) || []).map((s) => ({ name: s.artist, plays: 1 }))];
     const mine = new Set(yourArtists.map((a) => cleanArtist(a.name)).filter((n) => n.length > 1));
     const isMine = (s) => hasArtist(mine, cleanArtist(s.artist));
     const made = [];

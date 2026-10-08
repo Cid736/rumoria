@@ -15,7 +15,8 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Inicio con recomendaciones**, sin tener que añadir nada:
   - **Hecho para ti**: «Descubre algo nuevo» (cada semana, solo canciones que aún no has escuchado), una **Mezcla del día** por cada uno de tus seis artistas favoritos, novedades de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
   - **Lo que más vuelves a poner** y **Recientes** (listas, mezclas, radios…)
-  - **Radios para ti** (de tus artistas), **Radios populares** (Bad Bunny, KAROL G, Rosalía, Coldplay…) y **Si te gusta …** (radios de artistas parecidos a tu favorito)
+  - **Radios para ti** (de tus artistas), **Radios populares** (de unos 60 artistas: Bad Bunny, KAROL G, Rosalía, Coldplay…) y **Si te gusta …** (radios de artistas parecidos a uno de los tuyos)
+  - **Explorar, Radios populares y Si te gusta van cambiando**: se eligen en parte al azar, pero según lo que escuchas. Tus géneros siempre tienen sitio (un tercio de Explorar, la mitad de las radios) y lo que viste la última vez pesa menos. Cambian cada 3 horas, cada día o cada vez que abres Rumoria (Ajustes → Personalizar), y el botón **«Otras»** de cada estantería las cambia en el momento
   - **Explorar** y **Todas las categorías**: más de 40 listas ya hechas (éxitos, pop, urbano, rock, K-pop, anime, jazz, flamenco, salsa, para dormir, para entrenar, décadas…), también en Buscar
 - Cada estantería enseña una fila y tiene «Mostrar todo»
 - Todo suena directamente desde YouTube, sin descargar nada; cualquier lista se puede guardar como tuya, y descargar una canción es opcional («Descargar con TubeGrab»)

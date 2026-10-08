@@ -62,7 +62,7 @@ describe('home', () => {
     expect(screen.getByText('Radio de Coldplay')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Todas las categorías' })).toBeInTheDocument();
     expect(screen.getAllByText('Éxitos del momento')).toHaveLength(2); // shelf and grid
-    expect(screen.getAllByText('Jazz')).toHaveLength(1); // not featured: only in the grid
+    expect(screen.getAllByText('Jazz')).toHaveLength(2); // Explorar rotates through every category, not only the featured ones
     expect(screen.queryByText('Descubre algo nuevo')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Recientes' })).toBeNull();
   });

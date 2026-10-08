@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
 import { ACCENTS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, useLook } from '../store/look.js';
+import { ROTATIONS } from './rotation.js';
 import { CHOICES, PROFILES, usePerf } from '../store/perf.js';
 import { useSound } from '../store/sound.js';
 import { useUi } from '../store/ui.js';
@@ -120,6 +121,7 @@ export function Customize() {
           })}
         </div>
       </div>
+      <Choice label="Explorar, radios y «Si te gusta» cambian" hint="Se eligen en parte al azar, según lo que escuchas. «Otras», en cada una, cambia ya." value={look.rotate} options={ROTATIONS} onChange={(v) => set({ rotate: v })} />
       <div className="set-row">
         <span><strong>Volver a lo de siempre</strong><small>Color, tamaño y lo demás, como venían.</small></span>
         <button type="button" className="btn btn-ghost" onClick={() => { useLook.getState().reset(); useUi.getState().toast('Aspecto como venía'); }}>Restablecer</button>

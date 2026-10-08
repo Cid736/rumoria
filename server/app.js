@@ -360,7 +360,12 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   });
 
   // ---- "Explorar": ready-made lists (fixed searches, never text from the page) ----
-  app.get('/api/browse', (req, res) => res.json({ lists: browse.list() }));
+  // `taste`: your genres (category ids), so Inicio can lean its rotating shelves on them.
+  app.get('/api/browse', (req, res) => {
+    let taste = [];
+    try { taste = curator.taste({ smart: history.paused ? null : history.smart(), browse, categories: CATEGORIES, splitTitle: streamLib.splitTitle }); } catch { /* none yet */ }
+    res.json({ lists: browse.list(), taste });
+  });
   app.get('/api/browse/:id', ytLimiter, async (req, res) => {
     if (!browse.has(req.params.id)) return res.status(404).json({ error: 'No existe esa lista.' });
     if (!ytSlots.take()) return res.status(429).json(BUSY);
@@ -499,7 +504,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
-    _state: { lists, history, likes, news, local, browse },
+    _state: { lists, history, likes, news, local, browse, curator },
     _run: { fillAutoLists, curate, warmBrowse },
   };
 }

@@ -12,7 +12,7 @@ Module._load = function load(request, ...rest) {
   if (request === 'electron') return { app: { getVersion: () => '1.1.0', isPackaged: true }, net: {} };
   return realLoad.call(this, request, ...rest);
 };
-const { isNewer, assetName, pickAsset } = require('../../electron/updater');
+const { isNewer, assetName, pickAsset, sweepOld } = require('../../electron/updater');
 Module._load = realLoad;
 
 const SHA = 'a'.repeat(64);
@@ -62,4 +62,24 @@ test('updater: the portable swap takes paths from the environment, never from th
     const line = main.split('\n').find((l) => l.includes(`'${ch}', (event) =>`));
     assert.ok(line && line.includes('isTrustedSender(event)'), `${ch} checks who asks`);
   }
+});
+
+test('updater: old download folders go — only ours, only folders, only when not just made', () => {
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'rum-sweep-'));
+  try {
+    const old = Date.now() - 3600_000;
+    const mk = (n, { file = false, at = old } = {}) => {
+      const p = path.join(tmp, n);
+      if (file) fs.writeFileSync(p, 'x'); else { fs.mkdirSync(p); fs.writeFileSync(path.join(p, 'Rumoria-Setup.exe'), 'x'); }
+      fs.utimesSync(p, at / 1000, at / 1000);
+    };
+    mk('rumoria-update-aB3dE9');
+    mk('rumoria-update-zzzzzz', { at: Date.now() });
+    mk('rumoria-update-Qq1234', { file: true });
+    mk('rumoria-update-toolongname');
+    mk('tubegrab-update-aB3dE9');
+    assert.equal(sweepOld({ tmp }), 1);
+    assert.deepEqual(fs.readdirSync(tmp).sort(), ['rumoria-update-Qq1234', 'rumoria-update-toolongname', 'rumoria-update-zzzzzz', 'tubegrab-update-aB3dE9']);
+    assert.equal(sweepOld({ tmp: path.join(tmp, 'nope') }), 0);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });

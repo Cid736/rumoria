@@ -183,6 +183,41 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-08 — v1.4.0: Explorar, radios y «Si te gusta» que rotan según tus gustos
+
+### [Función] Estanterías que rotan
+- **Archivos:** `src/views/rotation.js` (nuevo), `src/views/Home.jsx`, `server/lib/browse.js`, `server/lib/curator.js`, `server/app.js`, `src/store/library.js`, `src/store/look.js`, `src/views/Customize.jsx`
+- **Antes:** «Explorar» y «Radios populares» eran siempre las mismas 12. «Si te gusta» era siempre tu artista número uno.
+- **Ahora:**
+  - una selección semialeatoria con peso, entre las 45 categorías y unas 60 radios;
+  - tus géneros tienen sitio fijo: un tercio de Explorar y la mitad de las radios;
+  - lo que viste la última vez pesa menos;
+  - cambia cada 3 h, cada día o al abrir, a tu elección;
+  - «Otras» cambia una sola estantería;
+  - «Si te gusta» va pasando por tus artistas y por sus vecinos.
+- **Comprobado en la app (perfil de prueba con Queen):**
+  - géneros detectados: rock y años 80, que encabezaron Explorar;
+  - en las radios salieron Queen y Estopa;
+  - «Otras» en Explorar no tocó las radios;
+  - las radios mostradas sin portada (Rema, Bizarrap) la tuvieron a los pocos segundos.
+
+### [Bug] Carpetas temporales del actualizador
+- **Archivo:** `electron/updater.js`
+- **Problema:** cada actualización dejaba una carpeta `%TEMP%\rumoria-update-…`, con el instalador dentro en la versión instalable.
+- **Fix:** al arrancar, `sweepOld` borra las de actualizaciones anteriores. Solo borra las que tienen exactamente ese nombre, son carpetas de verdad y llevan más de 10 minutos.
+
+### Seguridad
+- No hay rutas nuevas. `/api/browse` solo añade `taste` (ids de categoría y una puntuación), con el mismo token.
+- Lo guardado en el navegador (`rumoria_rotation`, `rumoria_similar`) se limpia campo a campo al leerlo. Solo se aceptan:
+  - ids conocidos y textos cortos;
+  - ids de vídeo de 11 caracteres;
+  - portadas de `i.ytimg.com`.
+- Las búsquedas en YouTube siguen siendo fijas: los artistas de las radios están escritos en el código y la página solo puede pedir una radio por su id, nunca con texto suyo.
+- ReDoS (recheck): ninguna expresión exponencial. Una polinómica de `curator.js` (`\s*-\s*topic$`) pasa a `/ ?- ?topic$/`, que no puede retroceder. Quedan tres polinómicas antiguas (en `stream.js` y `recommend.js`) que solo leen títulos o canales de 300 caracteres como mucho: el peor caso son unas decenas de miles de pasos.
+- Tests: servidor y seguridad 83, interfaz 68.
+
+---
+
 ## 2026-10-08 — v1.3.0: rendimiento, reproducción como en TubeGrab, mini v2, recomendaciones
 
 ### [Bug] Actualizar una lista podía vaciarla o deshacer lo que habías hecho

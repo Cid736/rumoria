@@ -2,6 +2,7 @@
 // covers and which shelves Inicio shows. Kept in this computer's browser
 // storage (the app keeps the same address between runs) and applied at once.
 import { create } from 'zustand';
+import { ROTATIONS } from '../views/rotation.js';
 
 const KEY = 'rumoria_look';
 
@@ -25,7 +26,7 @@ export const FONTS = [['system', 'Del sistema'], ['trebuchet', 'Trebuchet'], ['s
 export const SIDEBARS = [['narrow', 'Estrecha'], ['normal', 'Normal'], ['wide', 'Ancha']];
 export const STARTS = [['home', 'Inicio'], ['last', 'Lo último que viste']];
 
-export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true };
+export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true, rotate: '3h' };
 
 /** Only known values: what's read back from storage can't set anything else. */
 export function cleanLook(raw) {
@@ -43,6 +44,7 @@ export function cleanLook(raw) {
     sidebar: one(r.sidebar, SIDEBARS, DEFAULT_LOOK.sidebar),
     start: one(r.start, STARTS, DEFAULT_LOOK.start),
     playerCover: r.playerCover !== false,
+    rotate: one(r.rotate, ROTATIONS, DEFAULT_LOOK.rotate),
   };
 }
 

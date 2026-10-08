@@ -1,7 +1,7 @@
 {
   "name": "rumoria",
   "productName": "Rumoria",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Tu música: listas de Spotify, Apple Music y YouTube, favoritas e historial, sin descargar nada.",
   "main": "electron/main.js",
   "license": "MIT",

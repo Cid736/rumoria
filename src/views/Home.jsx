@@ -6,14 +6,15 @@ import { useEffect, useState } from 'react';
 import { api, urls } from '../api.js';
 import { fold, fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
-import { useShows } from '../store/look.js';
+import { useLook, useShows } from '../store/look.js';
 import { PROFILES, usePerf } from '../store/perf.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover, { gradientOf } from '../components/Cover.jsx';
-import { Play } from '../components/Icons.jsx';
+import { Play, Shuffle } from '../components/Icons.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
 import { dailyOf, discoverOf, radioOf, seedsOf } from './recommend.js';
+import { artistId, exploreOf, likeSeedOf, noteShown, popularOf, readRotation, reshuffle, settled, similarOf } from './rotation.js';
 
 const SIMILAR_KEY = 'rumoria_similar';
 
@@ -75,8 +76,8 @@ function usePerRow() {
   return [per, setEl];
 }
 
-/** A shelf: one row at first (as many as fit), "Mostrar todo" for the rest. */
-export function Shelf({ title, kicker = null, children }) {
+/** A shelf: one row at first (as many as fit), "Mostrar todo" for the rest; `onOther`: an "Otras" button. */
+export function Shelf({ title, kicker = null, onOther = null, children }) {
   const [all, setAll] = useState(false);
   const [per, row] = usePerRow();
   const items = (Array.isArray(children) ? children.flat() : [children]).filter(Boolean);
@@ -85,7 +86,10 @@ export function Shelf({ title, kicker = null, children }) {
     <section className="shelf">
       <div className="shelf-head">
         <h2 className="shelf-title">{kicker && <small className="shelf-kicker">{kicker}</small>}{title}</h2>
-        {items.length > per && <button type="button" className="shelf-more" onClick={() => setAll(!all)}>{all ? 'Mostrar menos' : 'Mostrar todo'}</button>}
+        <div className="shelf-actions">
+          {onOther && <button type="button" className="shelf-more shelf-other" onClick={onOther} title="Ver otras ahora"><Shuffle size={14} />Otras</button>}
+          {items.length > per && <button type="button" className="shelf-more" onClick={() => setAll(!all)}>{all ? 'Mostrar menos' : 'Mostrar todo'}</button>}
+        </div>
       </div>
       <div className="shelf-row" ref={row}>{all ? items : items.slice(0, per)}</div>
     </section>
@@ -130,21 +134,54 @@ function ItemCard({ item }) {
     onOpen={() => useUi.getState().go(viewOf(item))} onPlay={playFrom(() => tracksOf(item), item)} />;
 }
 
+/** A ready-made list (or a popular radio) as a card. */
+function BrowseCard({ b }) {
+  const round = b.group === 'radio';
+  const load = async () => (await useLibrary.getState().loadBrowse(b.id)).tracks.map(fromYouTube);
+  return (
+    <Card title={b.name} sub={b.sub} round={round} cover={<Cover thumbs={b.thumbs} src={b.thumbs[0]} name={b.name} size={160} round={round} />}
+      onOpen={() => useUi.getState().go({ name: 'browse', id: b.id })} onPlay={playFrom(load, { kind: 'browse', id: b.id, name: b.name, sub: b.sub })} />
+  );
+}
+
 /** "Explorar": ready-made lists (the featured ones), to open or play straight away. */
 export function ExploreShelf({ title = 'Explorar', group = 'genre', kicker = null }) {
   const browse = useLibrary((s) => s.browse);
-  const go = useUi((s) => s.go);
   const shown = browse.filter((b) => (b.group || 'genre') === group && b.featured !== false);
-  const load = (id) => async () => (await useLibrary.getState().loadBrowse(id)).tracks.map(fromYouTube);
-  return (
-    <Shelf title={title} kicker={kicker}>
-      {shown.map((b) => (
-        <Card key={b.id} title={b.name} sub={b.sub} round={group === 'radio'}
-          cover={<Cover thumbs={b.thumbs} src={b.thumbs[0]} name={b.name} size={160} round={group === 'radio'} />}
-          onOpen={() => go({ name: 'browse', id: b.id })} onPlay={playFrom(load(b.id), { kind: 'browse', id: b.id, name: b.name, sub: b.sub })} />
-      ))}
-    </Shelf>
-  );
+  return <Shelf title={title} kicker={kicker}>{shown.map((b) => <BrowseCard key={b.id} b={b} />)}</Shelf>;
+}
+
+// Lists shown on a rotating shelf that haven't been read yet (no cover): read
+// a few, one after another, so their covers appear (not on the lowest profile).
+const warmed = new Set();
+function useWarmCovers(items) {
+  const key = items.filter((b) => !b.thumbs.length && !warmed.has(b.id)).slice(0, 4).map((b) => b.id).join(',');
+  useEffect(() => {
+    if (!key || usePerf.getState().profile === 'min') return undefined;
+    let gone = false;
+    (async () => {
+      for (const id of key.split(',')) {
+        if (gone) break;
+        warmed.add(id);
+        try { await useLibrary.getState().loadBrowse(id); } catch { /* its gradient stays */ }
+      }
+    })();
+    return () => { gone = true; };
+  }, [key]);
+}
+
+/**
+ * "Explorar" and "Radios populares" on Inicio: a pick that leans on your
+ * genres and changes from time to time (see rotation.js).
+ */
+function RotatingShelf({ kind, title, rot, onOther }) {
+  const { browse, taste, smart } = useLibrary();
+  const fresh = kind === 'popular' ? popularOf(browse, taste, smart, rot) : exploreOf(browse, taste, rot);
+  const shown = settled(kind, rot, fresh, new Map(browse.map((b) => [b.id, b])));
+  const ids = shown.map((b) => b.id).join(',');
+  useEffect(() => { if (ids) noteShown(kind, rot, ids.split(',')); }, [kind, rot, ids]);
+  useWarmCovers(shown);
+  return <Shelf title={title} onOther={() => onOther(kind)}>{shown.map((b) => <BrowseCard key={b.id} b={b} />)}</Shelf>;
 }
 
 /** Every category, as coloured tiles (in Buscar and at the end of Inicio). */
@@ -168,43 +205,68 @@ export function CategoryGrid({ title = 'Todas las categorías' }) {
   );
 }
 
+// "Si te gusta": the artists around each of yours, asked once a day per artist.
+const SAFE_THUMB = /^https:\/\/i\d?\.ytimg\.com\//;
+const MAX_SIMILAR = 20;
+function cleanSimilar(items) {
+  return (Array.isArray(items) ? items : []).filter((s) => s && /^[\w-]{11}$/.test(s.yt)).slice(0, MAX_SIMILAR).map((s) => ({
+    yt: s.yt, title: String(s.title || '').slice(0, 300), artist: String(s.artist || '').slice(0, 120),
+    thumb: typeof s.thumb === 'string' && SAFE_THUMB.test(s.thumb) ? s.thumb : null,
+  }));
+}
+function similarCache(day) {
+  try {
+    const c = JSON.parse(localStorage.getItem(SIMILAR_KEY));
+    if (c && c.day === day && c.bySeed && typeof c.bySeed === 'object') return c.bySeed;
+  } catch { /* none */ }
+  return {};
+}
+
 /**
- * "Si te gusta …": radios of artists like your favourite one — the artists
- * YouTube puts in the mix of their song, one radio each. The same all day.
+ * "Si te gusta …": radios of artists like one of yours — the artists YouTube
+ * puts in the mix of their song, one radio each. Which of your artists, and
+ * which of their neighbours, change with the rotation (the ones you play most
+ * and the closest neighbours more often).
  */
-function LikeArtistShelf({ smart }) {
-  const top = ((smart && smart.artists) || []).find((a) => a.seed && a.seed.yt);
+function LikeArtistShelf({ smart, rot, onOther }) {
+  const artists = ((smart && smart.artists) || []).filter((a) => a.seed && a.seed.yt);
+  const fresh = likeSeedOf(smart, rot);
+  const top = settled('like', rot, fresh ? [fresh] : [], new Map(artists.map((a) => [artistId(a), a])))[0] || null;
   const [similar, setSimilar] = useState({ for: null, items: [] });
   const seed = top ? top.seed.yt : null;
+  const name = top ? top.name : '';
+  useEffect(() => { if (name) noteShown('like', rot, [artistId({ name })]); }, [rot, name]);
   useEffect(() => {
     if (!seed) return undefined;
     let gone = false;
     const day = new Date().toDateString();
-    try {
-      const c = JSON.parse(localStorage.getItem(SIMILAR_KEY));
-      if (c && c.day === day && c.seed === seed && Array.isArray(c.items)) { setTimeout(() => { if (!gone) setSimilar({ for: seed, items: c.items }); }, 0); return () => { gone = true; }; }
-    } catch { /* look it up */ }
+    const cache = similarCache(day);
+    if (Array.isArray(cache[seed])) {
+      const items = cleanSimilar(cache[seed]);
+      setTimeout(() => { if (!gone) setSimilar({ for: seed, items }); }, 0);
+      return () => { gone = true; };
+    }
     api.get(urls.radio(seed)).then((r) => {
-      const me = fold(top.name);
+      const me = fold(name);
       const seen = new Set([me]);
       const items = [];
       for (const t of (r.entries || []).map(fromYouTube)) {
         const who = fold(t.artist);
-        if (!who || seen.has(who) || (me && who.includes(me)) || items.length >= 8) continue;
+        if (!who || seen.has(who) || (me && who.includes(me)) || items.length >= MAX_SIMILAR) continue;
         seen.add(who);
         items.push({ yt: t.yt, title: t.title, artist: t.artist, thumb: t.thumbnail });
       }
-      try { localStorage.setItem(SIMILAR_KEY, JSON.stringify({ day, seed, items })); } catch { /* only for now */ }
-      if (!gone) setSimilar({ for: seed, items });
+      // Today's, at most 8 artists of yours.
+      const keep = Object.fromEntries(Object.entries(similarCache(day)).slice(-7));
+      try { localStorage.setItem(SIMILAR_KEY, JSON.stringify({ day, bySeed: { ...keep, [seed]: cleanSimilar(items) } })); } catch { /* only for now */ }
+      if (!gone) setSimilar({ for: seed, items: cleanSimilar(items) });
     }).catch(() => {});
     return () => { gone = true; };
-    // Once per favourite artist.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed]);
+  }, [seed, name]);
   if (!top || similar.for !== seed) return null;
   return (
-    <Shelf kicker="Si te gusta" title={top.name}>
-      {similar.items.map((s) => {
+    <Shelf kicker="Si te gusta" title={top.name} onOther={artists.length > 1 || similar.items.length > 8 ? () => onOther('like') : null}>
+      {similarOf(similar.items, rot).map((s) => {
         const payload = { title: s.title, artist: s.artist, thumb: s.thumb, name: `Radio de ${s.artist}` };
         return (
           <Card key={s.yt} round title={`Radio de ${s.artist}`} sub={`Empieza con «${s.title}»`} cover={<Cover src={s.thumb} name={s.artist} size={160} round />}
@@ -223,6 +285,16 @@ export default function Home() {
   const go = useUi((s) => s.go);
   // The shelves you chose to see (Ajustes → Personalizar).
   const shows = useShows();
+  // The rotating shelves' pick: a new one when its time is up (checked every minute) or on «Otras».
+  const every = useLook((s) => s.look.rotate);
+  const [rot, setRot] = useState(() => readRotation(every));
+  useEffect(() => {
+    const check = () => setRot((r) => { const n = readRotation(every); return n.slot === r.slot && n.salt === r.salt ? r : n; });
+    check();
+    const t = setInterval(check, 60_000);
+    return () => clearInterval(t);
+  }, [every]);
+  const other = (kind) => setRot(reshuffle(kind, every));
   useEffect(() => {
     useLibrary.getState().refreshSmart();
     // Covers of ready-made lists appear as the server reads them ahead.
@@ -287,9 +359,9 @@ export default function Home() {
         })}
       </Shelf>)}
 
-      {shows('popular') && <ExploreShelf title="Radios populares" group="radio" />}
-      {shows('like') && <LikeArtistShelf smart={smart} />}
-      {shows('explore') && <ExploreShelf title="Explorar" />}
+      {shows('popular') && <RotatingShelf kind="popular" title="Radios populares" rot={rot} onOther={other} />}
+      {shows('like') && <LikeArtistShelf smart={smart} rot={rot} onOther={other} />}
+      {shows('explore') && <RotatingShelf kind="explore" title="Explorar" rot={rot} onOther={other} />}
 
       {shows('lists') && lists.length > 0 && (
         <Shelf title="Tus listas">

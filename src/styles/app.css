@@ -133,6 +133,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .shelf-kicker { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
 .shelf-more { font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .shelf-more:hover { color: var(--text); text-decoration: underline; }
+.shelf-actions { display: flex; align-items: center; gap: 16px; }
+.shelf-other { display: inline-flex; align-items: center; gap: 6px; }
 .card-round .card-art .cover { border-radius: 50%; }
 
 /* Every category: coloured tiles (each its own colour, from its name). */

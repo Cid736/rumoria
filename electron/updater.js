@@ -117,6 +117,33 @@ const download = (url, dest, onProgress) => new Promise((resolve, reject) => {
   }, reject);
 });
 
+// What mkdtemp makes for a download (the prefix and six random characters).
+const UPDATE_DIR = /^rumoria-update-[A-Za-z0-9]{6}$/;
+const SWEEP_AFTER_MS = 10 * 60_000;
+
+/**
+ * Removes the folders earlier updates left in the temp folder (the new
+ * version is in place by then; an installer may still sit in one). Only real
+ * folders of ours, last changed over 10 minutes ago (one in use is left alone).
+ * Returns how many went.
+ */
+function sweepOld({ tmp = os.tmpdir(), now = Date.now() } = {}) {
+  let gone = 0;
+  let names;
+  try { names = fs.readdirSync(tmp); } catch { return 0; }
+  for (const n of names) {
+    if (!UPDATE_DIR.test(n)) continue;
+    const p = path.join(tmp, n);
+    try {
+      const st = fs.lstatSync(p);
+      if (!st.isDirectory() || st.isSymbolicLink() || now - st.mtimeMs < SWEEP_AFTER_MS) continue;
+      fs.rmSync(p, { recursive: true, force: true });
+      gone++;
+    } catch { /* in use: next time */ }
+  }
+  return gone;
+}
+
 /**
  * The updater. `send(state)` tells the page; `quit()` closes Rumoria.
  * State: { status: 'idle'|'dev'|'checking'|'up-to-date'|'downloading'|'ready'|'error', current, latest, percent, error }
@@ -186,7 +213,7 @@ function createUpdater({ root, send, quit }) {
   }
 
   return {
-    start() { schedule(FIRST_CHECK_MS); },
+    start() { setTimeout(() => sweepOld(), FIRST_CHECK_MS).unref?.(); schedule(FIRST_CHECK_MS); },
     state: () => state,
     check,
     /** "Reiniciar y actualizar". */
@@ -196,4 +223,4 @@ function createUpdater({ root, send, quit }) {
   };
 }
 
-module.exports = { createUpdater, isNewer, assetName, pickAsset };
+module.exports = { createUpdater, isNewer, assetName, pickAsset, sweepOld };

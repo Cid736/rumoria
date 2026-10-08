@@ -57,11 +57,32 @@ const CATEGORIES = [
   g('cine', 'Bandas sonoras', 'Cine y series', 'movie soundtracks'),
   g('infantil', 'Para peques', 'Canciones infantiles', 'canciones infantiles'),
 ];
-// Popular artists' radios: one of their songs and YouTube's mix of it.
-const POPULAR_ARTISTS = ['Bad Bunny', 'KAROL G', 'Rosalía', 'Shakira', 'Bruno Mars', 'Coldplay', 'Dua Lipa', 'The Weeknd', 'Ed Sheeran', 'Taylor Swift', 'Quevedo', 'Peso Pluma'];
-const RADIOS = POPULAR_ARTISTS.map((artist) => ({
+// Popular artists' radios: one of their songs and YouTube's mix of it. Each
+// says which categories it belongs to, so Inicio can lean on your genres when
+// it picks which radios to show (it rotates them). The first ones are
+// "featured": read ahead for everyone; the rest when they are shown or opened.
+const r = (artist, ...tags) => [artist, tags];
+const FEATURED_RADIOS = 12;
+const POPULAR_ARTISTS = [
+  r('Bad Bunny', 'urbano', 'exitos'), r('KAROL G', 'urbano', 'exitos'), r('Rosalía', 'pop-es', 'flamenco', 'urbano'), r('Shakira', 'pop-es', 'pop'),
+  r('Bruno Mars', 'pop', 'soul', 'rnb'), r('Coldplay', 'pop', 'indie', 'rock'), r('Dua Lipa', 'pop', 'electronica', 'fiesta'), r('The Weeknd', 'pop', 'rnb'),
+  r('Ed Sheeran', 'pop', 'folk', 'amor'), r('Taylor Swift', 'pop', 'country'), r('Quevedo', 'urbano', 'pop-es'), r('Peso Pluma', 'regional', 'urbano'),
+  r('Feid', 'urbano'), r('Rauw Alejandro', 'urbano', 'pop-es'), r('Myke Towers', 'urbano'), r('Ozuna', 'urbano'), r('J Balvin', 'urbano', 'fiesta'),
+  r('Daddy Yankee', 'urbano', 'fiesta', 'noventas'), r('Young Miko', 'urbano', 'rap-es'), r('Bizarrap', 'rap-es', 'urbano'), r('Duki', 'rap-es', 'urbano'),
+  r('Trueno', 'rap-es'), r('Natos y Waor', 'rap-es'), r('Mora', 'urbano'), r('Aitana', 'pop-es'), r('Sebastián Yatra', 'pop-es', 'amor'),
+  r('Pablo Alborán', 'pop-es', 'amor'), r('Morat', 'pop-es', 'folk'), r('Camilo', 'pop-es', 'amor'), r('Melendi', 'pop-es', 'rumba'),
+  r('Estopa', 'rumba', 'rock'), r('Grupo Frontera', 'regional'), r('Natanael Cano', 'regional'), r('Romeo Santos', 'bachata', 'amor'),
+  r('Prince Royce', 'bachata'), r('Marc Anthony', 'salsa'), r('Billie Eilish', 'pop', 'alternativa'), r('Harry Styles', 'pop'),
+  r('Sabrina Carpenter', 'pop'), r('Olivia Rodrigo', 'pop', 'punk'), r('Ariana Grande', 'pop', 'rnb'), r('SZA', 'rnb'),
+  r('Drake', 'hiphop', 'rnb'), r('Kendrick Lamar', 'hiphop'), r('Travis Scott', 'hiphop'), r('Eminem', 'hiphop', 'dosmil10'),
+  r('Arctic Monkeys', 'indie', 'alternativa'), r('Imagine Dragons', 'alternativa', 'pop', 'gym'), r('Linkin Park', 'alternativa', 'metal', 'noventas'),
+  r('Queen', 'rock', 'ochentas'), r('Måneskin', 'rock'), r('Calvin Harris', 'electronica', 'fiesta'), r('David Guetta', 'electronica', 'fiesta', 'gym'),
+  r('Avicii', 'electronica', 'dosmil10'), r('BTS', 'kpop'), r('BLACKPINK', 'kpop'), r('Stray Kids', 'kpop'), r('Burna Boy', 'afro'), r('Rema', 'afro'),
+  r('Bob Marley', 'reggae'), r('Metallica', 'metal', 'rock'),
+];
+const RADIOS = POPULAR_ARTISTS.map(([artist, tags], i) => ({
   id: `radio-${artist.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')}`,
-  name: `Radio de ${artist}`, sub: `${artist} y artistas parecidos`, artist, group: 'radio', featured: true,
+  name: `Radio de ${artist}`, sub: `${artist} y artistas parecidos`, artist, tags, group: 'radio', featured: i < FEATURED_RADIOS,
 }));
 const ALL = [...CATEGORIES, ...RADIOS];
 const BY_ID = new Map(ALL.map((c) => [c.id, c]));
@@ -146,7 +167,8 @@ class Browse {
     return ALL.map((c) => {
       const hit = this.cache[c.id];
       const thumbs = hit ? [...new Set(hit.tracks.map((t) => t.thumbnail).filter(Boolean))].slice(0, 4) : [];
-      return { id: c.id, name: c.name, sub: c.sub, group: c.group, featured: c.featured, thumbs, count: hit ? hit.tracks.length : null };
+      const out = { id: c.id, name: c.name, sub: c.sub, group: c.group, featured: c.featured, thumbs, count: hit ? hit.tracks.length : null };
+      return c.group === 'radio' ? { ...out, artist: c.artist, tags: c.tags } : out;
     });
   }
 
