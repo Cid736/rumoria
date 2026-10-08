@@ -86,8 +86,7 @@
   --bg: #e8e8ed; --surface: #ffffff; --surface-2: #f2f2f7; --surface-3: #e3e3e8;
   --text: #1d1d1f; --muted: #6e6e73; --subtle: #8e8e93; --line: rgba(0, 0, 0, 0.08); --head-fade: rgba(255, 255, 255, 0);
 }
-/* A soft glow of your accent behind everything, and the library as frosted glass over it. */
-:root[data-ui="mac"] body { background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 16%, var(--bg)) 0%, var(--bg) 55%); }
+/* The library as frosted glass. */
 :root[data-ui="mac"] .titlebar { background: transparent; }
 :root[data-ui="mac"] .side-card { background: color-mix(in srgb, var(--surface) 68%, transparent); backdrop-filter: blur(24px) saturate(1.6); border: 0.5px solid var(--line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18); }
 :root[data-ui="mac"] .main, :root[data-ui="mac"] .sidepanel { border: 0.5px solid var(--line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }

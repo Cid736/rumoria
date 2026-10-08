@@ -3,7 +3,7 @@
 // Every change shows at once.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
-import { ACCENTS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, UIS, useLook } from '../store/look.js';
+import { ACCENTS, BACKGROUNDS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, UIS, useLook } from '../store/look.js';
 import { ROTATIONS } from './rotation.js';
 import { CHOICES, PROFILES, usePerf } from '../store/perf.js';
 import { useSound } from '../store/sound.js';
@@ -90,6 +90,17 @@ export function Customize() {
             <button key={k} type="button" role="radio" aria-checked={look.accent === k} aria-label={name} title={name}
               className={`swatch ${look.accent === k ? 'on' : ''}`} data-swatch={k} onClick={() => set({ accent: k })}>
               <span className="swatch-dot" style={{ background: hex }} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="set-row set-row-wrap">
+        <span><strong>Fondo</strong><small>El color de la ventana y de los paneles, con cualquier estilo. Cada uno tiene su versión clara y oscura.</small></span>
+        <div className="swatches" role="radiogroup" aria-label="Fondo">
+          {BACKGROUNDS.map(([k, name, preview]) => (
+            <button key={k} type="button" role="radio" aria-checked={look.bg === k} aria-label={name} title={name}
+              className={`swatch swatch-bg ${look.bg === k ? 'on' : ''}`} onClick={() => set({ bg: k })}>
+              <span className="swatch-dot" style={{ background: preview }} />
             </button>
           ))}
         </div>

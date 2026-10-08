@@ -151,3 +151,19 @@ describe('the welcome guide', () => {
     expect(screen.queryByRole('dialog')).toBe(null);
   });
 });
+
+describe('background colour (any interface style)', () => {
+  it('the style\'s own by default; a known colour only; put on the page, or taken off', async () => {
+    const { BACKGROUNDS } = await import('../../src/store/look.js');
+    expect(DEFAULT_LOOK.bg).toBe('style');
+    expect(cleanLook({ bg: 'noche' }).bg).toBe('noche');
+    expect(cleanLook({ bg: 'url(evil)' }).bg).toBe('style');
+    expect(BACKGROUNDS.map(([k]) => k)).toEqual(['style', 'neutro', 'negro', 'noche', 'morado', 'bosque', 'granate', 'acento']);
+    const doc = document.implementation.createHTMLDocument('x');
+    applyLook({ ...DEFAULT_LOOK, ui: 'mac', bg: 'bosque' }, doc, () => {});
+    expect(doc.documentElement.dataset.bg).toBe('bosque');
+    expect(doc.documentElement.dataset.ui).toBe('mac');
+    applyLook({ ...DEFAULT_LOOK, ui: 'mac', bg: 'style' }, doc, () => {});
+    expect(doc.documentElement.dataset.bg).toBeUndefined();
+  });
+});

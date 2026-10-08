@@ -27,9 +27,16 @@ export const SIDEBARS = [['narrow', 'Estrecha'], ['normal', 'Normal'], ['wide', 
 // v1.6: the whole interface as Rumoria's own, or like a Windows 11 or a Mac app
 // (window buttons, letters, corners, controls), as TubeGrab does.
 export const UIS = [['rumoria', 'Rumoria'], ['windows', 'Windows'], ['mac', 'Mac']];
+// v1.6.1: the background, whatever the interface style: the style's own, or a
+// colour (each with its light and dark version). [id, name, preview]
+export const BACKGROUNDS = [
+  ['style', 'Según el estilo', 'linear-gradient(135deg, #15131d 50%, #202020 50%)'], ['neutro', 'Gris neutro', '#1f1f1f'], ['negro', 'Negro', '#000000'],
+  ['noche', 'Azul noche', '#121a2e'], ['morado', 'Morado', '#1b1329'], ['bosque', 'Verde bosque', '#111f18'], ['granate', 'Granate', '#221016'],
+  ['acento', 'Teñido de tu color', 'var(--accent)'],
+];
 export const STARTS = [['home', 'Inicio'], ['last', 'Lo último que viste']];
 
-export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true, rotate: '3h', ui: 'rumoria' };
+export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true, rotate: '3h', ui: 'rumoria', bg: 'style' };
 
 /** Only known values: what's read back from storage can't set anything else. */
 export function cleanLook(raw) {
@@ -49,6 +56,7 @@ export function cleanLook(raw) {
     playerCover: r.playerCover !== false,
     rotate: one(r.rotate, ROTATIONS, DEFAULT_LOOK.rotate),
     ui: one(r.ui, UIS, DEFAULT_LOOK.ui),
+    bg: one(r.bg, BACKGROUNDS, DEFAULT_LOOK.bg),
   };
 }
 
@@ -66,6 +74,7 @@ export function applyLook(look, doc = document, zoom = (f) => { if (window.rumor
   d.sidebar = look.sidebar;
   d.playerCover = look.playerCover ? 'on' : 'off';
   d.ui = look.ui;
+  if (look.bg === 'style') delete d.bg; else d.bg = look.bg;
   try { zoom(look.size); } catch { /* not where it can zoom */ }
 }
 

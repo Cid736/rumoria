@@ -26,6 +26,8 @@
       if (look && /^[a-z]{2,12}$/.test(look.accent || '') && look.accent !== 'coral') d.accent = look.accent; else delete d.accent;
       // The interface style (Rumoria, Windows or Mac): letters and corners.
       d.ui = look && ['windows', 'mac'].includes(look.ui) ? look.ui : 'rumoria';
+      // The background colour (Personalizar → Fondo), the same as the main window's.
+      if (look && ['neutro', 'negro', 'noche', 'morado', 'bosque', 'granate', 'acento'].includes(look.bg)) d.bg = look.bg; else delete d.bg;
       const theme = localStorage.getItem('rumoria_theme');
       d.theme = ['dark', 'light', 'system'].includes(theme) ? theme : 'dark';
     } catch { d.theme = 'dark'; }

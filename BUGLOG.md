@@ -183,6 +183,22 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-08 — v1.6.1: fondo a elegir con cualquier estilo
+
+### [Bug] El estilo Mac teñía la ventana
+- **Archivo:** `src/styles/ui.css`
+- **Problema:** el fondo del estilo Mac mezclaba tu color de acento con el gris. Con algunos colores, como el violeta, el resultado parecía sepia.
+- **Solución:** el estilo Mac usa un gris neutro sin mezcla.
+
+### [Función] Fondo (Ajustes → Personalizar)
+- **Archivos:** `src/store/look.js`, `src/styles/backgrounds.css` (nuevo), `src/views/Customize.jsx`, `public/mini.*`
+- **Qué hace:** el color de la ventana y de los paneles se elige aparte del estilo: el del estilo, gris neutro, negro, azul noche, morado, verde bosque, granate o teñido de tu color, con versión clara y oscura.
+- **Seguridad:** al leerlo solo se aceptan valores conocidos (lo comprueba un test).
+- **Comprobado en la app:** estilo Mac con color violeta en gris neutro; con «Azul noche», la ventana cambia de color.
+- **Tests:** servidor y seguridad 94, interfaz 87.
+
+---
+
 ## 2026-10-08 — v1.6.0: estilo Rumoria / Windows / Mac, búsquedas recientes y guía de bienvenida
 
 ### [Función] Estilo de la interfaz (Ajustes → Personalizar)
