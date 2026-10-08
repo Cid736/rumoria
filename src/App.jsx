@@ -10,10 +10,12 @@ import { useLibrary } from './store/library.js';
 import { usePlayer } from './store/player.js';
 import { useUi } from './store/ui.js';
 import DropLink from './components/DropLink.jsx';
+import Guide from './components/Guide.jsx';
 import NowPlaying from './components/NowPlaying.jsx';
 import Overlays from './components/Overlays.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import TitleBar from './components/TitleBar.jsx';
 import SidePanel from './components/SidePanel.jsx';
 import TopBar from './components/TopBar.jsx';
 import Home from './views/Home.jsx';
@@ -110,6 +112,8 @@ export default function App() {
   }, [theme]);
 
   return (
+    <>
+    <TitleBar />
     <div className={`app ${panel ? 'with-panel' : ''}`}>
       <Sidebar />
       <main className="main" key={`${view.name}-${view.id || ''}`}>
@@ -120,7 +124,9 @@ export default function App() {
       <PlayerBar />
       <NowPlaying />
       <DropLink />
+      <Guide />
       <Overlays />
     </div>
+    </>
   );
 }

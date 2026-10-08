@@ -209,6 +209,10 @@ function createWindow(port) {
     icon: path.join(ROOT, 'build', 'icon.png'),
     backgroundColor: '#0f0e17',
     autoHideMenuBar: true,
+    // v1.6: no native title bar; the page draws its own (Rumoria's, Windows'
+    // caption buttons or Mac's three lights, as chosen in Personalizar) and
+    // its buttons come back through rumoria:window below.
+    titleBarStyle: 'hidden',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -232,6 +236,10 @@ function createWindow(port) {
     if (readSettings().closeToTray === true) { e.preventDefault(); mainWindow.hide(); tray.show(); }
   });
   mainWindow.on('show', () => tray.hide());
+  // The page's title bar shows "restore" when maximized, and goes away in full screen.
+  const sendWindowState = () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:windowState', { maximized: mainWindow.isMaximized(), fullscreen: mainWindow.isFullScreen() }); };
+  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) mainWindow.on(ev, sendWindowState);
+  mainWindow.webContents.on('did-finish-load', sendWindowState);
   mainWindow.loadURL(`http://127.0.0.1:${port}/`);
 }
 
@@ -261,6 +269,13 @@ ipcMain.handle('rumoria:pickMusicDir', async (event) => {
 ipcMain.handle('rumoria:update:state', (event) => (isTrustedSender(event) ? updater.state() : null));
 ipcMain.on('rumoria:update:check', (event) => { if (isTrustedSender(event)) updater.check(); });
 ipcMain.on('rumoria:update:restart', (event) => { if (isTrustedSender(event)) updater.restart(); });
+// The page's own title bar: minimise, maximise / restore, close (close behaves as the window's X).
+ipcMain.on('rumoria:window', (event, action) => {
+  if (!isTrustedSender(event) || !mainWindow || mainWindow.isDestroyed()) return;
+  if (action === 'minimize') mainWindow.minimize();
+  else if (action === 'maximize') { if (mainWindow.isMaximized()) mainWindow.unmaximize(); else mainWindow.maximize(); }
+  else if (action === 'close') mainWindow.close();
+});
 // "Descargar con TubeGrab": TubeGrab opens with the song in its download box (it asks before downloading).
 // Without TubeGrab installed, `tubegrab://` goes nowhere: its download page opens instead.
 ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {

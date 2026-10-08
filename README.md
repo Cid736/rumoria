@@ -27,6 +27,9 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Atajos globales** (Ajustes): reproducir/pausa, siguiente, anterior, favorita, volumen, el mini y mostrar Rumoria desde cualquier sitio, también con Rumoria en la bandeja. Se pueden cambiar o apagar, y avisa si otra aplicación ya usa una combinación
 - **No me recomiendes…** (clic derecho en una canción): esa canción o ese artista no vuelven a salir en recomendaciones, radios, «Para ti» ni listas que se llenan solas. Se deshace en Ajustes
 - **Historial**: lo que has escuchado, por días y con la hora, con buscador; para encontrar aquella canción que sonó ayer
+- **Estilo de la interfaz** (Ajustes → Personalizar): el de Rumoria, o como una app de **Windows 11** (botones de la ventana a la derecha, grises neutros, esquinas pequeñas, interruptores de contorno) o de **Mac** (los tres botones de colores a la izquierda, título centrado, biblioteca translúcida, esquinas grandes). La ventana tiene su propia barra de título; el mini reproductor también cambia de letra y esquinas
+- **Guía de bienvenida**: cinco pasos al abrir Rumoria por primera vez (estilo y tema, buscar, tus listas, lo que hace para ti, controles). Se desactiva desde la propia guía o en Ajustes, donde también se puede volver a ver
+- **Búsquedas recientes**: lo que buscas se guarda y sale en Buscar con la caja vacía para repetirlo con un clic. Se quita una a una (✕), todas a la vez («Borrar todo», con «Deshacer») o se deja de guardar (Ajustes → Historial de escucha)
 - **Listas**: ordenar por título, artista, fecha, las que más escuchas o duración (se recuerda por lista), y **quitar canciones repetidas** (aunque una sea el «Official Video» y otra el audio)
 - **Arrastra un enlace** a la ventana: una canción de YouTube suena al momento y una lista de Spotify, Apple Music o YouTube se importa
 - **En la bandeja**: además de los botones, las 5 siguientes canciones (pulsa una para ponerla) y Favorita

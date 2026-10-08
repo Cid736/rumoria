@@ -1,0 +1,130 @@
+/* v1.6: the window's own title bar, and the interface as Rumoria's own, or
+   like a Windows 11 or a Mac app (Ajustes → Personalizar → Estilo de la
+   interfaz): letters, colours of the surfaces, corners, switches and the
+   window buttons. Your accent, theme, text size and corners still apply
+   (the styles' corners only when Esquinas is "Normales"). Also the recent
+   searches in Buscar. */
+
+/* ---- room for the title bar ---- */
+:root { --titlebar-h: 0px; }
+:root[data-titlebar="on"] { --titlebar-h: 32px; }
+.app { height: calc(100vh - var(--titlebar-h)); }
+
+/* ---- the title bar ---- */
+.titlebar { position: relative; z-index: 60; display: flex; align-items: center; gap: 10px; height: var(--titlebar-h); padding-left: 14px; background: var(--bg); color: var(--muted); font-size: 12px; -webkit-app-region: drag; user-select: none; }
+.titlebar button { -webkit-app-region: no-drag; }
+.titlebar-icon { width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); flex: none; }
+.titlebar-title { flex: 1; font-weight: 600; letter-spacing: 0.01em; }
+.titlebar.blurred .titlebar-title, .titlebar.blurred .caption-btn { opacity: 0.55; }
+.caption { display: flex; align-self: stretch; }
+.caption-btn { display: grid; place-items: center; width: 46px; height: 100%; color: var(--text); transition: background 0.12s; }
+.caption-btn svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1; }
+.caption-btn:hover { background: color-mix(in srgb, var(--text) 9%, transparent); }
+.caption-btn:active { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.caption-close:hover { background: #c42b1c; color: #fff; }
+.caption-close:active { background: #c83c30; color: rgba(255, 255, 255, 0.75); }
+/* Rumoria's own: the same buttons, softer (rounded, the accent's red). */
+:root[data-ui="rumoria"] .caption { gap: 2px; align-items: center; padding-right: 6px; }
+:root[data-ui="rumoria"] .caption-btn { width: 36px; height: 24px; border-radius: 8px; }
+:root[data-ui="rumoria"] .caption-close:hover { background: var(--danger); }
+/* Mac: three lights on the left, the title in the middle. */
+.traffic { display: flex; gap: 8px; flex: none; }
+.tl { display: grid; place-items: center; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2); }
+.tl svg { width: 8px; height: 8px; fill: none; stroke: rgba(0, 0, 0, 0.55); stroke-width: 1.4; stroke-linecap: round; opacity: 0; }
+.tl-max svg { fill: rgba(0, 0, 0, 0.55); stroke: none; }
+.traffic:hover .tl svg, .tl:focus-visible svg { opacity: 1; }
+.tl-close { background: #ff5f57; }
+.tl-min { background: #febc2e; }
+.tl-max { background: #28c840; }
+.tl:active { filter: brightness(0.85); }
+.titlebar.blurred .tl { background: color-mix(in srgb, var(--muted) 40%, transparent); }
+:root[data-ui="mac"] .titlebar { padding: 0 14px; }
+:root[data-ui="mac"] .titlebar-title { flex: 1; text-align: center; margin-right: 52px; font-size: 13px; color: var(--text); opacity: 0.8; }
+
+/* ================= Windows 11 ================= */
+:root[data-ui="windows"] {
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+:root[data-ui="windows"][data-corners="normal"] { --radius: 8px; --radius-sm: 4px; }
+:root[data-ui="windows"]:not([data-theme="light"]) {
+  --bg: #202020; --surface: #272727; --surface-2: #2d2d2d; --surface-3: #383838;
+  --text: #ffffff; --muted: #c5c5c5; --subtle: #8a8a8a; --line: rgba(255, 255, 255, 0.07); --head-fade: rgba(39, 39, 39, 0);
+}
+:root[data-ui="windows"][data-theme="light"] {
+  --bg: #f3f3f3; --surface: #fbfbfb; --surface-2: #f3f3f3; --surface-3: #e6e6e6;
+  --text: #1b1b1b; --muted: #5d5d5d; --subtle: #8a8a8a; --line: rgba(0, 0, 0, 0.08); --head-fade: rgba(251, 251, 251, 0);
+}
+:root[data-ui="windows"] .main, :root[data-ui="windows"] .side-card, :root[data-ui="windows"] .sidepanel { border: 1px solid var(--line); }
+:root[data-ui="windows"] .btn, :root[data-ui="windows"] .chip, :root[data-ui="windows"] .searchbox, :root[data-ui="windows"] .col-filter,
+:root[data-ui="windows"] .side-search, :root[data-ui="windows"] .key-catch { border-radius: 4px; }
+:root[data-ui="windows"] .btn-accent { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2); }
+:root[data-ui="windows"] .searchbox:focus-within, :root[data-ui="windows"] .col-filter:focus { box-shadow: inset 0 -2px 0 var(--accent); }
+/* Fluent switch: an outline when off, filled with the accent when on. */
+:root[data-ui="windows"] .switch { width: 40px; height: 20px; background: transparent; box-shadow: inset 0 0 0 1px var(--muted); }
+:root[data-ui="windows"] .switch::after { top: 5px; left: 5px; width: 10px; height: 10px; background: var(--muted); transition: transform 0.15s var(--ease), width 0.1s; }
+:root[data-ui="windows"] .switch:hover::after { width: 12px; height: 12px; top: 4px; left: 4px; }
+:root[data-ui="windows"] .switch:checked { background: var(--accent); box-shadow: none; }
+:root[data-ui="windows"] .switch:checked::after { transform: translateX(20px); background: var(--accent-ink); }
+:root[data-ui="windows"] .menu { border: 1px solid var(--line); }
+:root[data-ui="windows"] ::-webkit-scrollbar { width: 10px; }
+:root[data-ui="windows"] ::-webkit-scrollbar-thumb { border-radius: 6px; }
+
+/* ================= Mac ================= */
+:root[data-ui="mac"] {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --titlebar-h: 0px;
+}
+:root[data-ui="mac"][data-titlebar="on"] { --titlebar-h: 30px; }
+:root[data-ui="mac"][data-corners="normal"] { --radius: 16px; --radius-sm: 10px; }
+:root[data-ui="mac"]:not([data-theme="light"]) {
+  --bg: #1c1c1e; --surface: #252527; --surface-2: #2e2e30; --surface-3: #3a3a3c;
+  --text: #f5f5f7; --muted: #a1a1a6; --subtle: #6e6e73; --line: rgba(255, 255, 255, 0.09); --head-fade: rgba(37, 37, 39, 0);
+}
+:root[data-ui="mac"][data-theme="light"] {
+  --bg: #e8e8ed; --surface: #ffffff; --surface-2: #f2f2f7; --surface-3: #e3e3e8;
+  --text: #1d1d1f; --muted: #6e6e73; --subtle: #8e8e93; --line: rgba(0, 0, 0, 0.08); --head-fade: rgba(255, 255, 255, 0);
+}
+/* A soft glow of your accent behind everything, and the library as frosted glass over it. */
+:root[data-ui="mac"] body { background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 16%, var(--bg)) 0%, var(--bg) 55%); }
+:root[data-ui="mac"] .titlebar { background: transparent; }
+:root[data-ui="mac"] .side-card { background: color-mix(in srgb, var(--surface) 68%, transparent); backdrop-filter: blur(24px) saturate(1.6); border: 0.5px solid var(--line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18); }
+:root[data-ui="mac"] .main, :root[data-ui="mac"] .sidepanel { border: 0.5px solid var(--line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
+:root[data-ui="mac"] .menu, :root[data-ui="mac"] .dialog { background: color-mix(in srgb, var(--surface-2) 82%, transparent); backdrop-filter: blur(30px) saturate(1.8); border: 0.5px solid var(--line); }
+:root[data-ui="mac"] .btn { border-radius: 8px; padding: 7px 16px; font-weight: 600; }
+:root[data-ui="mac"] .nav-btn.active { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+/* Mac switch: a white knob with a shadow, the accent when on. */
+:root[data-ui="mac"] .switch { width: 38px; height: 22px; background: var(--surface-3); }
+:root[data-ui="mac"] .switch::after { top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+:root[data-ui="mac"] .switch:checked { background: var(--accent); }
+:root[data-ui="mac"] .switch:checked::after { transform: translateX(16px); background: #fff; }
+:root[data-ui="mac"] ::-webkit-scrollbar { width: 9px; }
+:root[data-ui="mac"] ::-webkit-scrollbar-thumb { border-width: 2px; border-radius: 9px; }
+/* The lowest performance profile: no blur. */
+:root[data-perf="min"][data-ui="mac"] .side-card, :root[data-perf="min"][data-ui="mac"] .menu, :root[data-perf="min"][data-ui="mac"] .dialog { backdrop-filter: none; background: var(--surface); }
+
+/* ---- Buscar: recent searches ---- */
+.recent-searches { margin: 8px 0 24px; }
+.recent-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.recent-list li { display: inline-flex; align-items: center; gap: 2px; padding: 0 4px 0 2px; border-radius: 999px; background: var(--surface-2); }
+.recent-q { display: inline-flex; align-items: center; gap: 8px; max-width: 280px; padding: 7px 4px 7px 12px; color: var(--text); }
+.recent-q span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-q svg { color: var(--muted); flex: none; }
+.recent-x { width: 26px; height: 26px; }
+:root[data-ui="windows"] .recent-list li { border-radius: 4px; }
+
+/* ---- the welcome guide ---- */
+.guide-backdrop { z-index: 70; }
+.guide { align-items: center; text-align: center; gap: 12px; padding: 28px 28px 20px; }
+.guide-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--accent-soft); color: var(--accent); }
+.guide h2 { font-size: 22px; }
+.guide-text { margin: 0; color: var(--muted); line-height: 1.55; }
+.guide-choices { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 4px; }
+.guide-dots { display: flex; gap: 6px; margin-top: 4px; }
+.guide-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-3); transition: background 0.2s, width 0.2s; }
+.guide-dots span.on { width: 18px; border-radius: 4px; background: var(--accent); }
+.guide-again { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.guide-again input { accent-color: var(--accent); }
+.guide .dialog-actions { align-self: stretch; }
+.guide-skip { margin-right: auto; }

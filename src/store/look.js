@@ -24,9 +24,12 @@ export const SECTIONS = [
 // library's width, the page Rumoria opens on, the cover behind the player bar.
 export const FONTS = [['system', 'Del sistema'], ['trebuchet', 'Trebuchet'], ['serif', 'Clásica (Georgia)'], ['mono', 'Monoespaciada']];
 export const SIDEBARS = [['narrow', 'Estrecha'], ['normal', 'Normal'], ['wide', 'Ancha']];
+// v1.6: the whole interface as Rumoria's own, or like a Windows 11 or a Mac app
+// (window buttons, letters, corners, controls), as TubeGrab does.
+export const UIS = [['rumoria', 'Rumoria'], ['windows', 'Windows'], ['mac', 'Mac']];
 export const STARTS = [['home', 'Inicio'], ['last', 'Lo último que viste']];
 
-export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true, rotate: '3h' };
+export const DEFAULT_LOOK = { accent: 'coral', size: 1, density: 'normal', corners: 'normal', motion: 'auto', sideCovers: true, hidden: [], font: 'system', sidebar: 'normal', start: 'home', playerCover: true, rotate: '3h', ui: 'rumoria' };
 
 /** Only known values: what's read back from storage can't set anything else. */
 export function cleanLook(raw) {
@@ -45,6 +48,7 @@ export function cleanLook(raw) {
     start: one(r.start, STARTS, DEFAULT_LOOK.start),
     playerCover: r.playerCover !== false,
     rotate: one(r.rotate, ROTATIONS, DEFAULT_LOOK.rotate),
+    ui: one(r.ui, UIS, DEFAULT_LOOK.ui),
   };
 }
 
@@ -61,6 +65,7 @@ export function applyLook(look, doc = document, zoom = (f) => { if (window.rumor
   d.font = look.font;
   d.sidebar = look.sidebar;
   d.playerCover = look.playerCover ? 'on' : 'off';
+  d.ui = look.ui;
   try { zoom(look.size); } catch { /* not where it can zoom */ }
 }
 

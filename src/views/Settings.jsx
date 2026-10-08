@@ -4,7 +4,7 @@ import { api, desktop } from '../api.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
-import { HiddenSettings, ShortcutSettings } from './MoreSettings.jsx';
+import { GuideSettings, HiddenSettings, SearchSettings, ShortcutSettings } from './MoreSettings.jsx';
 import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
@@ -109,6 +109,7 @@ export default function Settings() {
         </label>
       </section>
       <Customize />
+      <GuideSettings />
       <PlaybackSettings />
       <MiniSettings />
       <PerfSettings />
@@ -134,6 +135,7 @@ export default function Settings() {
           <span><strong>Borrar el historial</strong><small>{smart ? `${smart.count} escuchas guardadas` : ''}</small></span>
           <button type="button" className="btn btn-danger" onClick={wipe}>Borrar…</button>
         </div>
+        <SearchSettings />
       </section>
       <Updates />
       <ShortcutSettings />

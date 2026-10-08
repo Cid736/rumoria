@@ -18,6 +18,11 @@ contextBridge.exposeInMainWorld('rumoria', {
     check: () => ipcRenderer.send('rumoria:update:check'),
     restart: () => ipcRenderer.send('rumoria:update:restart'),
   },
+  // The page's own title bar: its buttons, and whether the window is maximized or in full screen (returns a way to stop listening).
+  window: {
+    control: (action) => ipcRenderer.send('rumoria:window', String(action)),
+    onState: (cb) => { const f = (_e, s) => cb(s); ipcRenderer.on('rumoria:windowState', f); return () => ipcRenderer.removeListener('rumoria:windowState', f); },
+  },
   // Your look: the text size (the whole page zoomed, between 80 % and 150 %).
   look: {
     zoom: (f) => { const n = Number(f); if (Number.isFinite(n)) webFrame.setZoomFactor(Math.min(1.5, Math.max(0.8, n))); },

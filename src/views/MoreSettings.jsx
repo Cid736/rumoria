@@ -2,7 +2,9 @@
 // tray) and what you asked not to be recommended.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
+import { useGuide } from '../components/Guide.jsx';
 import { useHidden } from '../store/hidden.js';
+import { useSearches } from '../store/searches.js';
 import { useUi } from '../store/ui.js';
 
 const LABELS = {
@@ -101,6 +103,45 @@ export function HiddenSettings() {
           <button type="button" className="btn btn-ghost" onClick={() => h.showSong(s.key)}>Volver a recomendar</button>
         </div>
       ))}
+    </section>
+  );
+}
+
+/** v1.6: what you search in Buscar: keep it or not, and wipe it. */
+export function SearchSettings() {
+  const { items, off } = useSearches();
+  const clear = () => {
+    const was = useSearches.getState().clear();
+    useUi.getState().toast('Búsquedas borradas', { action: 'Deshacer', onAction: () => useSearches.getState().restore(was) });
+  };
+  return (
+    <>
+      <label className="set-row">
+        <span><strong>Guardar lo que busco</strong><small>Las búsquedas recientes salen en Buscar con la caja vacía. Solo en este ordenador.</small></span>
+        <input type="checkbox" className="switch" checked={!off} onChange={(e) => useSearches.getState().setOff(!e.target.checked)} />
+      </label>
+      <div className="set-row">
+        <span><strong>Borrar las búsquedas</strong><small>{items.length === 1 ? '1 búsqueda guardada' : `${items.length} búsquedas guardadas`}</small></span>
+        <button type="button" className="btn btn-ghost" onClick={clear} disabled={!items.length}>Borrar todo</button>
+      </div>
+    </>
+  );
+}
+
+/** v1.6: the welcome guide: open it now, or whether it opens by itself. */
+export function GuideSettings() {
+  const show = useGuide((s) => s.show);
+  return (
+    <section className="set-group">
+      <h2>Guía de bienvenida</h2>
+      <label className="set-row">
+        <span><strong>Mostrar la guía al abrir Rumoria</strong><small>Cinco pasos con lo básico. Se desactiva aquí o desde la propia guía.</small></span>
+        <input type="checkbox" className="switch" checked={show} onChange={(e) => useGuide.getState().setShow(e.target.checked)} />
+      </label>
+      <div className="set-row">
+        <span><strong>Ver la guía</strong><small>Ábrela ahora para repasarla.</small></span>
+        <button type="button" className="btn btn-ghost" onClick={() => useGuide.getState().openGuide()}>Ver la guía</button>
+      </div>
     </section>
   );
 }

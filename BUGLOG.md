@@ -183,6 +183,39 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-08 — v1.6.0: estilo Rumoria / Windows / Mac, búsquedas recientes y guía de bienvenida
+
+### [Función] Estilo de la interfaz (Ajustes → Personalizar)
+- **Archivos:** `src/components/TitleBar.jsx` (nuevo), `src/styles/ui.css` (nuevo), `src/store/look.js`, `src/views/Customize.jsx`, `electron/main.js`, `electron/preload.js`, `public/mini.*`
+- **Barra de título:** la ventana tiene la suya propia, igual que TubeGrab. Con el estilo Windows y el de Rumoria, los botones van a la derecha; con el de Mac, los tres botones de colores van a la izquierda.
+- **Comprobado en la app:**
+  - los tres estilos;
+  - maximizar y restaurar desde el botón (la ventana pasó de 1280 a 1920 px de ancho y volvió);
+  - el mini sigue el estilo.
+- **Diferencia con TubeGrab:** el estilo se elige en Ajustes, no hay botón en la barra. Tampoco se usan los materiales Mica ni Acrílico: en Windows 10 podían dejar el fondo negro.
+
+### [Función] Búsquedas recientes
+- **Archivos:** `src/store/searches.js` (nuevo), `src/views/Search.jsx`, `src/components/TopBar.jsx`, `src/views/MoreSettings.jsx`
+- **Cuándo se guarda:** cuando los resultados llevan un momento en pantalla, cuando pones uno o cuando pulsas Intro. No se guarda cada letra.
+- **Dónde salen:** en Buscar, con la caja vacía.
+- **Cómo se borran:** una a una (✕), todas («Borrar todo», con «Deshacer») o dejando de guardarlas (Ajustes → Historial de escucha).
+- **Comprobado en la app:** buscar «bad bunny» y «rosalia» dejó las dos guardadas, la más nueva primero.
+
+### [Función] Guía de bienvenida
+- **Archivo:** `src/components/Guide.jsx` (nuevo)
+- **Qué es:** cinco pasos como en TubeGrab: estilo y tema, buscar, tus listas, «Hecho para ti» y controles.
+- **A quién le sale:** solo a quien abre Rumoria por primera vez. Quien ya la usaba no la ve al actualizar, salvo que la active.
+- **Cómo se desactiva:** «No volver a mostrarla» viene marcado; también hay un interruptor en Ajustes, junto con «Ver la guía».
+- **Comprobado en la app:** con un perfil nuevo se abrió sola en el primer paso.
+
+### Seguridad y legal
+- **Puerta nueva del preload:** `rumoria:window`. Comprueba quién la envía y solo acepta `minimize`, `maximize` y `close`; hay un test que lo verifica. El preload tiene ahora 5 `send`.
+- **Búsquedas:** solo en este ordenador; al leerlas, solo se aceptan textos de una línea.
+- **LEGAL:** los estilos «Windows» y «Mac» solo describen el aspecto. Están dibujados por Rumoria, sin logotipos ni recursos de Microsoft ni de Apple, y se citan sus marcas.
+- **Tests:** servidor y seguridad 94, interfaz 86. Lint sin errores.
+
+---
+
 ## 2026-10-08 — v1.5.0: atajos globales, «No me recomiendes», Historial, listas, enlaces, «Sonando», bandeja y mini v3
 
 ### [Función] Lo nuevo

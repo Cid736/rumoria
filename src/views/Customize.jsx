@@ -3,7 +3,7 @@
 // Every change shows at once.
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
-import { ACCENTS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, useLook } from '../store/look.js';
+import { ACCENTS, CORNERS, DENSITIES, FONTS, SECTIONS, SIDEBARS, SIZES, STARTS, UIS, useLook } from '../store/look.js';
 import { ROTATIONS } from './rotation.js';
 import { CHOICES, PROFILES, usePerf } from '../store/perf.js';
 import { useSound } from '../store/sound.js';
@@ -94,6 +94,7 @@ export function Customize() {
           ))}
         </div>
       </div>
+      <Choice label="Estilo de la interfaz" hint="El de Rumoria, o como una app de Windows 11 o de Mac: botones de la ventana, letra, esquinas y controles." value={look.ui} options={UIS} onChange={(v) => set({ ui: v })} />
       <Choice label="Tamaño del texto" hint="Toda la ventana, más grande o más pequeña." value={look.size} options={SIZES} onChange={(v) => set({ size: Number(v) })} />
       <Choice label="Densidad de las listas" hint="Cuánto espacio ocupa cada canción." value={look.density} options={DENSITIES} onChange={(v) => set({ density: v })} />
       <Choice label="Esquinas" value={look.corners} options={CORNERS} onChange={(v) => set({ corners: v })} />

@@ -1,5 +1,8 @@
 // Buscar: YouTube, as you type (after a short pause), plus what matches in
 // your lists and favourites. The first result gets a big card.
+// v1.6: what you search is kept (once its results have been on screen a
+// moment, or you play one, or press Enter) and shown when the box is empty, to
+// search it again; each one, or all, can be removed (also in Ajustes).
 import { useEffect, useMemo, useState } from 'react';
 import { api, urls } from '../api.js';
 import { fold, fromYouTube } from '../lib/tracks.js';
@@ -7,9 +10,36 @@ import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from '../components/Cover.jsx';
-import { Play } from '../components/Icons.jsx';
+import { Clock, Close, Play } from '../components/Icons.jsx';
+import { useSearches } from '../store/searches.js';
 import TrackTable from '../components/TrackTable.jsx';
 import { CategoryGrid, ExploreShelf } from './Home.jsx';
+
+/** What you searched lately: click to search it again, ✕ to remove it, or all of them. */
+export function RecentSearches() {
+  const items = useSearches((s) => s.items);
+  if (!items.length) return null;
+  const clearAll = () => {
+    const was = useSearches.getState().clear();
+    useUi.getState().toast('Búsquedas borradas', { action: 'Deshacer', onAction: () => useSearches.getState().restore(was) });
+  };
+  return (
+    <section className="recent-searches" aria-label="Búsquedas recientes">
+      <div className="shelf-head">
+        <h2 className="shelf-title">Búsquedas recientes</h2>
+        <button type="button" className="shelf-more" onClick={clearAll}>Borrar todo</button>
+      </div>
+      <ul className="recent-list">
+        {items.map((q) => (
+          <li key={q}>
+            <button type="button" className="recent-q" onClick={() => useUi.getState().setSearchText(q)}><Clock size={16} /><span>{q}</span></button>
+            <button type="button" className="icon-btn recent-x" onClick={() => useSearches.getState().remove(q)} aria-label={`Quitar «${q}» de las búsquedas recientes`} title="Quitar"><Close size={14} /></button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function Search() {
   const text = useUi((s) => s.searchText);
@@ -32,12 +62,21 @@ export default function Search() {
   const state = q.length < 2 ? { q: '', results: [], error: null, loading: false } : { ...answer, loading: answer.q !== q };
   const myLists = useMemo(() => (q.length >= 2 ? lists.filter((l) => fold(l.name).includes(fold(q))).slice(0, 6) : []), [lists, q]);
   const top = state.results[0];
+  // Results on screen for a moment: that search is worth keeping.
+  const shownQ = !state.loading && state.results.length ? state.q : '';
+  useEffect(() => {
+    if (!shownQ) return undefined;
+    const t = setTimeout(() => useSearches.getState().add(shownQ), 1500);
+    return () => clearTimeout(t);
+  }, [shownQ]);
+  const keep = () => useSearches.getState().add(q);
 
   if (!text.trim()) {
     return (
       <div className="search-empty">
         <h1>Buscar</h1>
         <p className="muted">Escribe una canción, un artista o un álbum. Se escucha directamente de YouTube, sin descargar nada.</p>
+        <RecentSearches />
         <CategoryGrid />
         <ExploreShelf title="Radios populares" group="radio" />
       </div>
@@ -54,12 +93,12 @@ export default function Search() {
             <div className="top-card">
               <Cover src={top.thumbnail} name={top.title} size={96} />
               <div className="top-text"><span className="top-title">{top.title}</span><span className="top-sub">Canción · {top.artist}</span></div>
-              <button type="button" className="card-play visible" aria-label={`Reproducir ${top.title}`} onClick={() => usePlayer.getState().playTracks(state.results, 0)}><Play size={22} /></button>
+              <button type="button" className="card-play visible" aria-label={`Reproducir ${top.title}`} onClick={() => { keep(); usePlayer.getState().playTracks(state.results, 0); }}><Play size={22} /></button>
             </div>
           </section>
           <section className="search-songs">
             <h2 className="shelf-title">Canciones</h2>
-            <TrackTable tracks={state.results} showCover />
+            <TrackTable tracks={state.results} showCover onPlay={keep} />
           </section>
         </div>
       )}

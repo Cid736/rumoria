@@ -269,7 +269,11 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   const perm = main.slice(main.indexOf('setPermissionRequestHandler'), main.indexOf('setPermissionCheckHandler'));
   assert.match(perm, /perm === 'fullscreen' && Boolean\(mainWindow\) && wc === mainWindow\.webContents && isAppUrl\(/);
   assert.ok(!/cb\(true\)/.test(perm), 'nothing granted unconditionally');
-  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 4);
+  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 5);
+  // v1.6: the page's title bar may only minimise, maximise / restore or close its own window.
+  const win = main.slice(main.indexOf("ipcMain.on('rumoria:window'"), main.indexOf("ipcMain.on('rumoria:window'") + 500);
+  assert.match(win, /if \(!isTrustedSender\(event\)/);
+  assert.deepEqual([...win.matchAll(/action === '(\w+)'/g)].map((m) => m[1]), ['minimize', 'maximize', 'close']);
   assert.match(preload, /setZoomFactor\(Math\.min\(1\.5, Math\.max\(0\.8, n\)\)\)/, 'zoom only within 80-150 %');
   const channels = [...preload.matchAll(/ipcRenderer\.(?:invoke|send|on|removeListener)\(\s*([^,)]+)/g)].map((m) => m[1].trim());
   assert.ok(channels.every((c) => /^'rumoria:[a-zA-Z:]+'$/.test(c)), channels.join(', '));

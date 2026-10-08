@@ -131,6 +131,11 @@ svg.solid { fill: currentColor; stroke: none; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
+/* The interface style (Ajustes → Personalizar): Windows or Mac letters and corners. */
+:root[data-ui="mac"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+:root[data-ui="windows"] .art, :root[data-ui="windows"] .menu, :root[data-ui="windows"] .popover { border-radius: 6px; }
+:root[data-ui="mac"] .menu, :root[data-ui="mac"] .popover { border-radius: 12px; backdrop-filter: blur(24px); background: color-mix(in srgb, var(--surface) 85%, transparent); }
+
 /* Your accent (Ajustes → Personalizar), as in the main window. */
 :root[data-accent="azul"] { --accent: #6ea8ff; }
 :root[data-theme="light"][data-accent="azul"] { --accent: #2f62d6; }

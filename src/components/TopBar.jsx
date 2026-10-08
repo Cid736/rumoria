@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { desktop } from '../api.js';
 import { useUpdate } from '../lib/useUpdate.js';
+import { useSearches } from '../store/searches.js';
 import { useUi } from '../store/ui.js';
 import { ChevronLeft, ChevronRight, Gear, Search } from './Icons.jsx';
 
@@ -24,7 +25,8 @@ export default function TopBar() {
         <label className="searchbox">
           <Search size={18} />
           <input ref={input} type="search" placeholder="¿Qué quieres escuchar?" value={text} maxLength={200}
-            onChange={(e) => useUi.getState().setSearchText(e.target.value)} aria-label="Buscar canciones" />
+            onChange={(e) => useUi.getState().setSearchText(e.target.value)} aria-label="Buscar canciones"
+            onKeyDown={(e) => { if (e.key === 'Enter') useSearches.getState().add(e.currentTarget.value); }} />
         </label>
       )}
       <div className="topbar-end">

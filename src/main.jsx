@@ -8,6 +8,7 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/look.css';
 import './styles/v15.css';
+import './styles/ui.css';
 
 // Your performance profile first (it decides how much is done ahead), then
 // the queue kept from last time, then the player that follows it.
