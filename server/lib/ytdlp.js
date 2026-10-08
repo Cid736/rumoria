@@ -9,6 +9,18 @@ const YT_HOSTS = ['youtube.com', 'youtu.be', 'music.youtube.com'];
 const ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const UTF8 = ['--encoding', 'utf-8'];
 
+// v1.6.3: a video YouTube keeps in a playlist but no longer serves (private,
+// deleted, members only…): no title, or "[Private video]" / "[Deleted video]",
+// and the grey "no picture" cover. Never shown, never played.
+const GONE_TITLE = /^\s*\[(private|deleted|unavailable)( video)?\]\s*$|^\s*\[v[ií]deo (privado|eliminado|no disponible)\]\s*$/i;
+const GONE_AVAILABILITY = new Set(['private', 'needs_auth', 'premium_only', 'subscriber_only']);
+/** A video entry that can't be played any more (playlists and channels in a search are never this). */
+function isUnavailable(e) {
+  if (!e || !ID_RE.test(String(e.id || ''))) return false;
+  const title = String(e.title || '').trim();
+  return !title || GONE_TITLE.test(title) || GONE_AVAILABILITY.has(e.availability);
+}
+
 /** A YouTube link, cleaned (https, no user/port), or null for anything else. */
 function youTubeUrl(raw) {
   let value = String(raw || '').trim();
@@ -45,7 +57,7 @@ function flatList(target, env, limit) {
       try { data = JSON.parse(stdout); } catch { return resolve(null); }
       if (data._type !== 'playlist' || !Array.isArray(data.entries)) return resolve(null);
       const entries = data.entries
-        .filter((e) => e && typeof e === 'object')
+        .filter((e) => e && typeof e === 'object' && !isUnavailable(e))
         .map((e) => ({
           id: String(e.id || '').slice(0, 100),
           url: typeof e.url === 'string' ? e.url.slice(0, 300) : '',
@@ -76,4 +88,4 @@ function latestEntries(channelUrl, env, n = 15) {
   return flatList(u.toString(), env, n);
 }
 
-module.exports = { youTubeUrl, flatList, search, latestEntries, isId: (id) => ID_RE.test(String(id || '')) };
+module.exports = { youTubeUrl, flatList, search, latestEntries, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };

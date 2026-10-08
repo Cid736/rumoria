@@ -128,6 +128,12 @@ async function tracksOf(item) {
 }
 function coverOf(item, size) {
   if (item.kind === 'liked') return <Cover liked size={size} />;
+  // v1.6.3: a ready-made list shows its covers as they are now (videos YouTube
+  // no longer serves are out of it), not the ones kept when it was put on.
+  if (item.kind === 'browse') {
+    const live = useLibrary.getState().browse.find((b) => b.id === item.id);
+    if (live && live.thumbs.length) item = { ...item, thumbs: live.thumbs };
+  }
   return <Cover thumbs={item.thumbs} src={item.thumbs && item.thumbs[0]} name={item.name} size={size} round={item.kind === 'radio'} />;
 }
 function ItemCard({ item }) {

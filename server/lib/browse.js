@@ -5,6 +5,7 @@
 // or compilations), and the result is kept a few hours on disk.
 const fs = require('fs');
 const { writeFileAtomic } = require('./atomic');
+const { isUnavailable } = require('./ytdlp');
 
 const year = () => new Date().getFullYear();
 // id → what it's called and what's searched. Names are ours (no other service's).
@@ -50,7 +51,7 @@ const CATEGORIES = [
   g('folk', 'Folk y acústica', 'Voces y guitarras', 'acoustic folk'),
   g('fiesta', 'Fiesta', 'Para que nadie se siente', 'party music'),
   g('amor', 'Amor', 'Canciones para alguien', 'love songs'),
-  g('dormir', 'Para dormir', 'Calma para cerrar los ojos', 'sleep music'),
+  g('dormir', 'Para dormir', 'Calma para cerrar los ojos', 'calm songs to fall asleep'),
   g('cocinar', 'Para cocinar', 'Con buen ritmo y sin prisas', 'cooking music'),
   g('coche', 'En el coche', 'Ventanilla bajada', 'road trip songs'),
   g('gaming', 'Para jugar', 'Energía para la partida', 'gaming music'),
@@ -98,6 +99,8 @@ function songsOf(results) {
   return (results || []).filter((e) => {
     if (!e || !/^[A-Za-z0-9_-]{11}$/.test(String(e.id)) || seen.has(e.id)) return false;
     if (NOT_A_SONG.test(String(e.title || ''))) return false;
+    // v1.6.3: a video YouTube no longer serves (also in lists kept on disk from before).
+    if (isUnavailable(e)) return false;
     if (Number.isFinite(e.duration) && (e.duration < 90 || e.duration > 600)) return false;
     seen.add(e.id);
     return true;
@@ -143,6 +146,9 @@ async function radioSongs(artist, flatList) {
   return songsOf([seed, ...((mix && mix.entries) || [])]);
 }
 
+/** What a list is made from: its search, or its radio's artist. */
+const searchOf = (c) => (c.group === 'radio' ? `radio:${c.artist}` : c.q());
+
 class Browse {
   constructor(file, { now = () => Date.now() } = {}) {
     this.file = file;
@@ -153,7 +159,7 @@ class Browse {
       const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
       for (const c of ALL) {
         const hit = raw && raw[c.id];
-        if (hit && Number.isFinite(hit.at) && Array.isArray(hit.tracks)) this.cache[c.id] = { at: hit.at, tracks: songsOf(hit.tracks) };
+        if (hit && Number.isFinite(hit.at) && Array.isArray(hit.tracks)) this.cache[c.id] = { at: hit.at, q: typeof hit.q === 'string' ? hit.q.slice(0, 200) : null, tracks: songsOf(hit.tracks) };
       }
     } catch { /* none yet */ }
   }
@@ -176,8 +182,13 @@ class Browse {
 
   /** Read less than `ms` ago (six hours by default; else worth reading again). */
   isFresh(id, ms = CACHE_MS) {
-    const hit = this.cache[String(id)];
-    return Boolean(hit && hit.tracks.length && this.now() - hit.at < ms);
+    const c = BY_ID.get(String(id));
+    return Boolean(c && this.fresh(c, this.cache[c.id], ms));
+  }
+
+  /** Read less than `ms` ago, and with the search it has now (a changed search is read again at once). */
+  fresh(c, hit, ms = CACHE_MS) {
+    return Boolean(hit && hit.tracks.length && hit.q === searchOf(c) && this.now() - hit.at < ms);
   }
 
   /** One list's songs: from the cache while fresh, else looked up (once at a time). */
@@ -185,13 +196,14 @@ class Browse {
     const c = BY_ID.get(String(id));
     if (!c) return null;
     const hit = this.cache[c.id];
-    if (hit && this.now() - hit.at < CACHE_MS && hit.tracks.length) return { id: c.id, name: c.name, sub: c.sub, tracks: hit.tracks };
+    if (this.fresh(c, hit)) return { id: c.id, name: c.name, sub: c.sub, tracks: hit.tracks };
     if (!this.pending.has(c.id)) {
       this.pending.set(c.id, (async () => {
         const tracks = c.group === 'radio' ? await radioSongs(c.artist, flatList) : await findSongs(c.q(), flatList);
         // A poor answer (YouTube half-answering) never replaces a good list.
         const old = this.cache[c.id];
-        if (tracks.length && (!old || tracks.length >= Math.min(10, old.tracks.length))) { this.cache[c.id] = { at: this.now(), tracks }; this.save(); }
+        // (A list made with another search, from an older version, is replaced whatever its size.)
+        if (tracks.length && (!old || old.q !== searchOf(c) || tracks.length >= Math.min(10, old.tracks.length))) { this.cache[c.id] = { at: this.now(), q: searchOf(c), tracks }; this.save(); }
         return tracks;
       })().finally(() => this.pending.delete(c.id)));
     }

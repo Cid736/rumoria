@@ -183,6 +183,31 @@ CodeQL (`security-extended`) dio 12 avisos en su primer análisis y Dependabot, 
 
 ---
 
+## 2026-10-09 — v1.6.3: vídeos no disponibles fuera, y la tarjeta del mini
+
+### [Bug] Cuadros grises con «•••» y filas sin título («—»)
+- **Archivos:** `server/lib/ytdlp.js`, `server/lib/browse.js`, `server/lib/streamlists.js`, `src/views/Home.jsx`
+- **Causa:** las playlists públicas de YouTube conservan los vídeos que se han hecho privados o se han borrado: sin título, sin duración y con la imagen gris genérica. El filtro de Explorar no los quitaba, porque un título vacío no coincide con ninguna palabra prohibida y la duración solo se comprobaba si venía.
+- **Solución:**
+  - se quitan en `flatList` (Explorar, radios, importaciones y listas que se llenan solas), al leer la caché del disco y de las listas guardadas;
+  - las tarjetas de «Recientes» usan las portadas actuales de la lista.
+- **Comprobado en la app:** «Para dormir», «Fiesta» y «Relax» ya no tienen ninguna entrada vacía.
+
+### [Mejora] «Para dormir» tenía 2 canciones
+- **Causa:** la búsqueda «sleep music» devuelve casi solo vídeos de horas, que el filtro de canciones descarta, y el resto eran vídeos privados.
+- **Solución:** la búsqueda pasa a ser «calm songs to fall asleep», que da 40 canciones. Para que no hubiera que esperar a que caducara la lista guardada, la caché recuerda con qué búsqueda se hizo cada lista y la rehace si esa búsqueda cambia.
+
+### [Bug] Mini, forma tarjeta
+- **Problema:** la portada medía siempre 230 px, cupiera o no.
+  - Con letra de dos líneas, «A continuación» se montaba sobre la barra de tiempo.
+  - Sin portada, el título quedaba debajo de los botones de la ventana y sobraba media ventana.
+- **Solución:** la portada ocupa el espacio libre (230 px como mucho, cuadrada) y encoge si el texto lo necesita. Sin portada o con videoclip, el texto queda centrado y por debajo de los botones. Medido en la app: hay espacio libre entre «A continuación» y la barra en las tres variantes.
+
+### Tests
+- Servidor y seguridad 98, interfaz 87.
+
+---
+
 ## 2026-10-08 — v1.6.2: revisión de los CSS y menú del mini
 
 ### [Bug] Las bandas del ecualizador tapaban «Reproducción» en el panel Sonido

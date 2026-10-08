@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const { writeFileAtomic } = require('./atomic');
+const { GONE_TITLE } = require('./ytdlp');
 
 const MAX_LISTS = 100;
 const MAX_TRACKS = 500;
@@ -63,7 +64,8 @@ function duplicatesOf(tracks) {
 function cleanTrack(t) {
   if (!t || typeof t !== 'object') return null;
   const title = clean(t.title, 300);
-  if (!title) return null;
+  // v1.6.3: "[Private video]", "[Deleted video]": YouTube no longer serves it (also gone from lists kept from before).
+  if (!title || GONE_TITLE.test(title)) return null;
   const out = { title, artist: clean(t.artist, 200) };
   if (Number.isFinite(t.duration) && t.duration > 0 && t.duration < 86400) out.duration = Math.round(t.duration);
   if (YT_RE.test(String(t.yt || ''))) out.yt = String(t.yt);
