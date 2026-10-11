@@ -1,7 +1,7 @@
 {
   "name": "rumoria",
   "productName": "Rumoria",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "Tu música: listas de Spotify, Apple Music y YouTube, favoritas e historial, sin descargar nada.",
   "main": "electron/main.js",
   "license": "MIT",
@@ -18,6 +18,8 @@
     "test:server": "node --test --test-concurrency=1 \"test/server/*.test.js\" \"test/security/*.test.js\"",
     "test:security": "node --test --test-concurrency=1 \"test/security/*.test.js\"",
     "test:ui": "vitest run",
+    "test:e2e": "vite build && playwright test",
+    "test:e2e:update": "vite build && playwright test --update-snapshots",
     "lint": "eslint .",
     "audit": "npm audit --omit=dev --audit-level=high",
     "fetch-ytdlp": "node scripts/fetch-ytdlp.js",
@@ -72,6 +74,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

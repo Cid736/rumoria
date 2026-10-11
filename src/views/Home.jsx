@@ -16,6 +16,7 @@ import { Play, Shuffle } from '../components/Icons.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
 import { dailyOf, discoverOf, radioOf, seedsOf } from './recommend.js';
 import { artistId, exploreOf, likeSeedOf, noteShown, popularOf, readRotation, reshuffle, settled, similarOf } from './rotation.js';
+import { onThisDay, tracksOfYear, useOnThisDay, whenOf, yearsAgo } from './OnThisDay.jsx';
 
 const SIMILAR_KEY = 'rumoria_similar';
 
@@ -102,7 +103,7 @@ function viewOf(item) {
   if (item.kind === 'radio') return { name: 'radio', id: item.id, payload: item.payload };
   return item.id ? { name: item.kind, id: item.id } : { name: item.kind };
 }
-async function tracksOf(item) {
+export async function tracksOf(item) {
   const lib = useLibrary.getState();
   const map = new Map((lib.local.songs || []).map((f) => [f.key, f]));
   switch (item.kind) {
@@ -118,6 +119,8 @@ async function tracksOf(item) {
     case 'liked': return lib.likes.map((s) => fromSaved(s, map)).filter(Boolean);
     case 'local': return lib.local.songs.map(fromLocal);
     case 'news': return lib.news.map((n) => fromYouTube({ ...n, id: n.yt }));
+    case 'onthisday': { const y = (await onThisDay()).find((x) => String(x.yearsAgo) === String(item.id)); return y ? tracksOfYear(y, lib.local) : []; }
+    case 'rules': return ((await lib.loadRuleList(item.id)).songs || []).map((s) => fromSaved(s, map)).filter(Boolean);
     case 'mix': {
       if (SMART[item.id]) return smartTracks(item.id, lib.smart, lib.local);
       const card = mixCards(lib.smart).find((m) => m.id === item.id);
@@ -289,6 +292,25 @@ function LikeArtistShelf({ smart, rot, onOther }) {
   );
 }
 
+/** v1.7, "Tal día como hoy": a card for each of the last three years with something on this date. */
+function OnThisDayShelf() {
+  const years = useOnThisDay();
+  const local = useLibrary((s) => s.local);
+  return (
+    <Shelf title="Tal día como hoy">
+      {years.map((y) => {
+        const thumbs = [...new Set(y.songs.map((s) => s.thumb).filter(Boolean))].slice(0, 4);
+        const recent = { kind: 'onthisday', id: String(y.yearsAgo), name: `Tal día como hoy · ${yearsAgo(y.yearsAgo).toLowerCase()}`, sub: whenOf(y) };
+        return (
+          <Card key={y.yearsAgo} title={yearsAgo(y.yearsAgo)} sub={`${whenOf(y)} · ${y.songs.length === 1 ? '1 canción' : `${y.songs.length} canciones`}`}
+            cover={<Cover thumbs={thumbs} src={thumbs[0]} name={yearsAgo(y.yearsAgo)} size={160} />}
+            onOpen={() => useUi.getState().go({ name: 'onthisday', id: String(y.yearsAgo) })} onPlay={playFrom(async () => tracksOfYear(y, local), recent)} />
+        );
+      })}
+    </Shelf>
+  );
+}
+
 export default function Home() {
   const { lists, likes, smart, news, local, loaded } = useLibrary();
   const recent = useUi((s) => s.recent);
@@ -356,6 +378,7 @@ export default function Home() {
 
       {shows('again') && <Shelf title="Lo que más vuelves a poner">{again.map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>}
       {shows('recent') && <Shelf title="Recientes">{recent.slice(0, 16).map((r) => <ItemCard key={`${r.kind}:${r.id}`} item={r} />)}</Shelf>}
+      {shows('onthisday') && <OnThisDayShelf />}
 
       {shows('radios') && (<Shelf title="Radios para ti">
         {seeds.map((s) => {

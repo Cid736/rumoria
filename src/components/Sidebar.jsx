@@ -1,12 +1,13 @@
 // Left: where to go, and your library (Favoritas, your music, your lists by folder).
 import { useMemo, useState } from 'react';
 import { autoMenuItems, newAutoList } from '../lib/autoLists.js';
+import { describeRules } from '../lib/ruleLists.js';
 import { fold } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
-import { Clock, Folder, Home, Library, Link, Plus, Search, Sparkle } from './Icons.jsx';
+import { Chart, Clock, Folder, Home, Library, Link, Plus, Search, Sparkle } from './Icons.jsx';
 
 const SOURCE = { spotify: 'Spotify', apple: 'Apple Music', youtube: 'YouTube', own: 'Tu lista', auto: 'Se llena sola' };
 
@@ -16,6 +17,7 @@ function newListMenu(e) {
   const ui = useUi.getState();
   ui.openMenu(r.left, r.bottom, [
     { label: 'Lista que se llena sola…', onClick: () => newAutoList() },
+    { label: 'Lista inteligente (con reglas)…', onClick: () => ui.openDialog({ kind: 'rules' }) },
     {
       label: 'Lista vacía…',
       onClick: () => ui.openDialog({ kind: 'prompt', title: 'Lista nueva', label: 'Nombre', value: '', confirm: 'Crear', onConfirm: (name) => useLibrary.getState().createList(name, []).then((l) => ui.go({ name: 'list', id: l.id }), (err) => ui.toast(err.message)) }),
@@ -42,6 +44,7 @@ export default function Sidebar() {
   const lists = useLibrary((s) => s.lists);
   const likes = useLibrary((s) => s.likes);
   const local = useLibrary((s) => s.local);
+  const ruleLists = useLibrary((s) => s.ruleLists);
   const playingList = usePlayer((s) => (s.queue.items[s.queue.index] || {}).list);
   const [filter, setFilter] = useState('all');
   const [q, setQ] = useState('');
@@ -77,6 +80,7 @@ export default function Sidebar() {
         <button type="button" className={`nav-btn ${view.name === 'home' ? 'active' : ''}`} onClick={() => go({ name: 'home' })}><Home /> Inicio</button>
         <button type="button" className={`nav-btn ${view.name === 'search' ? 'active' : ''}`} onClick={() => go({ name: 'search' })}><Search /> Buscar</button>
         <button type="button" className={`nav-btn ${view.name === 'summary' ? 'active' : ''}`} onClick={() => go({ name: 'summary' })}><Sparkle /> Tu resumen</button>
+        <button type="button" className={`nav-btn ${view.name === 'stats' ? 'active' : ''}`} onClick={() => go({ name: 'stats' })}><Chart /> Estadísticas</button>
         <button type="button" className={`nav-btn ${view.name === 'history' ? 'active' : ''}`} onClick={() => go({ name: 'history' })}><Clock /> Historial</button>
       </div>
       <div className="side-card side-library">
@@ -94,6 +98,19 @@ export default function Sidebar() {
         <div className="side-scroll">
           <Item active={view.name === 'liked'} onClick={() => go({ name: 'liked' })} cover={<Cover liked size={44} />} title="Favoritas" sub={`Lista · ${likes.length} canciones`} />
           {local.folder && <Item active={view.name === 'local'} onClick={() => go({ name: 'local' })} cover={<Cover name="Tu música" size={44} />} title="Tu música" sub={`Carpeta · ${local.songs.length} canciones`} />}
+          {ruleLists.filter((l) => filter !== 'link' && (!q || fold(l.name).includes(fold(q)))).map((l) => (
+            <Item key={`r:${l.id}`} active={view.name === 'rules' && view.id === l.id} onClick={() => go({ name: 'rules', id: l.id })}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                const ui = useUi.getState();
+                ui.openMenu(e.clientX, e.clientY, [
+                  { label: 'Cambiar las reglas…', onClick: () => ui.openDialog({ kind: 'rules', list: l }) },
+                  { sep: true },
+                  { label: 'Eliminar', danger: true, onClick: () => useLibrary.getState().deleteRuleList(l.id) },
+                ]);
+              }}
+              cover={<Cover name={l.name} size={44} />} title={l.name} sub={`Inteligente · ${describeRules(l.rules)}`} />
+          ))}
           {groups.map(([folder, ls]) => (
             <div key={folder || '-'} className="side-group">
               {folder && (

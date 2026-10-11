@@ -31,5 +31,7 @@ export default [
   },
   // The mini player's page: a plain script in the browser, no modules.
   { files: ['public/**/*.js'], languageOptions: { sourceType: 'script', globals: { ...globals.browser } } },
-  { files: ['vite.config.mjs', 'eslint.config.mjs'], languageOptions: { globals: { ...globals.node } } },
+  { files: ['vite.config.mjs', 'eslint.config.mjs', 'playwright.config.mjs'], languageOptions: { globals: { ...globals.node } } },
+  // v1.7, end-to-end tests: Node driving the app, with code that runs inside its pages.
+  { files: ['test/e2e/**/*.mjs'], languageOptions: { sourceType: 'module', globals: { ...globals.node, ...globals.browser } }, rules: { 'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }] } },
 ];

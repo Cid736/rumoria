@@ -9,7 +9,7 @@
 // (with "Deshacer") and of the cache, so big lists don't keep tripping on it;
 // elsewhere it's skipped. The next songs are looked up ahead (how many, by
 // the performance profile), and the song kept from last time starts at its second.
-import { api, urls } from '../api.js';
+import { api, desktop, urls } from '../api.js';
 import { fromYouTube, songOf } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { PROFILES, usePerf } from '../store/perf.js';
@@ -29,6 +29,8 @@ export function startEngine({
   audio = new Audio(), store = usePlayer, library = useLibrary, perf = usePerf,
   toast = (t, o) => useUi.getState().toast(t, o), get = api.get, post = api.post,
   media = typeof navigator !== 'undefined' ? navigator.mediaSession : null, sound = null,
+  // v1.7: how YouTube songs go, for the desktop app (several failing in a row: yt-dlp is updated at once).
+  report = desktop && desktop.ytdlp ? desktop.ytdlp.report : () => {},
 } = {}) {
   audio.preload = 'auto';
   let loadedUid = null; // the song being loaded or played
@@ -85,7 +87,7 @@ export function startEngine({
     }
     // For good: forgotten by the server, out of a big list, out of the queue.
     state()._status('error', message);
-    if (track.yt) post(urls.forget(track.yt)).catch(() => {});
+    if (track.yt) { post(urls.forget(track.yt)).catch(() => {}); report('fail', track.yt); }
     const out = track.list ? await dropFromList(track) : false;
     if (out) { if (loadedUid === track.uid) state()._drop(track.uid); return; }
     toast(message);
@@ -188,6 +190,8 @@ export function startEngine({
     clearTimeout(stallTimer);
     if (srcUid) attempts.delete(srcUid);
     state()._status('playing');
+    const now = state().current();
+    if (now && now.uid === srcUid && now.yt && !now.localId) report('ok', now.yt);
     prepareNext();
   });
   audio.addEventListener('pause', () => { if (!audio.ended && state().status !== 'loading') state()._status('paused'); });

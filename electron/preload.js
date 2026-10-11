@@ -18,6 +18,19 @@ contextBridge.exposeInMainWorld('rumoria', {
     check: () => ipcRenderer.send('rumoria:update:check'),
     restart: () => ipcRenderer.send('rumoria:update:restart'),
   },
+  // v1.7, Discord Rich Presence: how it is ({ available, enabled, connected }) and on / off.
+  discord: {
+    get: () => ipcRenderer.invoke('rumoria:discord'),
+    set: (on) => ipcRenderer.invoke('rumoria:setDiscord', on === true),
+  },
+  // v1.7, yt-dlp (what finds each song on YouTube): its state, news of it (returns a way to stop
+  // listening), look for a new one now, and how a YouTube song went ('ok' or 'fail', and its id).
+  ytdlp: {
+    state: () => ipcRenderer.invoke('rumoria:ytdlp:state'),
+    onState: (cb) => { const f = (_e, s) => cb(s); ipcRenderer.on('rumoria:ytdlp', f); return () => ipcRenderer.removeListener('rumoria:ytdlp', f); },
+    update: () => ipcRenderer.invoke('rumoria:ytdlp:update'),
+    report: (kind, song) => ipcRenderer.send('rumoria:ytdlp:report', String(kind), String(song || '')),
+  },
   // The page's own title bar: its buttons, and whether the window is maximized or in full screen (returns a way to stop listening).
   window: {
     control: (action) => ipcRenderer.send('rumoria:window', String(action)),

@@ -4,7 +4,8 @@ import { api, desktop } from '../api.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
-import { GuideSettings, HiddenSettings, SearchSettings, ShortcutSettings } from './MoreSettings.jsx';
+import { DiscordSettings, GuideSettings, HiddenSettings, LyricsSettings, SearchSettings, ShortcutSettings, YouTubeSettings } from './MoreSettings.jsx';
+import AlarmSettings from '../components/AlarmSettings.jsx';
 import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
@@ -111,6 +112,13 @@ export default function Settings() {
       <Customize />
       <GuideSettings />
       <PlaybackSettings />
+      <section className="set-group">
+        <h2>Despertador</h2>
+        <p className="muted">Una lista o una radio empieza a sonar a la hora que elijas, con el volumen subiendo poco a poco. Es la otra mitad del temporizador (en el botón Sonido).</p>
+        <AlarmSettings />
+      </section>
+      <LyricsSettings />
+      <DiscordSettings />
       <MiniSettings />
       <PerfSettings />
       {desktop && (
@@ -138,6 +146,7 @@ export default function Settings() {
         <SearchSettings />
       </section>
       <Updates />
+      <YouTubeSettings />
       <ShortcutSettings />
       <section className="set-group">
         <h2>Atajos de teclado (en la ventana)</h2>

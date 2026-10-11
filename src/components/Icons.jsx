@@ -39,4 +39,8 @@ export const Close = (p) => <Svg {...p}><path d="M18 6 6 18M6 6l12 12" /></Svg>;
 export const Radio = (p) => <Svg {...p}><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2" /></Svg>;
 export const Download = (p) => <Svg {...p}><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></Svg>;
 export const Note = (p) => <Svg {...p}><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></Svg>;
+export const Languages = (p) => <Svg {...p}><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.4 5.5 6.8M11 5c-.8 3.6-3.2 6.5-7 8" /><path d="m12 21 4.5-10L21 21M13.6 17.5h5.8" /></Svg>;
+export const Chart = (p) => <Svg {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></Svg>;
+export const Alarm = (p) => <Svg {...p}><circle cx="12" cy="13" r="7" /><path d="M12 9.5V13l2.5 1.5M5 3 2 6M19 3l3 3" /></Svg>;
+export const Wand = (p) => <Svg {...p}><path d="m3 21 12-12M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M18 2.5v2M17 3.5h2" /></Svg>;
 export const Sparkle = (p) => <Svg {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" /></Svg>;

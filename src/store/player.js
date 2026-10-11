@@ -2,7 +2,7 @@
 // whole page (player bar, lists, queue panel, lyrics). It only holds state and
 // intent; src/player/engine.js makes the <audio> follow it.
 import { create } from 'zustand';
-import { emptyQueue, insert, nextIndex, prevIndex, removeAt, replaceAt, setShuffle, startQueue } from '../lib/queue.js';
+import { emptyQueue, insert, nextIndex, prevIndex, removeAt, reorderUpcoming, replaceAt, setShuffle, startQueue } from '../lib/queue.js';
 
 const VOLUME_KEY = 'rumoria_volume';
 const savedVolume = () => {
@@ -77,6 +77,8 @@ export const usePlayer = create((set, get) => ({
     set((s) => ({ queue: insert(s.queue, tracks, where), ...(wasEmpty ? { wantPlaying: true } : {}) }));
   },
   removeFromQueue(i) { set((s) => ({ queue: removeAt(s.queue, i) })); },
+  /** v1.7, "Modo sesión": the songs after this one in another order (by their uid). */
+  setUpcoming(uids) { set((s) => ({ queue: reorderUpcoming(s.queue, uids) })); },
 
   /** Back where you left off: the queue, the song, its second (paused unless `play`). */
   restoreSession({ items, index, position = 0, repeat = 'off' }, { play = false } = {}) {

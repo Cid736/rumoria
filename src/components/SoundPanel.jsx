@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { BANDS, FADES, PRESETS, SLEEPS, SPEEDS, useSound } from '../store/sound.js';
 import { useUi } from '../store/ui.js';
+import AlarmSettings from './AlarmSettings.jsx';
 
 const hz = (f) => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`);
 const comma = (n) => String(n).replace('.', ',');
@@ -112,6 +113,9 @@ export default function SoundPanel() {
       <Switch label="Mismo volumen" hint="Iguala lo fuerte que suena cada canción (se aprende al escucharla)." checked={s.level} onChange={(v) => s.set({ level: v })} />
       <Switch label="Karaoke" hint="Quita la voz principal (lo que suena en el centro)." checked={s.karaoke} onChange={(v) => s.set({ karaoke: v })} />
       <SleepTimer />
+
+      <h3 className="panel-sub">Despertador</h3>
+      <AlarmSettings compact />
 
       <h3 className="panel-sub">Dispositivo</h3>
       <Output />

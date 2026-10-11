@@ -72,3 +72,18 @@ export function removeAt(q, i) {
 
 /** A song of the queue replaced (once its YouTube video is found). */
 export const replaceAt = (q, i, patch) => ({ ...q, items: q.items.map((x, k) => (k === i ? { ...x, ...patch } : x)) });
+
+/**
+ * v1.7, "Modo sesión": what comes after the current song, in the order of
+ * `uids` (any not named keep their place after them). An order of your own,
+ * so shuffle goes off.
+ */
+export function reorderUpcoming(q, uids) {
+  if (!q.items.length) return q;
+  const head = q.items.slice(0, q.index + 1);
+  const rest = q.items.slice(q.index + 1);
+  const byUid = new Map(rest.map((x) => [x.uid, x]));
+  const picked = [...new Set(uids)].map((u) => byUid.get(u)).filter(Boolean);
+  const named = new Set(picked.map((x) => x.uid));
+  return { items: [...head, ...picked, ...rest.filter((x) => !named.has(x.uid))], index: q.index, original: null };
+}

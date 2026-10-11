@@ -262,14 +262,16 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   const listeners = main.match(/ipcMain\.on\([^,]+,\s*\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
   for (const h of listeners) assert.ok(h.includes('isTrustedSender(event)'), h);
   // The preload exposes a few named functions (settings, music folder, the tray,
-  // TubeGrab, updates, mini player, zoom, global shortcuts), never ipcRenderer itself, and only fixed channel names.
+  // TubeGrab, updates, mini player, zoom, global shortcuts; v1.7: Discord and yt-dlp), never ipcRenderer itself, and only fixed channel names.
   assert.equal(/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(preload), false);
-  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 9);
+  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 13);
   // v1.5: the one permission ever granted is full screen ("Sonando"), to the main window on its own page.
   const perm = main.slice(main.indexOf('setPermissionRequestHandler'), main.indexOf('setPermissionCheckHandler'));
   assert.match(perm, /perm === 'fullscreen' && Boolean\(mainWindow\) && wc === mainWindow\.webContents && isAppUrl\(/);
   assert.ok(!/cb\(true\)/.test(perm), 'nothing granted unconditionally');
-  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 5);
+  assert.equal((preload.match(/ipcRenderer\.send/g) || []).length, 6);
+  // v1.7: how a song went reaches yt-dlp's keeper only as 'ok' or 'fail' (and an id it checks again).
+  assert.match(main, /rumoria:ytdlp:report', \(event, kind, song\) => \{ if \(isTrustedSender\(event\) && \(kind === 'ok' \|\| kind === 'fail'\)\)/);
   // v1.6: the page's title bar may only minimise, maximise / restore or close its own window.
   const win = main.slice(main.indexOf("ipcMain.on('rumoria:window'"), main.indexOf("ipcMain.on('rumoria:window'") + 500);
   assert.match(win, /if \(!isTrustedSender\(event\)/);

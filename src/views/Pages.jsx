@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { desktop } from '../api.js';
 import { autoMenuItems, autoSub } from '../lib/autoLists.js';
+import { describeRules } from '../lib/ruleLists.js';
 import { fromList, fromLocal, fromSaved, fromYouTube } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
 import Cover from '../components/Cover.jsx';
-import { Folder, More, Refresh } from '../components/Icons.jsx';
+import { Folder, More, Refresh, Wand } from '../components/Icons.jsx';
 import Collection, { BigCover } from './Collection.jsx';
 import { buildMix, mixCards, SMART, smartTracks } from './mixes.js';
 
@@ -51,6 +52,50 @@ export function ListPage({ id }) {
       )}
       empty={<p className="muted pad">Esta lista está vacía. Añade canciones con el botón derecho en cualquier canción.</p>}
     />
+  );
+}
+
+/** v1.7: a smart list: its songs as they are now (worked out by the server from its rules). */
+export function RulePage({ id }) {
+  const summary = useLibrary((s) => s.ruleLists.find((l) => l.id === id));
+  const likes = useLibrary((s) => s.likes);
+  const local = useLibrary((s) => s.local);
+  const [got, setGot] = useState({ id: null, list: null, songs: [], error: null });
+  // Again when its rules change or a favourite comes or goes.
+  const rulesKey = summary ? JSON.stringify(summary.rules) : '';
+  useEffect(() => {
+    let gone = false;
+    useLibrary.getState().loadRuleList(id).then((r) => { if (!gone) setGot({ id, list: r, songs: r.songs || [], error: null }); }, (err) => { if (!gone) setGot({ id, list: null, songs: [], error: err.message }); });
+    return () => { gone = true; };
+  }, [id, rulesKey, likes.length]);
+  if (got.id === id && got.error) return <p className="muted pad">{got.error}</p>;
+  const list = (got.id === id && got.list) || summary;
+  if (!list) return <Collection kind="Lista inteligente" name="" tracks={[]} loading />;
+  const map = new Map((local.songs || []).map((f) => [f.key, f]));
+  const tracks = got.id === id ? got.songs.map((s) => ({ ...fromSaved(s, map), at: s.at || undefined })).filter((t) => t.key) : [];
+  const lib = useLibrary.getState();
+  const ui = useUi.getState();
+  const edit = () => ui.openDialog({ kind: 'rules', list });
+  const more = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    ui.openMenu(r.left, r.bottom, [
+      { label: 'Cambiar las reglas…', onClick: edit },
+      { label: 'Guardar una copia como lista normal', onClick: () => lib.saveAsList(list.name, tracks) },
+      { sep: true },
+      { label: 'Eliminar lista inteligente', danger: true, onClick: () => { lib.deleteRuleList(id); ui.go({ name: 'home' }); } },
+    ]);
+  };
+  const thumbs = [...new Set(tracks.map((t) => t.thumbnail).filter(Boolean))].slice(0, 4);
+  return (
+    <Collection kind="Lista inteligente" name={list.name} sub={describeRules(list.rules)} cover={<BigCover thumbs={thumbs} src={thumbs[0]} name={list.name} />}
+      tracks={tracks} loading={got.id !== id} recent={{ kind: 'rules', id, name: list.name, sub: 'Lista inteligente' }}
+      actions={(
+        <>
+          <button type="button" className="icon-btn big" onClick={edit} aria-label="Cambiar las reglas" title="Cambiar las reglas"><Wand size={22} /></button>
+          <button type="button" className="icon-btn big" onClick={more} aria-label="Más opciones de la lista" title="Más opciones"><More size={24} /></button>
+        </>
+      )}
+      empty={<p className="muted pad">Ahora mismo ninguna canción cumple estas reglas. Cambia las reglas o vuelve más adelante: se pone al día sola.</p>} />
   );
 }
 

@@ -197,6 +197,20 @@ class ListenLog {
     return out;
   }
 
+  /** v1.7: every song heard, with its plays and when it was last heard (seconds). Map key -> { ...song, plays, last } */
+  perSong() {
+    const out = new Map();
+    for (const [at, key, secs] of this.events) {
+      const t = this.tracks.get(key);
+      if (!t) continue;
+      const r = out.get(key) || { key, ...t, plays: 0, last: 0 };
+      if (isPlay(secs, t.dur)) r.plays += 1;
+      r.last = Math.max(r.last, at);
+      out.set(key, r);
+    }
+    return out;
+  }
+
   /** The summary of a year (or of everything): totals, top songs and artists, by month and by hour. */
   summary(year = null, tzOffsetMin = 0) {
     const years = [...new Set(this.events.map((e) => new Date((e[0] - tzOffsetMin * 60) * 1000).getUTCFullYear()))].sort();

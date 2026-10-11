@@ -6,6 +6,8 @@ import { useGuide } from '../components/Guide.jsx';
 import { useHidden } from '../store/hidden.js';
 import { useSearches } from '../store/searches.js';
 import { useUi } from '../store/ui.js';
+import { chooseExtra, EXTRAS, useLyricsPrefs } from '../store/lyrics.js';
+import { useYtDlp, ytDlpText } from '../lib/useYtDlp.js';
 
 const LABELS = {
   toggle: 'Reproducir / pausa', next: 'Siguiente', prev: 'Anterior', like: 'Añadir o quitar de Favoritas',
@@ -141,6 +143,65 @@ export function GuideSettings() {
       <div className="set-row">
         <span><strong>Ver la guía</strong><small>Ábrela ahora para repasarla.</small></span>
         <button type="button" className="btn btn-ghost" onClick={() => useGuide.getState().openGuide()}>Ver la guía</button>
+      </div>
+    </section>
+  );
+}
+
+/** v1.7: what goes under each line of the lyrics by default, and whether they may be sent to be translated. */
+export function LyricsSettings() {
+  const extra = useLyricsPrefs((s) => s.extra);
+  const translate = useLyricsPrefs((s) => s.translate);
+  useEffect(() => { useLyricsPrefs.getState().load(); }, []);
+  const allow = async (on) => { try { await useLyricsPrefs.getState().allowTranslate(on); } catch (err) { useUi.getState().toast(err.message); } };
+  return (
+    <section className="set-group">
+      <h2>Letras</h2>
+      <label className="set-row">
+        <span><strong>Debajo de cada línea</strong><small>«En letras latinas» lee el coreano, el japonés (kana), el cirílico y el griego aquí mismo; los kanji se quedan como están.</small></span>
+        <select value={extra} onChange={(e) => chooseExtra(e.target.value, (d) => useUi.getState().openDialog(d))} aria-label="Debajo de cada línea">
+          {EXTRAS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+      </label>
+      <label className="set-row">
+        <span><strong>Traducir las letras al español</strong><small>La letra de la canción (solo eso) se envía a Google Translate; cada traducción se guarda en este ordenador.</small></span>
+        <input type="checkbox" className="switch" checked={translate === true} disabled={translate === null} onChange={(e) => allow(e.target.checked)} />
+      </label>
+    </section>
+  );
+}
+
+/** v1.7: «Escuchando …» on your Discord profile (only when Rumoria knows its Discord application). */
+export function DiscordSettings() {
+  const [s, setS] = useState(null);
+  useEffect(() => { if (desktop && desktop.discord) desktop.discord.get().then(setS, () => {}); }, []);
+  if (!s || !s.available) return null;
+  const set = async (on) => { const next = await desktop.discord.set(on); if (next) setS(next); };
+  return (
+    <section className="set-group">
+      <h2>Discord</h2>
+      <label className="set-row">
+        <span>
+          <strong>Mostrar lo que escucho en Discord</strong>
+          <small>{s.enabled ? (s.connected ? 'Conectado: tu perfil dice «Escuchando» con la canción y el artista.' : 'Esperando a que abras Discord en este ordenador.') : 'Tu perfil de Discord dirá «Escuchando» con la canción, el artista y la portada. Solo habla con la app de Discord de este ordenador.'}</small>
+        </span>
+        <input type="checkbox" className="switch" checked={s.enabled} onChange={(e) => set(e.target.checked)} />
+      </label>
+    </section>
+  );
+}
+
+/** v1.7: yt-dlp, what finds each song on YouTube: its version, kept up to date apart from Rumoria. */
+export function YouTubeSettings() {
+  const s = useYtDlp();
+  if (!s) return null;
+  return (
+    <section className="set-group">
+      <h2>Reproducción desde YouTube</h2>
+      <p className="muted">Cada canción se encuentra en YouTube con yt-dlp. Cuando YouTube cambia algo, yt-dlp saca una versión nueva enseguida: Rumoria la busca cada 6 horas, y al momento si varias canciones seguidas no cargan, sin esperar a una versión nueva de Rumoria.</p>
+      <div className="set-row">
+        <span><strong>yt-dlp</strong><small>{ytDlpText(s)}</small></span>
+        <button type="button" className="btn btn-ghost" disabled={s.updating} onClick={() => desktop.ytdlp.update().catch(() => {})}>{s.updating ? 'Buscando…' : 'Buscar ahora'}</button>
       </div>
     </section>
   );

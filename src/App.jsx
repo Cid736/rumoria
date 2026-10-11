@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { desktop } from './api.js';
 import { startMiniBridge } from './player/miniBridge.js';
+import { startAlarm } from './player/alarm.js';
 import { applyLook, lastView, rememberView, useLook } from './store/look.js';
 import { PROFILES, usePerf } from './store/perf.js';
 import { useHidden } from './store/hidden.js';
@@ -18,24 +19,30 @@ import Sidebar from './components/Sidebar.jsx';
 import TitleBar from './components/TitleBar.jsx';
 import SidePanel from './components/SidePanel.jsx';
 import TopBar from './components/TopBar.jsx';
-import Home from './views/Home.jsx';
-import { LikedPage, ListPage, LocalPage, MixPage, NewsPage } from './views/Pages.jsx';
+import YouTubeNotice from './components/YouTubeNotice.jsx';
+import Home, { tracksOf } from './views/Home.jsx';
+import { LikedPage, ListPage, LocalPage, MixPage, NewsPage, RulePage } from './views/Pages.jsx';
 import Search from './views/Search.jsx';
 import Settings from './views/Settings.jsx';
 import Summary from './views/Summary.jsx';
 import History from './views/History.jsx';
+import Stats from './views/Stats.jsx';
+import { OnThisDayPage } from './views/OnThisDay.jsx';
 import { BrowsePage, DiscoverPage, RadioPage, TodayPage } from './views/Discover.jsx';
 
 function Page({ view }) {
   switch (view.name) {
     case 'search': return <Search />;
     case 'list': return <ListPage id={view.id} />;
+    case 'rules': return <RulePage id={view.id} />;
     case 'liked': return <LikedPage />;
     case 'local': return <LocalPage />;
     case 'mix': return <MixPage id={view.id} />;
     case 'settings': return <Settings />;
     case 'summary': return <Summary />;
     case 'history': return <History />;
+    case 'stats': return <Stats />;
+    case 'onthisday': return <OnThisDayPage id={view.id} />;
     case 'browse': return <BrowsePage id={view.id} />;
     case 'radio': return <RadioPage id={view.id} payload={view.payload} />;
     case 'discover': return <DiscoverPage />;
@@ -43,6 +50,13 @@ function Page({ view }) {
     case 'news': return <NewsPage />;
     default: return <Home />;
   }
+}
+
+/** What the alarm clock puts on. */
+export function alarmTracks(a) {
+  if (a.source === 'list') return a.list ? tracksOf({ kind: 'list', id: a.list }) : [];
+  if (a.source === 'top') return tracksOf({ kind: 'mix', id: 'top' });
+  return tracksOf({ kind: a.source });
 }
 
 const typing = (e) => e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]');
@@ -97,6 +111,8 @@ export default function App() {
   }, []);
   // The mini player sees what plays here and its buttons drive this player.
   useEffect(() => startMiniBridge(), []);
+  // v1.7: the alarm clock (what it puts on: the same as those cards on Inicio).
+  useEffect(() => startAlarm({ tracksFor: alarmTracks }), []);
   // Your look (Ajustes → Personalizar), from the start.
   useEffect(() => { applyLook(useLook.getState().look); }, []);
   useEffect(() => {
@@ -118,6 +134,7 @@ export default function App() {
       <Sidebar />
       <main className="main" key={`${view.name}-${view.id || ''}`}>
         <TopBar />
+        <YouTubeNotice />
         <div className="page"><Page view={view} /></div>
       </main>
       <SidePanel />

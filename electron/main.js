@@ -13,11 +13,17 @@ const { createUpdater } = require('./updater');
 const { createMini } = require('./mini');
 const { createTray } = require('./tray');
 const { createShortcuts } = require('./shortcuts');
+const { createDiscord } = require('./discord');
+const { createYtDlpKeeper } = require('./ytdlp');
 const os = require('os');
 
 // Isolated runs (tests, a second profile): their own data folder.
 if (process.env.RUMORIA_USER_DATA && path.isAbsolute(process.env.RUMORIA_USER_DATA)) app.setPath('userData', process.env.RUMORIA_USER_DATA);
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
+// End-to-end tests (test/e2e): nothing goes to the network by itself (no
+// updates, no yt-dlp updates, no background reading on the server), and
+// nothing of this computer's comes in (TubeGrab's data, its music folder).
+const E2E = process.env.RUMORIA_E2E === '1';
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -43,8 +49,10 @@ const mini = createMini({
   saveSettings: (...a) => saveSettings(...a),
   icon: path.join(__dirname, '..', 'build', 'icon.png'),
   onClosed: () => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible() && !tray.isShown()) app.quit(); },
-  onState: () => tray.refresh(),
+  onState: (s) => { tray.refresh(); discord.update(s); },
 });
+// v1.7: "Escuchando …" on your Discord profile, if you turn it on (see discord.js).
+const discord = createDiscord({ read: () => readSettings(), save: (p) => saveSettings(p) });
 // Playing in the background, in the tray (see tray.js): its buttons drive the main window's player.
 const tray = createTray({
   icon: path.join(__dirname, '..', 'build', 'icon.png'),
@@ -83,6 +91,7 @@ function saveSettings(patch) {
 }
 /** Your music folder: the one chosen here, else TubeGrab's download folder, else Music. */
 function musicDir() {
+  if (E2E) return path.join(userData(), 'music');
   const s = readSettings();
   if (typeof s.musicDir === 'string' && path.isAbsolute(s.musicDir)) return s.musicDir;
   try {
@@ -133,13 +142,11 @@ async function ensureYtDlp() {
   await downloadYtDlp(dest);
   return dest;
 }
-function updateYtDlpSoon() {
-  const s = readSettings();
-  if (s.ytDlpCheckedAt && Date.now() - s.ytDlpCheckedAt < 24 * 3600_000) return;
-  setTimeout(() => {
-    execFile(ytDlpPath(), ['-U'], { windowsHide: true, timeout: 120_000 }, () => saveSettings({ ytDlpCheckedAt: Date.now() }));
-  }, 60_000).unref();
-}
+// v1.7: kept up to date every 6 h, and at once when songs keep failing (see ytdlp.js).
+const ytdlpKeeper = createYtDlpKeeper({
+  bin: ytDlpPath, run: execFile, read: () => readSettings(), save: (p) => saveSettings(p),
+  send: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:ytdlp', state); },
+});
 
 /**
  * The port kept between runs (picked once, among less used ones): the page's
@@ -167,6 +174,7 @@ function startServer() {
         RUMORIA_MUSIC_DIR: musicDir(),
         RUMORIA_STATIC: DIST,
         RUMORIA_PORT: String(serverPort()),
+        ...(E2E ? { RUMORIA_BACKGROUND: '0' } : {}),
       },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
       windowsHide: true,
@@ -276,6 +284,13 @@ ipcMain.on('rumoria:window', (event, action) => {
   else if (action === 'maximize') { if (mainWindow.isMaximized()) mainWindow.unmaximize(); else mainWindow.maximize(); }
   else if (action === 'close') mainWindow.close();
 });
+// v1.7, Discord Rich Presence: how it is, and on / off.
+ipcMain.handle('rumoria:discord', (event) => (isTrustedSender(event) ? discord.state() : null));
+ipcMain.handle('rumoria:setDiscord', (event, on) => (isTrustedSender(event) && typeof on === 'boolean' ? discord.set(on) : null));
+// v1.7, yt-dlp: its version and state, look for a new one now, and how songs go (failures make it look at once).
+ipcMain.handle('rumoria:ytdlp:state', (event) => (isTrustedSender(event) ? ytdlpKeeper.state() : null));
+ipcMain.handle('rumoria:ytdlp:update', (event) => (isTrustedSender(event) ? ytdlpKeeper.update('manual') : null));
+ipcMain.on('rumoria:ytdlp:report', (event, kind, song) => { if (isTrustedSender(event) && (kind === 'ok' || kind === 'fail')) ytdlpKeeper.report(kind, String(song || '')); });
 // "Descargar con TubeGrab": TubeGrab opens with the song in its download box (it asks before downloading).
 // Without TubeGrab installed, `tubegrab://` goes nowhere: its download page opens instead.
 ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
@@ -291,7 +306,7 @@ ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
 app.on('second-instance', () => { if (mainWindow) { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.on('before-quit', () => { app.isQuitting = true; });
 // An update downloaded but not applied yet: put in place as Rumoria closes.
-app.on('will-quit', () => { shortcuts.stop(); updater.onQuit(); });
+app.on('will-quit', () => { shortcuts.stop(); discord.stop(); ytdlpKeeper.stop(); updater.onQuit(); });
 app.on('window-all-closed', () => app.quit());
 app.on('quit', () => { if (serverProcess) serverProcess.kill(); });
 
@@ -307,9 +322,9 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin) => (
     ['media', 'speaker-selection'].includes(perm) && Boolean(mainWindow) && wc === mainWindow.webContents && isAppUrl(String(origin || ''))
   ));
-  const copied = migrateFromTubeGrab(TUBEGRAB_DATA, userData());
+  const copied = E2E ? [] : migrateFromTubeGrab(TUBEGRAB_DATA, userData());
   if (copied.length) console.log(`Rumoria: copiado de TubeGrab: ${copied.join(', ')}`);
-  try { await ensureYtDlp(); updateYtDlpSoon(); } catch (err) {
+  try { await ensureYtDlp(); if (!E2E) ytdlpKeeper.start(); } catch (err) {
     dialog.showErrorBox('Rumoria', `No se pudo preparar yt-dlp (${err.message}). Sin él no se puede escuchar de YouTube; tu música local sí funciona.`);
   }
   const port = await startServer();
@@ -317,7 +332,7 @@ app.whenReady().then(async () => {
   await session.defaultSession.cookies.set({ url: appOrigin, name: 'rum_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
   shortcuts.apply();
-  updater.start();
+  if (!E2E) updater.start();
 }).catch((err) => {
   dialog.showErrorBox('Rumoria', err.message);
   app.quit();

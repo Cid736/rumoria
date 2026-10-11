@@ -49,6 +49,7 @@ export const urls = {
   info: (id) => `/api/stream/info?${qs({ id })}`,
   radio: (id) => `/api/stream/radio?${qs({ id })}`,
   lyrics: (id, a, t, d) => `/api/stream/lyrics?${qs({ id, a, t, d: d ? Math.round(d) : undefined })}`,
+  translation: (id, a, t, d) => `/api/stream/translation?${qs({ id, a, t, d: d ? Math.round(d) : undefined })}`,
   search: (q) => `/api/search?${qs({ q })}`,
   find: (q, d, list, n) => `/api/find?${qs({ q, d: d ? Math.round(d) : undefined, list, n })}`,
   list: (id) => `/api/lists/${encodeURIComponent(id)}`,

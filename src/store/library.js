@@ -17,10 +17,11 @@ export const useLibrary = create((set, get) => ({
   local: { folder: false, songs: [] },
   browse: [],           // "Explorar": ready-made lists (their covers once read)
   taste: [],            // your genres ({ id, score }), for Inicio's rotating shelves
+  ruleLists: [],        // v1.7: smart lists (their rules; the songs are worked out when opened)
   loaded: false,
 
   async loadAll() {
-    const [l, k, s, n, f, b] = await Promise.allSettled([api.get('/api/lists'), api.get('/api/likes'), api.get('/api/history/smart'), api.get('/api/news'), api.get('/api/local'), api.get('/api/browse')]);
+    const [l, k, s, n, f, b, r] = await Promise.allSettled([api.get('/api/lists'), api.get('/api/likes'), api.get('/api/history/smart'), api.get('/api/news'), api.get('/api/local'), api.get('/api/browse'), api.get('/api/rulelists')]);
     const ok = (r, fallback) => (r.status === 'fulfilled' ? r.value : fallback);
     const likes = ok(k, { songs: [] }).songs || [];
     set({
@@ -32,6 +33,7 @@ export const useLibrary = create((set, get) => ({
       local: ok(f, { folder: false, songs: [] }),
       browse: ok(b, { lists: [] }).lists || [],
       taste: ok(b, {}).taste || [],
+      ruleLists: ok(r, { lists: [] }).lists || [],
       loaded: true,
     });
   },
@@ -150,6 +152,29 @@ export const useLibrary = create((set, get) => ({
         action: 'Deshacer',
         onAction: async () => { try { get()._putList(await api.post(`${urls.list(id)}/restore`)); } catch (err) { toast(err.message); } },
       });
+    } catch (err) { toast(err.message); }
+  },
+
+  // ---- v1.7: smart lists (rules over your favourites and history) ----
+  async refreshRuleLists() { try { set({ ruleLists: (await api.get('/api/rulelists')).lists || [] }); } catch { /* keep */ } },
+  /** A smart list with its songs, as they are now. */
+  loadRuleList: (id) => api.get(`/api/rulelists/${encodeURIComponent(id)}`),
+  async createRuleList(name, rules) {
+    const l = await api.post('/api/rulelists', { name, rules });
+    await get().refreshRuleLists();
+    return l;
+  },
+  async updateRuleList(id, patch) {
+    const l = await api.patch(`/api/rulelists/${encodeURIComponent(id)}`, patch);
+    await get().refreshRuleLists();
+    return l;
+  },
+  async deleteRuleList(id) {
+    const l = get().ruleLists.find((x) => x.id === id);
+    try {
+      await api.del(`/api/rulelists/${encodeURIComponent(id)}`);
+      set((s) => ({ ruleLists: s.ruleLists.filter((x) => x.id !== id) }));
+      if (l) toast(`«${l.name}» eliminada`, { action: 'Deshacer', onAction: () => get().createRuleList(l.name, l.rules).catch((err) => toast(err.message)) });
     } catch (err) { toast(err.message); }
   },
 

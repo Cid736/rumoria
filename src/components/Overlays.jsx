@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { EVERY } from '../lib/autoLists.js';
 import { useLibrary } from '../store/library.js';
 import { useUi } from '../store/ui.js';
+import RuleDialog from './RuleDialog.jsx';
 
 function MenuList({ items, x, y, onDone, level = 0 }) {
   const ref = useRef(null);
@@ -58,6 +59,7 @@ function ContextMenu() {
 function Dialog() {
   const d = useUi((s) => s.dialog);
   // A new dialog is a new form (fresh text, not busy, no error).
+  if (d && d.kind === 'rules') return <RuleDialog key={d.seq} d={d} />;
   return d ? <DialogForm key={d.seq} d={d} /> : null;
 }
 
@@ -69,8 +71,11 @@ function DialogForm({ d }) {
   const [every, setEvery] = useState(24);
   const isImport = d.kind === 'import';
   const isAuto = d.kind === 'auto';
+  // v1.7: a question with no field (yes or cancel).
+  const isConfirm = d.kind === 'confirm';
   const submit = async (e) => {
     e.preventDefault();
+    if (isConfirm) { close(); d.onConfirm(); return; }
     const v = value.trim();
     if (!v && !d.allowEmpty) return;
     if (isImport || isAuto) {
@@ -92,11 +97,12 @@ function DialogForm({ d }) {
         <h2 id="dlg-title">{isImport ? 'Importar una lista' : isAuto ? 'Una lista que se llena sola' : d.title}</h2>
         {isImport && <p className="muted">Pega el enlace de una playlist de Spotify, Apple Music o YouTube, o de un perfil de Spotify (todas sus listas públicas). Solo se guardan títulos y artistas: cada canción se busca en YouTube al sonar.</p>}
         {isAuto && <p className="muted">Escribe un estilo, un artista o un momento. Rumoria busca canciones que encajen, la llena ahora y le añade las nuevas que vaya encontrando. No se descarga nada: todo suena al momento. Si quitas una canción, no vuelve.{d.folder ? ` Irá en la carpeta «${d.folder}».` : ''}</p>}
-        <label className="field">
+        {isConfirm && <p className="muted">{d.text}</p>}
+        {!isConfirm && <label className="field">
           <span>{isImport ? 'Enlace' : isAuto ? 'De qué' : d.label}</span>
           <input autoFocus type={isImport ? 'url' : 'text'} value={value} maxLength={isImport ? 2048 : isAuto ? 100 : 150} onChange={(e) => setValue(e.target.value)}
             placeholder={isImport ? 'https://open.spotify.com/playlist/…' : isAuto ? 'Rock de los 80, Bad Bunny, lo-fi para estudiar…' : ''} disabled={busy} />
-        </label>
+        </label>}
         {isAuto && (
           <label className="field">
             <span>Buscar canciones nuevas</span>
@@ -108,7 +114,7 @@ function DialogForm({ d }) {
         {error && <p className="error" role="alert">{error}</p>}
         <div className="dialog-actions">
           <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>Cancelar</button>
-          <button type="submit" className="btn btn-accent" disabled={busy || (!value.trim() && !d.allowEmpty)}>{busy ? (isAuto ? 'Buscando canciones…' : 'Leyendo…') : isImport ? 'Importar' : isAuto ? 'Crear' : d.confirm}</button>
+          <button type="submit" className="btn btn-accent" disabled={busy || (!isConfirm && !value.trim() && !d.allowEmpty)} autoFocus={isConfirm}>{busy ? (isAuto ? 'Buscando canciones…' : 'Leyendo…') : isImport ? 'Importar' : isAuto ? 'Crear' : d.confirm}</button>
         </div>
       </form>
     </div>

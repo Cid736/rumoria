@@ -5,13 +5,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatTime } from '../lib/tracks.js';
 import { lineIndex, useLyrics } from '../player/useLyrics.js';
+import { useLyricsExtra } from '../player/useLyricsExtra.js';
+import { chooseExtra, EXTRAS } from '../store/lyrics.js';
 import { useLibrary } from '../store/library.js';
 import { usePerf } from '../store/perf.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import ClipVideo from './ClipVideo.jsx';
 import Cover from './Cover.jsx';
-import { Collapse, Film, Heart, Mic, Next, Pause, Play, Prev, Repeat, RepeatOne, Shuffle } from './Icons.jsx';
+import { Collapse, Film, Heart, Languages, Mic, Next, Pause, Play, Prev, Repeat, RepeatOne, Shuffle } from './Icons.jsx';
 import { Slider } from './PlayerBar.jsx';
 
 const SAFE_IMG = /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]+(\?[\w\-=&%.]*)?$/;
@@ -45,7 +47,12 @@ function NowPlayingView() {
   const root = useRef(null);
   const box = useRef(null);
   const lyrics = useLyrics(prefs.lyrics ? cur : null);
+  const more = useLyricsExtra(prefs.lyrics ? cur : null, lyrics);
   const line = lineIndex(lyrics.synced, position);
+  // v1.7: under each line, the next of: nothing, Latin letters (when they help), Spanish.
+  const modes = EXTRAS.map(([k]) => k).filter((k) => k !== 'roman' || more.script);
+  const nextMode = () => chooseExtra(modes[(modes.indexOf(more.extra) + 1) % modes.length] || 'none', (d) => useUi.getState().openDialog(d));
+  const modeLabel = (EXTRAS.find(([k]) => k === more.extra) || EXTRAS[0])[1];
   const p = usePlayer.getState();
   const close = () => useUi.getState().setNowPlaying(false);
   const change = (patch) => { const next = { ...prefs, ...patch }; setPrefs(next); savePrefs(next); };
@@ -97,7 +104,10 @@ function NowPlayingView() {
             lyrics.synced ? (
               <div className="np-lyrics" ref={box}>
                 {lyrics.synced.map((l, i) => (
-                  <button key={`${l.t}-${i}`} type="button" className={`np-line ${i === line ? 'on' : i < line ? 'past' : ''}`} onClick={() => p.seek(l.t)}>{l.text || '♪'}</button>
+                  <button key={`${l.t}-${i}`} type="button" className={`np-line ${i === line ? 'on' : i < line ? 'past' : ''}`} onClick={() => p.seek(l.t)}>
+                    {l.text || '♪'}
+                    {more.lines && more.lines[i] && <span className="np-sub">{more.lines[i]}</span>}
+                  </button>
                 ))}
               </div>
             ) : lyrics.plain ? <div className="np-lyrics plain">{lyrics.plain}</div>
@@ -135,6 +145,7 @@ function NowPlayingView() {
           <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} onClick={p.cycleRepeat}>{repeat === 'one' ? <RepeatOne size={22} /> : <Repeat size={22} />}</button>
           <button type="button" className={`icon-btn toggle ${prefs.video ? 'on' : ''}`} aria-pressed={prefs.video} aria-label="Videoclip" title="Videoclip (sin sonido, sigue a la canción)" onClick={() => change({ video: !prefs.video })}><Film size={22} /></button>
           <button type="button" className={`icon-btn toggle ${prefs.lyrics ? 'on' : ''}`} aria-pressed={prefs.lyrics} aria-label="Letra" title="Letra" onClick={() => change({ lyrics: !prefs.lyrics })}><Mic size={22} /></button>
+          {prefs.lyrics && <button type="button" className={`icon-btn toggle ${more.extra !== 'none' ? 'on' : ''}`} aria-label={`Debajo de cada línea: ${modeLabel}`} title={`Debajo de cada línea: ${modeLabel}${more.note ? ` (${more.note})` : ''}`} onClick={nextMode}><Languages size={22} /></button>}
           <button type="button" className="icon-btn" aria-label="Salir de Sonando" title="Salir (Esc)" onClick={close}><Collapse size={22} /></button>
         </div>
       </div>

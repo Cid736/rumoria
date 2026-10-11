@@ -5,6 +5,7 @@
 //   RUMORIA_YTDLP     the yt-dlp to use
 //   RUMORIA_MUSIC_DIR your music folder (optional; changed later by message)
 //   RUMORIA_STATIC    the built page (dist/), if this server serves it
+//   RUMORIA_BACKGROUND "0": nothing done by itself in the background (end-to-end tests)
 //   RUMORIA_PORT      the port to use (the desktop app keeps the same one between
 //                     runs, so what the page keeps in the browser survives);
 //                     if it's taken, any free one
@@ -32,6 +33,7 @@ const server = createApp({
   ytEnv,
   musicDir: abs(env.RUMORIA_MUSIC_DIR),
   staticDir: abs(env.RUMORIA_STATIC),
+  background: env.RUMORIA_BACKGROUND !== '0',
 });
 
 const wanted = /^\d{2,5}$/.test(String(env.RUMORIA_PORT || '')) && Number(env.RUMORIA_PORT) <= 65535 ? Number(env.RUMORIA_PORT) : 0;

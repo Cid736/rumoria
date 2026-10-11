@@ -20,12 +20,15 @@ const { Likes } = require('./lib/likes');
 const { News } = require('./lib/news');
 const { LocalMusic } = require('./lib/localmusic');
 const { Browse, findSongs, CATEGORIES } = require('./lib/browse');
-const { Curator, EVERY_DAYS } = require('./lib/curator');
+const { Curator, EVERY_DAYS, artistsByCategory, scoreGenres } = require('./lib/curator');
 const { Prefs } = require('./lib/prefs');
 const { Hidden, artistKey } = require('./lib/hidden');
 const importlist = require('./lib/importlist');
 const { findLyrics } = require('./lib/lyrics');
 const { parseLrc } = require('./lib/lrc');
+const { RuleLists, evaluate: evaluateRules, ID_RE: RULE_ID_RE } = require('./lib/rulelists');
+const { translateLines, TranslationCache } = require('./lib/translate');
+const stats = require('./lib/stats');
 
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 const COOKIE = 'rum_t';
@@ -78,6 +81,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const lyricsFinder = deps.findLyrics || findLyrics;
   const readImport = deps.readImport || importlist.readImport;
   const readProfile = deps.readProfile || importlist.readProfile;
+  const translator = deps.translateLines || translateLines;
 
   const lists = new StreamLists(path.join(dataDir, 'stream-lists.json'));
   const history = new ListenLog(path.join(dataDir, 'listen-history.json'));
@@ -89,6 +93,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const curator = new Curator(path.join(dataDir, 'curator.json'));
   const prefs = new Prefs(path.join(dataDir, 'prefs.json'));
   const hidden = new Hidden(path.join(dataDir, 'hidden.json'));
+  const ruleLists = new RuleLists(path.join(dataDir, 'rule-lists.json'));
+  const translations = new TranslationCache(path.join(dataDir, 'translations.json'));
   // Your listening summary without the artists you asked not to be suggested (their mixes, news, radios).
   const smartNow = () => { const sm = history.smart(); return { ...sm, artists: sm.artists.filter((a) => !hidden.artistKeys.has(artistKey(a.name))) }; };
 
@@ -163,18 +169,45 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!listSlots.take()) return res.status(429).json(BUSY);
     try { res.json({ entries: hidden.filter(await stream.radio(req.query.id, ytEnv(), yt.flatList)) }); } catch { res.json({ entries: [] }); } finally { listSlots.release(); }
   });
+  // A song's lyrics, kept an hour (the Letra panel, the mini player and a
+  // translation ask for the same ones).
+  const lyricsKept = new Map(); // "id|artist|title" -> { at, value }
+  async function lyricsFor(req) {
+    const key = `${req.query.id}|${text(req.query.a, 200) || ''}|${text(req.query.t, 200) || ''}`;
+    const kept = lyricsKept.get(key);
+    if (kept && Date.now() - kept.at < 3600_000) return kept.value;
+    const info = await stream.resolve(req.query.id, ytEnv());
+    const artist = text(req.query.a, 200) || info.artist;
+    const title = text(req.query.t, 200) || info.track;
+    const d = Number(req.query.d) > 0 && Number(req.query.d) < 7200 ? Number(req.query.d) : info.duration;
+    const hit = await lyricsFinder({ artist, title, duration: d }) || await lyricsFinder({ artist, title });
+    const synced = hit && hit.synced ? parseLrc(hit.synced) : null;
+    const value = hit ? { synced: synced && synced.length ? synced : null, plain: hit.plain || null } : { synced: null, plain: null };
+    lyricsKept.delete(key);
+    lyricsKept.set(key, { at: Date.now(), value });
+    if (lyricsKept.size > 60) lyricsKept.delete(lyricsKept.keys().next().value);
+    return value;
+  }
   app.get('/api/stream/lyrics', ytLimiter, needId, async (req, res) => {
+    try { return res.json(await lyricsFor(req)); } catch { return res.json({ synced: null, plain: null }); }
+  });
+  // v1.7: the lyrics in Spanish, one line under each (only once you allowed
+  // sending them to the translator: Ajustes or the Letra panel).
+  app.get('/api/stream/translation', ytLimiter, needId, async (req, res) => {
+    if (!prefs.get().translate) return res.status(403).json({ error: 'La traducción de letras está apagada.' });
     try {
-      const info = await stream.resolve(req.query.id, ytEnv());
-      const artist = text(req.query.a, 200) || info.artist;
-      const title = text(req.query.t, 200) || info.track;
-      const d = Number(req.query.d) > 0 && Number(req.query.d) < 7200 ? Number(req.query.d) : info.duration;
-      const hit = await lyricsFinder({ artist, title, duration: d }) || await lyricsFinder({ artist, title });
-      if (!hit) return res.json({ synced: null, plain: null });
-      const synced = hit.synced ? parseLrc(hit.synced) : null;
-      return res.json({ synced: synced && synced.length ? synced : null, plain: hit.plain || null });
-    } catch {
-      return res.json({ synced: null, plain: null });
+      const l = await lyricsFor(req);
+      const lines = l.synced ? l.synced.map((x) => x.text || '') : l.plain ? l.plain.split('\n') : null;
+      if (!lines) return res.json({ lines: null });
+      const key = TranslationCache.key(lines, 'es');
+      let hit = translations.get(key);
+      if (!hit) {
+        hit = await translator(lines, { to: 'es' });
+        translations.put(key, hit);
+      }
+      return res.json(hit.same ? { same: true, from: hit.from } : { lines: hit.lines, from: hit.from, synced: Boolean(l.synced) });
+    } catch (err) {
+      return res.status(502).json({ error: shortError(err, 'El traductor no respondió.') });
     }
   });
 
@@ -355,6 +388,23 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     const tz = Number.isInteger(Number(req.query.tz)) && Math.abs(Number(req.query.tz)) <= 840 ? Number(req.query.tz) : 0;
     res.json(history.summary(year, tz));
   });
+  // v1.7: the whole year: minutes per week, when you listen, your genres month by month, your streak.
+  const tzOf = (req) => (Number.isInteger(Number(req.query.tz)) && Math.abs(Number(req.query.tz)) <= 840 ? Number(req.query.tz) : 0);
+  app.get('/api/history/stats', (req, res) => {
+    const tz = tzOf(req);
+    const byCat = artistsByCategory(browse.cache, CATEGORIES, streamLib.splitTitle);
+    const g = stats.genresByMonth(history, { tz, score: (artists) => scoreGenres(artists, byCat) });
+    const names = new Map(CATEGORIES.map((c) => [c.id, c.name]));
+    res.json({
+      weeks: stats.weekly(history, { tz }),
+      heatmap: stats.heatmap(history, { tz }),
+      streak: stats.streaks(history, { tz }),
+      genres: { ...g, names: Object.fromEntries(g.genres.map((id) => [id, names.get(id) || id])) },
+      count: history.events.length, paused: history.paused,
+    });
+  });
+  // v1.7, "Tal día como hoy": what you heard on this date 1, 2 and 3 years ago.
+  app.get('/api/history/onthisday', (req, res) => res.json({ years: stats.onThisDay(history, { tz: tzOf(req) }) }));
   app.patch('/api/history/settings', writeLimiter, (req, res) => {
     const b = req.body || {};
     res.json(history.settings({ paused: typeof b.paused === 'boolean' ? b.paused : undefined }));
@@ -373,6 +423,32 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!key || key.length > 520) return res.status(400).json({ error: 'Esa canción no se puede quitar.' });
     return res.json({ ok: true, count: likes.remove(key) });
   });
+
+  // ---- v1.7, smart lists: rules over your favourites and history (worked out each time) ----
+  const ruleSongs = (rules) => evaluateRules(rules, { likes: likes.list(), heard: history.perSong() });
+  const ruleFor = (req, res) => {
+    const l = RULE_ID_RE.test(String(req.params.id)) ? ruleLists.get(String(req.params.id)) : null;
+    if (!l) res.status(404).json({ error: 'No se encuentra esa lista inteligente.' });
+    return l;
+  };
+  app.get('/api/rulelists', (req, res) => res.json({ lists: ruleLists.list() }));
+  app.post('/api/rulelists', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    try { res.json(ruleLists.create({ name: b.name, rules: b.rules })); } catch (err) { res.status(400).json({ error: shortError(err, 'No se pudo crear la lista.') }); }
+  });
+  // How many songs some rules give now (while you write them), and the first few.
+  app.post('/api/rulelists/preview', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    const songs = ruleSongs({ ...(b.rules && typeof b.rules === 'object' ? b.rules : {}), limit: 500 });
+    res.json({ count: songs.length, songs: songs.slice(0, 5) });
+  });
+  app.get('/api/rulelists/:id', (req, res) => { const l = ruleFor(req, res); if (l) res.json({ ...l, songs: ruleSongs(l.rules) }); });
+  app.patch('/api/rulelists/:id', writeLimiter, (req, res) => {
+    if (!ruleFor(req, res)) return;
+    const b = req.body || {};
+    res.json(ruleLists.update(String(req.params.id), { name: typeof b.name === 'string' ? b.name : undefined, rules: b.rules && typeof b.rules === 'object' ? b.rules : undefined }));
+  });
+  app.delete('/api/rulelists/:id', writeLimiter, (req, res) => { if (ruleFor(req, res)) res.json({ ok: ruleLists.remove(String(req.params.id)) }); });
 
   // ---- "Explorar": ready-made lists (fixed searches, never text from the page) ----
   // `taste`: your genres (category ids), so Inicio can lean its rotating shelves on them.
@@ -532,7 +608,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
     stop() { timers.forEach((t) => clearTimeout(t)); },
-    _state: { lists, history, likes, news, local, browse, curator, hidden },
+    _state: { lists, history, likes, news, local, browse, curator, hidden, ruleLists, prefs },
     _run: { fillAutoLists, curate, warmBrowse },
   };
 }

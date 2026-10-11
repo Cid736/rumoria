@@ -4,6 +4,40 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión de la 1.7: lo nuevo, probado en la app de verdad
+
+Revisado: listas inteligentes, Estadísticas, «Tal día como hoy», despertador, letra romanizada o traducida, Modo sesión, Discord, yt-dlp y los tests de extremo a extremo. Tests: 115 de servidor y seguridad, 105 de interfaz, 7 de Playwright con la app abierta.
+
+### [Bug] La primera actualización de yt-dlp por fallos podía no llegar
+- **Archivo:** `electron/ytdlp.js` (`report`)
+- **Descripción:** la última actualización automática empezaba en `0`, así que la regla «como mucho una cada 30 minutos» dependía de la hora del reloj. Con un reloj que empezara en 0 (los tests), la primera nunca se lanzaba.
+- **Fix:** empieza en `-Infinity`: la primera vez que fallan 3 canciones distintas se actualiza siempre.
+
+### [Privacidad — MEDIA] Los tests de extremo a extremo copiaban tus datos de TubeGrab
+- **Archivo:** `electron/main.js` (`RUMORIA_E2E`)
+- **Descripción:** aunque cada test usa una carpeta de datos nueva, al arrancar Rumoria copiaba de `%APPDATA%\tubegrab` las listas, el historial y las favoritas, y leía la carpeta de música de TubeGrab. Las capturas de referencia salían con las listas de quien ejecutaba los tests y habrían acabado en el repositorio.
+- **Fix:** con `RUMORIA_E2E=1` no se copia nada de TubeGrab y la carpeta de música es una vacía dentro de la carpeta del test. Se rehicieron las capturas y se comprobó que no hay datos personales en ellas.
+
+### [Tests] Capturas que cambiaban de una ejecución a otra
+- **Archivo:** `test/e2e/look.spec.mjs`
+- **Descripción:** las estanterías de Inicio rotan al azar y los títulos de las tarjetas ocupan una o dos líneas, así que la página se movía unos píxeles entre ejecuciones.
+- **Fix:** en las capturas de la ventana se deja fuera el contenido de la página (la barra de título, la biblioteca, el reproductor y las esquinas, que es lo que cambia con el estilo, sí cuentan). La de Ajustes cubre el aspecto de una página. Estables en tres ejecuciones seguidas.
+
+### [Comprobado] El Modo sesión puede escuchar solo el principio de una canción de YouTube
+- **Archivo:** `src/player/dj.js`
+- **Descripción:** decodificar 1,6 MB de un m4a de YouTube (fragmentado) con `OfflineAudioContext` era la parte con más riesgo.
+- **Resultado:** en Electron se decodifican unos 99 s por canción, en 4–6 s (casi todo es yt-dlp buscando la dirección). Tempo medido: Never Gonna Give You Up 117 BPM (real: 113), Despacito 86 (real: 89). Límite conocido: la energía distingue poco entre canciones de volumen parecido.
+
+### [Comprobado] Discord acepta la actividad
+- **Archivo:** `electron/discord.js`
+- **Descripción:** con la aplicación de Rumoria en Discord, el handshake responde `READY` y `SET_ACTIVITY` vuelve con la actividad aceptada (tipo «Escuchando», portada de `i.ytimg.com` como imagen externa y el botón a YouTube).
+
+### [Seguridad] Puertas nuevas del preload, contadas
+- **Archivo:** `test/security/security.test.js`
+- **Descripción:** el test que cuenta lo que la página puede pedir al escritorio se actualizó a propósito: 4 `invoke` (Discord: estado y encender; yt-dlp: estado y actualizar) y 1 `send` (cómo fue una canción). Todas comprueban `isTrustedSender`, y el informe solo acepta `ok` o `fail` con un id de 11 caracteres. La traducción de letras la comprueba también el servidor (403 si no la has activado).
+
+---
+
 ## 2026-10-07 — Revisión 1: recomendaciones, Explorar y Recientes
 
 Revisado: `server/lib/browse.js`, `/api/browse` y `/api/browse/:id`, la lectura en segundo plano, `src/views/Home.jsx`, `recommend.js`, `Discover.jsx` y el almacén de «Recientes» (`src/store/ui.js`).

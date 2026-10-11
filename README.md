@@ -21,6 +21,14 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - Cada estantería enseña una fila y tiene «Mostrar todo»
 - Todo suena directamente desde YouTube, sin descargar nada; cualquier lista se puede guardar como tuya, y descargar una canción es opcional («Descargar con TubeGrab»)
 - **Novedades de tus artistas** y **Tu resumen** del año
+- **Estadísticas** de todo el año: tu racha de días con música (y la mejor), minutos por semana, cuándo escuchas (día de la semana y hora) y tus géneros mes a mes. Cada gráfica tiene sus números en tabla
+- **Tal día como hoy** (en Inicio): lo que escuchabas en esta fecha hace 1, 2 y 3 años, para ponerlo otra vez
+- **Listas inteligentes**: hechas con reglas sobre tu biblioteca en vez de canciones («favoritas que no oigo desde hace 3 meses», «más de 20 reproducciones», «añadidas este mes»…), con ideas listas para usar. Se ponen al día solas cada vez que las abres, y se pueden guardar como lista normal
+- **Despertador**: una lista, tus favoritas, «Para hoy» o lo que estaba sonando empieza a la hora y los días que elijas, con el volumen subiendo poco a poco (Ajustes o el botón Sonido). Rumoria tiene que estar abierta, aunque sea en la bandeja
+- **Letra en letras latinas o en español**: debajo de cada línea, el coreano, el japonés (kana), el cirílico o el griego leídos en letras latinas (en tu equipo), o la traducción al español (con Google Translate, solo si la activas; pregunta antes)
+- **Modo sesión** (en la Cola): ordena lo que viene para que fluya (sin saltos, subiendo, bajando o en ola). Rumoria escucha el principio de cada canción para medir su ritmo y su energía
+- **Discord**: «Escuchando» con la canción, el artista y la portada en tu perfil, si lo activas
+- **Si YouTube cambia algo**: yt-dlp, lo que encuentra cada canción, se actualiza solo cada 6 horas y al momento si varias canciones seguidas no cargan, con un aviso claro en la ventana y su versión en Ajustes
 - Botón derecho en cualquier canción: a continuación, a la cola, a una lista, favorita, radio, descargar con TubeGrab
 - **Mini reproductor v3** (Ctrl+M o el botón junto al volumen): una ventana pequeña encima de las demás con la portada de fondo, la línea de la letra que suena (y la siguiente), aleatorio, repetir, favorita, volumen y silencio, y el **videoclip** (vídeo sin sonido sincronizado con la canción). Tres formas: **normal**, **tarjeta** (portada grande) y **compacta**. Botón «A continuación» con las 5 siguientes para saltar a una; la rueda del ratón cambia el volumen (sobre la barra, avanza o retrocede); teclas Espacio, ← →, ↑ ↓, N, P, L, M, V y Q; se pega a los bordes de la pantalla; un título largo se desliza para leerlo entero. Transparente, fijo o siempre encima. Si cierras la ventana grande, la música sigue
 - **Sonando a pantalla completa** (F11 o el botón ⤢): portada grande o el videoclip, la letra siguiendo la canción (pulsa una línea para ir a ella), lo que viene después y los controles, que se esconden si no mueves el ratón. Para dejarlo en una tele o en un segundo monitor
@@ -49,6 +57,7 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 npm install
 npm run fetch-ytdlp   # opcional
 npm test              # servidor + seguridad + interfaz
+npm run test:e2e      # la app de verdad con Playwright: capturas de cada estilo y del mini reproductor
 npm run dev           # http://127.0.0.1:5173
 npm start             # app de escritorio
 ```
@@ -57,7 +66,7 @@ La arquitectura, la guía completa para levantar los dos proyectos y el resumen 
 
 ## Privacidad
 
-Todo se queda en tu ordenador: listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras) y a Spotify o Apple Music (solo cuando importas una lista).
+Todo se queda en tu ordenador: listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras), a Spotify o Apple Music (solo cuando importas una lista) y, si activas la traducción de letras, a Google Translate (solo el texto de la letra). Lo que enseña en Discord, si lo activas, va a la app de Discord de tu ordenador.
 
 ## Licencia
 

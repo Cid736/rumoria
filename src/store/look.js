@@ -15,7 +15,7 @@ export const DENSITIES = [['compact', 'Compacta'], ['normal', 'Normal'], ['comfy
 export const CORNERS = [['square', 'Rectas'], ['normal', 'Normales'], ['round', 'Muy redondeadas']];
 // Inicio's shelves, in the order they appear.
 export const SECTIONS = [
-  ['tiles', 'Accesos rápidos'], ['made', 'Hecho para ti'], ['again', 'Lo que más vuelves a poner'], ['recent', 'Recientes'],
+  ['tiles', 'Accesos rápidos'], ['made', 'Hecho para ti'], ['again', 'Lo que más vuelves a poner'], ['recent', 'Recientes'], ['onthisday', 'Tal día como hoy'],
   ['radios', 'Radios para ti'], ['popular', 'Radios populares'], ['like', 'Si te gusta…'], ['explore', 'Explorar'],
   ['lists', 'Tus listas'], ['categories', 'Todas las categorías'],
 ];
@@ -80,7 +80,7 @@ export function applyLook(look, doc = document, zoom = (f) => { if (window.rumor
 
 // ---- "Lo último que viste": the page you were on, opened again next time ----
 const LAST_KEY = 'rumoria_lastview';
-const VIEWS = ['home', 'search', 'list', 'liked', 'local', 'mix', 'browse', 'discover', 'today', 'news', 'summary', 'history', 'settings'];
+const VIEWS = ['home', 'search', 'list', 'liked', 'local', 'mix', 'browse', 'discover', 'today', 'news', 'summary', 'history', 'settings', 'rules', 'stats', 'onthisday'];
 /** Only plain views (a name and, for some, an id) are kept and read back. */
 export function cleanView(v) {
   if (!v || typeof v !== 'object' || !VIEWS.includes(v.name)) return null;
