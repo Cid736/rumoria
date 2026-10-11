@@ -292,7 +292,7 @@ test('electron: yt-dlp is only installed if its SHA-256 matches the published on
 
 test('links the app opens in the browser: YouTube, Spotify, Apple Music and Rumoria\'s own releases, nothing else', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'main.js'), 'utf8');
-  const m = /const EXTERNAL_RE = (\/.+\/);\n/.exec(src);
+  const m = /const EXTERNAL_RE = (\/.+\/);\r?\n/.exec(src);
   assert.ok(m, 'EXTERNAL_RE found');
   const re = new Function(`return ${m[1]}`)(); // eslint-disable-line no-new-func
   for (const ok of ['https://www.youtube.com/watch?v=x', 'https://open.spotify.com/playlist/x', 'https://github.com/Cid736/rumoria/releases/latest/download/Rumoria-Android.apk']) assert.ok(re.test(ok), ok);
