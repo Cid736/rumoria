@@ -69,6 +69,8 @@
 :root[data-sidebar="wide"] { --sidebar-w: 400px; }
 
 /* The cover behind the player bar: its colours, blurred and faint. */
-.playerbar { position: relative; isolation: isolate; overflow: hidden; }
-:root[data-player-cover="on"] .playerbar::before { content: ""; position: absolute; inset: -40px; z-index: -1; background-image: var(--pb-cover, none); background-size: cover; background-position: center; filter: blur(40px) saturate(1.4); opacity: 0.28; pointer-events: none; }
+/* The blurred cover clips itself (clip-path, after the blur) instead of the bar hiding what
+   overflows it: the buttons' labels (data-tip) show above the bar, whole. */
+.playerbar { position: relative; isolation: isolate; }
+:root[data-player-cover="on"] .playerbar::before { content: ""; position: absolute; inset: -40px; z-index: -1; background-image: var(--pb-cover, none); background-size: cover; background-position: center; filter: blur(40px) saturate(1.4); opacity: 0.28; pointer-events: none; clip-path: inset(40px); }
 :root[data-perf="min"] .playerbar::before { display: none; }

@@ -4,6 +4,16 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — 1.9.2: las etiquetas de los botones del reproductor, cortadas
+
+### [Bug] No se leía lo que dice cada botón del reproductor
+- **Archivo:** `src/styles/look.css`
+- **Descripción:** desde la 1.8, los botones de la barra del reproductor dicen lo que hacen al pasar el ratón, en una etiqueta encima del botón. La barra tenía `overflow: hidden` para recortar la portada difuminada del fondo, así que la etiqueta, que sale por encima de la barra, se cortaba: de «Al acabar, seguir con canciones parecidas» solo se veía la mitad de abajo, y la de reproducir no se veía.
+- **Fix:** la barra ya no recorta nada. La portada difuminada se recorta a sí misma (`clip-path: inset(40px)`, que se aplica después del desenfoque), con el mismo aspecto.
+- **Comprobado:** en la app, con el ratón encima de aleatorio, la radio y siguiente, en los estilos Rumoria, Windows y Mac. Las capturas de extremo a extremo siguen iguales.
+
+---
+
 ## 2026-10-11 — Revisión 5: Rumoria para Mac (1.9.1)
 
 Compilada y probada en los Mac de GitHub (macOS 14, chip de Apple). En el Mac se pasaron los tests de servidor, seguridad e interfaz; se comprobó la firma y el contenido del `.zip` de actualización; y se abrió la app empaquetada con Playwright, con capturas en tema claro y oscuro y en los estilos Rumoria y Mac, y una búsqueda y un audio de verdad.
