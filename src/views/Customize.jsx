@@ -8,6 +8,7 @@ import { ROTATIONS } from './rotation.js';
 import { CHOICES, PROFILES, usePerf } from '../store/perf.js';
 import { useSound } from '../store/sound.js';
 import { useUi } from '../store/ui.js';
+import { HERE, isPhone } from '../lib/android.js';
 
 const ON = (v) => (v ? 'sí' : 'no');
 
@@ -22,7 +23,7 @@ export function PerfSettings() {
       <h2>Rendimiento</h2>
       <p className="muted">Ajusta cuánto trabaja Rumoria para que vaya fluida en cualquier ordenador, sin bajar la calidad del sonido.</p>
       <label className="set-row">
-        <span><strong>Perfil</strong><small>{choice === 'auto' ? `Automático: este ordenador va con «${PROFILES[detected].label}».` : 'Elegido a mano.'}</small></span>
+        <span><strong>Perfil</strong><small>{choice === 'auto' ? `Automático: ${HERE} va con «${PROFILES[detected].label}».` : 'Elegido a mano.'}</small></span>
         <select value={choice} onChange={(e) => usePerf.getState().setChoice(e.target.value)} aria-label="Perfil de rendimiento">
           {CHOICES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
         </select>
@@ -83,9 +84,9 @@ export function Customize() {
   return (
     <section className="set-group">
       <h2>Personalizar</h2>
-      <p className="muted">Se guarda en este ordenador y se ve al momento.</p>
+      <p className="muted">Se guarda en {HERE} y se ve al momento.</p>
       <Choice label="Tema" hint="Oscuro, claro o el de tu sistema." value={theme} options={[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'El del sistema']]} onChange={(v) => useUi.getState().setTheme(v)} />
-      <Choice label="Estilo de la interfaz" hint="El de Rumoria, o como una app de Windows 11 o de Mac." value={look.ui} options={UIS} onChange={(v) => set({ ui: v })} />
+      {!isPhone && <Choice label="Estilo de la interfaz" hint="El de Rumoria, o como una app de Windows 11 o de Mac." value={look.ui} options={UIS} onChange={(v) => set({ ui: v })} />}
       <div className="set-row set-row-wrap">
         <span><strong>Color</strong><small>Botones, barra de progreso y lo que suena. Cada uno se adapta al tema claro y al oscuro.</small></span>
         <div className="swatches" role="radiogroup" aria-label="Color">

@@ -20,6 +20,8 @@ import TitleBar from './components/TitleBar.jsx';
 import SidePanel from './components/SidePanel.jsx';
 import TopBar from './components/TopBar.jsx';
 import YouTubeNotice from './components/YouTubeNotice.jsx';
+import { MiniBar, PhonePlayer, TabBar } from './components/Phone.jsx';
+import { isPhone, startAndroid } from './lib/android.js';
 import Home, { tracksOf } from './views/Home.jsx';
 import { LikedPage, ListPage, LocalPage, MixPage, NewsPage, RulePage } from './views/Pages.jsx';
 import Search from './views/Search.jsx';
@@ -47,6 +49,8 @@ function Page({ view }) {
     case 'radio': return <RadioPage id={view.id} payload={view.payload} />;
     case 'discover': return <DiscoverPage />;
     case 'today': return <TodayPage />;
+    // The phone's Biblioteca tab: your lists (on a computer they're always on the left).
+    case 'library': return <div className="phone-library"><h1>Tu biblioteca</h1><Sidebar /></div>;
     case 'news': return <NewsPage />;
     default: return <Home />;
   }
@@ -126,6 +130,31 @@ export default function App() {
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
   }, [theme]);
+
+  // The Android app: its notification and back button, and the phone layout.
+  useEffect(() => startAndroid(), []);
+  useEffect(() => {
+    if (!isPhone) return undefined;
+    document.documentElement.dataset.device = 'phone';
+    return () => { delete document.documentElement.dataset.device; };
+  }, []);
+
+  if (isPhone) {
+    return (
+      <div className="app phone">
+        <main className="main" key={`${view.name}-${view.id || ''}`}>
+          <TopBar />
+          <YouTubeNotice />
+          <div className="page"><Page view={view} /></div>
+        </main>
+        <MiniBar />
+        <TabBar />
+        <PhonePlayer />
+        <SidePanel />
+        <Overlays />
+      </div>
+    );
+  }
 
   return (
     <>

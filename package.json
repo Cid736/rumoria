@@ -1,7 +1,7 @@
 {
   "name": "rumoria",
   "productName": "Rumoria",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Tu música: listas de Spotify, Apple Music y YouTube, favoritas e historial, sin descargar nada.",
   "main": "electron/main.js",
   "license": "MIT",
@@ -26,7 +26,9 @@
     "icon": "node scripts/gen-icon.js",
     "notices": "node scripts/notices.js",
     "dist": "npm run fetch-ytdlp && npm run notices && vite build && electron-builder",
-    "dist:lite": "npm run notices && vite build && electron-builder --config electron-builder.lite.js"
+    "dist:lite": "npm run notices && vite build && electron-builder --config electron-builder.lite.js",
+    "android:prepare": "npm run notices && vite build && node scripts/android-prepare.js",
+    "android:build": "npm run android:prepare && cd android && gradlew assembleRelease"
   },
   "dependencies": {
     "express": "^5.2.1",

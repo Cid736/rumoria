@@ -1,7 +1,9 @@
 // The songs of a list, a search, your favourites… One click selects (Ctrl / Shift
 // for more), a double click or Enter plays from there, right click for more.
+// On the phone a tap plays and a long press (or ⋯) is for more.
 // In a list of yours, songs can be dragged to another place.
 import { useRef, useState } from 'react';
+import { isPhone } from '../lib/android.js';
 import { formatTime } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
@@ -68,7 +70,7 @@ export default function TrackTable({ tracks, listId = null, showCover = true, sh
             tabIndex={0}
             aria-selected={sel.has(i)}
             className={`tracks-row ${showAdded ? 'with-added' : ''} ${sel.has(i) ? 'selected' : ''} ${now ? 'now' : ''} ${dragOver === i ? 'drop-here' : ''} ${t.played === false ? 'skipped' : ''}`}
-            onClick={(e) => select(i, e)}
+            onClick={(e) => (isPhone ? play(i) : select(i, e))}
             onDoubleClick={() => play(i)}
             onKeyDown={(e) => { if (e.key === 'Enter') play(i); }}
             onContextMenu={(e) => { e.preventDefault(); openMenu(i, e.clientX, e.clientY); }}

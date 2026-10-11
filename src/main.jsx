@@ -12,6 +12,7 @@ import './styles/ui.css';
 import './styles/backgrounds.css';
 import './styles/v17.css';
 import './styles/v18.css';
+import './styles/phone.css';
 
 // Your performance profile first (it decides how much is done ahead), then
 // the queue kept from last time, then the player that follows it.

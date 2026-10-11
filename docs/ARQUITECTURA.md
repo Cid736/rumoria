@@ -94,6 +94,33 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.9: Rumoria para Android (`android/`, todo en [ANDROID.md](ANDROID.md))**
+
+- **La misma pila dentro del teléfono:**
+  - Node 18 (nodejs-mobile) ejecuta el mismo `server/` en el proceso de la app.
+  - La página de siempre se ve en un WebView.
+  - yt-dlp es el de youtubedl-android (Python), con QuickJS para los retos de YouTube.
+  - La app no necesita el ordenador.
+- **Servidor:** las dos llamadas a yt-dlp pasan por `ytdlp.run()`. En Android el programa es Python con el script delante y su entorno, y en lugar de Node se usa QuickJS con `--cache-dir`. El puerto se escribe en `RUMORIA_PORT_FILE`. Lo que pides tú (buscar, abrir una lista, poner una canción, la radio, importar) espera hasta 25 s su turno (`takeWithin`) en vez de responder «hay mucho en marcha»: en un móvil, Inicio tarda más en llenar sus listas.
+- **Sin Intl:** el Node del móvil no trae ICU. Al empaquetar, los `\p{…}` se reescriben como rangos y `android/node/shim.js` devuelve `normalize('NFD')` e `Intl.Collator`.
+- **Diseño de teléfono:** se activa con `isPhone` (`window.RumoriaAndroid`, o `?phone` en un navegador). Tiene:
+  - cuatro pestañas, mini reproductor y reproductor grande;
+  - la cola, la letra y el sonido a pantalla completa;
+  - los menús como hoja desde abajo y filas de canción de un toque;
+  - Ajustes sin lo que solo sirve en el ordenador.
+- **Nativo (Java):**
+  - `NodeRunner` arranca Node y prepara yt-dlp.
+  - `MainActivity` es el WebView y el canal `RumoriaAndroid`.
+  - `PlaybackService` lleva la notificación, la `MediaSession` y el *wake lock*.
+  - `Updater` descarga el APK de GitHub y lo comprueba con su SHA-256.
+- **Comprobado en el emulador** (Pixel 7, Android 15):
+  - arranca en unos 4 s;
+  - busca en menos de 3 s, y la primera canción suena en unos 10 s;
+  - sigue sonando con la pantalla apagada;
+  - la notificación pausa, reanuda y pasa a la siguiente;
+  - el botón atrás funciona como en cualquier app;
+  - girar la pantalla no corta la música.
+
 **v1.8: revisión de toda la interfaz (`src/styles/v18.css`, se carga la última)**
 
 - Se recorrieron todas las pantallas en tema oscuro y claro, a 1280×820 y con la ventana mínima (900×600), con datos de prueba.

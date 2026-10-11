@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import security from 'eslint-plugin-security';
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'bin/**', 'release/**', '.data/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'bin/**', 'release/**', '.data/**', 'android/app/**', 'android/build/**', 'android/.gradle/**', '*.tmp.mjs'] },
   js.configs.recommended,
   security.configs.recommended,
   {
@@ -20,7 +20,7 @@ export default [
     },
   },
   {
-    files: ['server/**/*.js', 'electron/**/*.js', 'scripts/**/*.js', 'electron-builder.lite.js', 'test/server/**/*.js', 'test/security/**/*.js', 'test/helpers.js'],
+    files: ['server/**/*.js', 'android/node/**/*.js', 'electron/**/*.js', 'scripts/**/*.js', 'electron-builder.lite.js', 'test/server/**/*.js', 'test/security/**/*.js', 'test/helpers.js'],
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
   {

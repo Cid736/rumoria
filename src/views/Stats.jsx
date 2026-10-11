@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useUi } from '../store/ui.js';
+import { HERE } from '../lib/android.js';
 
 const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 const SHORT_DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -170,7 +171,7 @@ export default function Stats() {
         <button type="button" className="btn btn-ghost" onClick={() => useUi.getState().go({ name: 'summary' })}>Tu resumen del año</button>
       </div>
       {!s.count ? (
-        <p className="muted">Aún no hay nada: lo que escuches irá llenando estas gráficas. Se guarda solo en este ordenador.{s.paused ? ' (El historial está en pausa: Ajustes → Historial de escucha.)' : ''}</p>
+        <p className="muted">Aún no hay nada: lo que escuches irá llenando estas gráficas. Se guarda solo en {HERE}.{s.paused ? ' (El historial está en pausa: Ajustes → Historial de escucha.)' : ''}</p>
       ) : (
         <>
           <div className="stat-tiles">

@@ -4,6 +4,49 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión 4: Rumoria para Android (1.9)
+
+Probado en el emulador (Pixel 7, Android 15, x86_64), con el APK de depuración y con el de publicación firmado. Instalación limpia, Inicio, buscar, poner canciones, pantalla apagada, notificación, botón atrás, giro de pantalla, tema claro y oscuro. El diseño también se probó a tamaño de móvil en un navegador.
+
+Tests: 127 de servidor y seguridad, 115 de interfaz.
+
+### [Bug — ALTA] El servidor no arrancaba en Android: Node sin Intl
+- **Archivo:** `scripts/android-prepare.js`, `android/node/shim.js`
+- **Descripción:** el Node de nodejs-mobile está compilado sin ICU, así que no tiene `Intl`, `\p{…}` en las expresiones regulares ni `normalize`. `path-to-regexp`, que usa Express, se cayó al cargar con `Invalid property name in character class`. El servidor tiene además 8 expresiones con `\p{L}` y `\p{N}`, y quita los acentos con `normalize('NFD')`, que ahí no hace nada. Dar a Node los datos de ICU (`NODE_ICU_DATA`) no lo arregló, porque la parte de Intl no está compilada.
+- **Fix:** al empaquetar, cada `\p{…}` se reescribe como sus rangos, calculados con el Node completo del ordenador. Si encuentra uno que no sabe traducir, o uno fuera de `[ ]`, la compilación se para en vez de adivinar. Un shim cargado con `node -r` devuelve los acentos y un `Intl.Collator`. Hay tests que comparan las expresiones reescritas con las originales y que prueban el shim en un Node al que se le quitan `Intl` y `normalize`.
+
+### [Bug] «Hay mucho en marcha» al buscar o al abrir una lista
+- **Archivo:** `server/app.js` (`takeWithin`, `WAIT_MS`)
+- **Descripción:** mientras Inicio llenaba sus estanterías, los 3 turnos de yt-dlp (y los 2 de listas) estaban ocupados. Una búsqueda, o abrir una lista de Explorar, respondía 429 al momento. En el ordenador pasaba poco; en un móvil, con yt-dlp más lento, pasaba casi siempre.
+- **Fix:** lo que pides tú (buscar, abrir una lista, poner una canción, la radio, importar o crear una lista que se llena sola) espera su turno hasta 25 s. Lo que Rumoria hace por su cuenta sigue cediendo el sitio. Test: 5 búsquedas a la vez responden todas, con 3 yt-dlp como mucho.
+
+### [Bug] En el móvil, una canción no sonaba con un toque
+- **Archivo:** `src/components/TrackTable.jsx`, `src/components/SidePanel.jsx`
+- **Descripción:** las filas de canciones y de la cola sonaban con doble clic, como en el ordenador, y un toque solo las seleccionaba.
+- **Fix:** en el móvil, un toque pone la canción y una pulsación larga (o ⋯) abre sus opciones.
+
+### [Comprobado] Música con la pantalla apagada y la notificación
+- **Archivo:** `android/app/src/main/java/com/rumoria/app/PlaybackService.java`
+- **Resultado:** con la app en segundo plano y la pantalla apagada, la canción avanzó 46 s en 45 s. La `MediaSession` aparece como PLAYING con título y artista. Los comandos `pause`, `play` y `next` (como los de unos auriculares o los botones de la notificación) llegan a la página. Girar la pantalla no recarga la página ni corta la música.
+
+### [Seguridad] La app de Android, revisada
+- **Archivo:** `test/security/android.test.js`
+- **Descripción:**
+  - Sin copias de seguridad en la nube; solo el lanzador está exportado.
+  - http sin cifrar solo hacia `127.0.0.1`.
+  - El WebView no lee archivos ni contenido.
+  - El canal con la página está abierto solo a su origen y al marco principal, y no usa `addJavascriptInterface`.
+  - Hay un secreto nuevo de 32 bytes en cada arranque, en una cookie `HttpOnly`.
+  - El zip del servidor no puede escribir fuera de su carpeta.
+  - Las actualizaciones solo llegan de `Cid736/rumoria`, con su SHA-256.
+  - Las portadas de la notificación solo se descargan de `i.ytimg.com`, sin redirecciones.
+  - La depuración del WebView solo está activa en el APK de depuración.
+
+### [Conocido] Móviles con páginas de 16 KB
+- **Descripción:** el `libnode.so` de nodejs-mobile 18.20.4 está alineado a 4 KB. En los móviles con páginas de 16 KB funciona gracias al modo de compatibilidad de Android 16 (`android:pageSizeCompat="enabled"`). Nuestra librería y las de youtubedl-android ya van a 16 KB.
+
+---
+
 ## 2026-10-11 — Revisión 3: toda la interfaz (1.8)
 
 Recorridas todas las pantallas (Inicio, Buscar, una lista, cola, letra, sonido, Favoritas, Tu resumen, Historial, importar, Ajustes y su buscador, Sonando) en tema oscuro y claro, a 1280×820 y a 900×600.

@@ -34,10 +34,23 @@ const TOKEN_RE = /^[a-f0-9]{64}$/;
 const COOKIE = 'rum_t';
 const BUSY = { error: 'Hay mucho en marcha; inténtalo en unos segundos.' };
 
+// What you ask for yourself (a search, a list you open, a song) waits this long for
+// its turn behind what Rumoria does by itself, instead of "busy" (a phone is slower).
+const WAIT_MS = 25_000;
+
 /** A few things at once at most (yt-dlp runs are heavy). */
 function slots(max) {
   let used = 0;
-  return { take: () => (used < max ? (used += 1, true) : false), release: () => { used = Math.max(0, used - 1); } };
+  const take = () => (used < max ? (used += 1, true) : false);
+  // What you asked for yourself (a search) waits its turn a while instead of "busy".
+  const takeWithin = async (ms) => {
+    for (const end = Date.now() + ms; !take();) {
+      if (Date.now() > end) return false;
+      await new Promise((r) => { setTimeout(r, 150); });
+    }
+    return true;
+  };
+  return { take, takeWithin, release: () => { used = Math.max(0, used - 1); } };
 }
 
 const sameSecret = (a, b) => {
@@ -137,7 +150,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
 
   // ---- playing from YouTube (nothing is saved) ----
   app.get('/api/stream/info', ytLimiter, needId, async (req, res) => {
-    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     try { res.json(stream.publicInfo(req.query.id, await stream.resolve(req.query.id, ytEnv()))); } catch (err) { res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); } finally { ytSlots.release(); }
   });
   // The sound (and, for the mini player, a light video without sound): relayed
@@ -166,7 +179,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // A song that kept failing: its addresses forgotten.
   app.post('/api/stream/forget', writeLimiter, needId, (req, res) => res.json({ ok: stream.forget(req.query.id) }));
   app.get('/api/stream/radio', ytLimiter, needId, async (req, res) => {
-    if (!listSlots.take()) return res.status(429).json(BUSY);
+    if (!await listSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     try { res.json({ entries: hidden.filter(await stream.radio(req.query.id, ytEnv(), yt.flatList)) }); } catch { res.json({ entries: [] }); } finally { listSlots.release(); }
   });
   // A song's lyrics, kept an hour (the Letra panel, the mini player and a
@@ -215,7 +228,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   app.get('/api/search', ytLimiter, async (req, res) => {
     const q = text(req.query.q, 200);
     if (!q) return res.status(400).json({ error: 'Falta qué buscar.' });
-    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     try {
       const r = await yt.search(q, ytEnv(), 20);
       if (!r) return res.status(502).json({ error: 'YouTube no respondió.' });
@@ -229,7 +242,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     const key = `${q}|${d || ''}`;
     let hit = found.get(key);
     if (!hit) {
-      if (!ytSlots.take()) return res.status(429).json(BUSY);
+      if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
       try { hit = pickVideo(await yt.search(q, ytEnv(), 6), d); } finally { ytSlots.release(); }
       if (!hit) return res.status(404).json({ error: 'No se encontró esta canción en YouTube.' });
       found.set(key, hit);
@@ -250,7 +263,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     }
     const ytUrl = ytdlp.youTubeUrl(url);
     if (ytUrl && /[?&]list=/.test(ytUrl)) {
-      if (!listSlots.take()) throw new Error(BUSY.error);
+      if (!await listSlots.takeWithin(WAIT_MS)) throw new Error(BUSY.error);
       try {
         const list = await yt.flatList(ytUrl, ytEnv(), 500);
         if (!list || !list.entries.length) throw new Error('Esa playlist está vacía o no se puede leer.');
@@ -305,7 +318,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     const q = topicOf(b.q || b.name);
     if (!q) return res.status(400).json({ error: 'Escribe de qué quieres la lista.' });
     const every = AUTO_EVERY.includes(b.every) ? b.every : 24;
-    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     try {
       const tracks = await songsFor(q);
       if (!tracks.length) return res.status(404).json({ error: `No se encontraron canciones de «${q}».` });
@@ -459,7 +472,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   });
   app.get('/api/browse/:id', ytLimiter, async (req, res) => {
     if (!browse.has(req.params.id)) return res.status(404).json({ error: 'No existe esa lista.' });
-    if (!ytSlots.take()) return res.status(429).json(BUSY);
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     try {
       const l = await browse.get(req.params.id, (target, limit) => yt.flatList(target, ytEnv(), limit));
       return res.json({ ...l, tracks: hidden.filter(l.tracks) });

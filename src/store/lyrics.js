@@ -5,6 +5,7 @@
 // permission to translate lives in the server's prefs.
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { HERE } from '../lib/android.js';
 
 const KEY = 'rumoria_lyrics';
 export const EXTRAS = [['none', 'Solo la letra'], ['roman', 'En letras latinas'], ['trans', 'En español']];
@@ -41,7 +42,7 @@ export async function chooseExtra(extra, ask) {
   if (useLyricsPrefs.getState().translate) { s.setExtra('trans'); return; }
   ask({
     kind: 'confirm', title: 'Traducir las letras',
-    text: 'Para traducirla, la letra de la canción que suena se envía a Google Translate (solo la letra, nada sobre ti). Cada traducción se guarda en este ordenador y no se vuelve a pedir. Se apaga cuando quieras en Ajustes → Letras.',
+    text: `Para traducirla, la letra de la canción que suena se envía a Google Translate (solo la letra, nada sobre ti). Cada traducción se guarda en ${HERE} y no se vuelve a pedir. Se apaga cuando quieras en Ajustes → Letras.`,
     confirm: 'Traducir',
     onConfirm: async () => { if (await useLyricsPrefs.getState().allowTranslate(true)) useLyricsPrefs.getState().setExtra('trans'); },
   });

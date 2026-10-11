@@ -5,6 +5,7 @@
 // remembered on this computer.
 import { useEffect, useMemo, useState } from 'react';
 import { api, desktop } from '../api.js';
+import { askApp, HERE, isPhone } from '../lib/android.js';
 import { updateText, useUpdate } from '../lib/useUpdate.js';
 import { fold } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
@@ -97,7 +98,7 @@ function HistorySettings() {
   return (
     <section className="set-group">
       <h2>Historial de escucha</h2>
-      <p className="muted">Se guarda solo en este ordenador y alimenta «Elegido para ti», tus estadísticas y las novedades de tus artistas.</p>
+      <p className="muted">Se guarda solo en {HERE} y alimenta «Elegido para ti», tus estadísticas y las novedades de tus artistas.</p>
       <label className="set-row">
         <span><strong>Pausar el historial</strong><small>Mientras esté en pausa, no se anota lo que escuchas.</small></span>
         <input type="checkbox" className="switch" checked={paused} onChange={(e) => setPaused(e.target.checked)} />
@@ -194,8 +195,33 @@ export const SECTIONS = [
 export function findSections(q) {
   const words = fold(q).split(/\s+/).filter(Boolean);
   if (!words.length) return [];
-  return SECTIONS.filter((s) => { const hay = fold(`${s.title} ${s.words}`); return words.every((w) => hay.includes(w)); });
+  return sections().filter((s) => { const hay = fold(`${s.title} ${s.words}`); return words.every((w) => hay.includes(w)); });
 }
+
+/** On the phone: Rumoria and yt-dlp up to date (the app does it; these look now). */
+function PhoneUpdates() {
+  return (
+    <section className="set-group">
+      <h2>Actualizaciones</h2>
+      <p className="muted">Rumoria mira en GitHub si hay una versión nueva cada 12 horas y te pregunta antes de instalarla; solo instala una cuya huella SHA-256 coincide con la publicada. Tus listas y tu historial se quedan.</p>
+      <div className="set-row">
+        <span><strong>Rumoria</strong><small>Buscar una versión nueva ahora.</small></span>
+        <button type="button" className="btn btn-ghost" onClick={() => { askApp('update'); useUi.getState().toast('Buscando…'); }}>Buscar ahora</button>
+      </div>
+      <div className="set-row">
+        <span><strong>Reproducción desde YouTube (yt-dlp)</strong><small>Se pone al día sola cada 6 horas. Si las canciones no cargan, búscala ahora.</small></span>
+        <button type="button" className="btn btn-ghost" onClick={() => { askApp('ytdlp'); useUi.getState().toast('Buscando una versión nueva de yt-dlp…'); }}>Buscar ahora</button>
+      </div>
+    </section>
+  );
+}
+
+// On the phone: no mini player, no keyboard, no music folder; its own updates.
+const PHONE_HIDDEN = new Set(['mini', 'shortcuts', 'windowkeys', 'music', 'discord', 'youtube', 'updates']);
+const sections = () => (isPhone
+  ? [...SECTIONS.filter((s) => !PHONE_HIDDEN.has(s.id)), { tab: 'system', id: 'phoneupdates', title: 'Actualizaciones', words: 'actualizaciones versión actualizar github youtube yt-dlp no carga canciones', C: PhoneUpdates }]
+  : SECTIONS);
+const tabs = () => TABS.filter(([k]) => sections().some((s) => s.tab === k));
 
 function savedTab() { try { const t = localStorage.getItem(TAB_KEY); return TABS.some(([k]) => k === t) ? t : 'look'; } catch { return 'look'; } }
 
@@ -205,7 +231,7 @@ export default function Settings() {
   const setTab = (t) => { setTabState(t); setQ(''); try { localStorage.setItem(TAB_KEY, t); } catch { /* only for now */ } };
   const found = useMemo(() => findSections(q), [q]);
   const searching = q.trim().length > 0;
-  const shown = searching ? found : SECTIONS.filter((s) => s.tab === tab);
+  const shown = searching ? found : sections().filter((s) => s.tab === tab);
   const label = (t) => (TABS.find(([k]) => k === t) || [])[1];
 
   return (
@@ -220,7 +246,7 @@ export default function Settings() {
       </div>
       <div className="settings-body">
         <nav className="settings-nav" aria-label="Temas de los ajustes">
-          {TABS.map(([k, name, Icon, hint]) => (
+          {tabs().map(([k, name, Icon, hint]) => (
             <button key={k} type="button" className={`settings-tab ${!searching && tab === k ? 'on' : ''}`} aria-current={!searching && tab === k ? 'page' : undefined} onClick={() => setTab(k)}>
               <Icon size={18} />
               <span><strong>{name}</strong><small>{hint}</small></span>

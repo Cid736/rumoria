@@ -9,6 +9,7 @@ import { usePlayer } from '../store/player.js';
 import Cover from '../components/Cover.jsx';
 import { Play } from '../components/Icons.jsx';
 import TrackTable from '../components/TrackTable.jsx';
+import { HERE } from '../lib/android.js';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2024, i, 1).toLocaleDateString('es-ES', { month: 'short' }).replace('.', ''));
 const plays = (n) => (n === 1 ? '1 vez' : `${n} veces`);
@@ -89,7 +90,7 @@ export default function Summary() {
         )}
       </div>
       {!s.secs ? (
-        <p className="muted">Aún no hay nada: lo que escuches irá apareciendo aquí, con tus canciones y artistas del año. Se guarda solo en este ordenador.</p>
+        <p className="muted">Aún no hay nada: lo que escuches irá apareciendo aquí, con tus canciones y artistas del año. Se guarda solo en {HERE}.</p>
       ) : (
         <>
           <section className="summary-hero">

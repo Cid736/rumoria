@@ -8,6 +8,7 @@ import { useSearches } from '../store/searches.js';
 import { useUi } from '../store/ui.js';
 import { chooseExtra, EXTRAS, useLyricsPrefs } from '../store/lyrics.js';
 import { useYtDlp, ytDlpText } from '../lib/useYtDlp.js';
+import { HERE } from '../lib/android.js';
 
 const LABELS = {
   toggle: 'Reproducir / pausa', next: 'Siguiente', prev: 'Anterior', like: 'Añadir o quitar de Favoritas',
@@ -119,7 +120,7 @@ export function SearchSettings() {
   return (
     <>
       <label className="set-row">
-        <span><strong>Guardar lo que busco</strong><small>Las búsquedas recientes salen en Buscar con la caja vacía. Solo en este ordenador.</small></span>
+        <span><strong>Guardar lo que busco</strong><small>Las búsquedas recientes salen en Buscar con la caja vacía. Solo en {HERE}.</small></span>
         <input type="checkbox" className="switch" checked={!off} onChange={(e) => useSearches.getState().setOff(!e.target.checked)} />
       </label>
       <div className="set-row">
@@ -164,7 +165,7 @@ export function LyricsSettings() {
         </select>
       </label>
       <label className="set-row">
-        <span><strong>Traducir las letras al español</strong><small>La letra de la canción (solo eso) se envía a Google Translate; cada traducción se guarda en este ordenador.</small></span>
+        <span><strong>Traducir las letras al español</strong><small>La letra de la canción (solo eso) se envía a Google Translate; cada traducción se guarda en {HERE}.</small></span>
         <input type="checkbox" className="switch" checked={translate === true} disabled={translate === null} onChange={(e) => allow(e.target.checked)} />
       </label>
     </section>
@@ -183,7 +184,7 @@ export function DiscordSettings() {
       <label className="set-row">
         <span>
           <strong>Mostrar lo que escucho en Discord</strong>
-          <small>{s.enabled ? (s.connected ? 'Conectado: tu perfil dice «Escuchando» con la canción y el artista.' : 'Esperando a que abras Discord en este ordenador.') : 'Tu perfil de Discord dirá «Escuchando» con la canción, el artista y la portada. Solo habla con la app de Discord de este ordenador.'}</small>
+          <small>{s.enabled ? (s.connected ? 'Conectado: tu perfil dice «Escuchando» con la canción y el artista.' : `Esperando a que abras Discord en ${HERE}.`) : `Tu perfil de Discord dirá «Escuchando» con la canción, el artista y la portada. Solo habla con la app de Discord de ${HERE}.`}</small>
         </span>
         <input type="checkbox" className="switch" checked={s.enabled} onChange={(e) => set(e.target.checked)} />
       </label>

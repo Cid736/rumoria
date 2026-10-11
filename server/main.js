@@ -6,6 +6,12 @@
 //   RUMORIA_MUSIC_DIR your music folder (optional; changed later by message)
 //   RUMORIA_STATIC    the built page (dist/), if this server serves it
 //   RUMORIA_BACKGROUND "0": nothing done by itself in the background (end-to-end tests)
+//   RUMORIA_PORT_FILE where to write the port once listening (Android: no parent process to tell)
+//   Android only (yt-dlp is a Python script there, and YouTube's challenges use QuickJS):
+//   RUMORIA_YTDLP_PREFIX JSON list of arguments before yt-dlp's own (the script)
+//   RUMORIA_YTDLP_ENV    JSON object added to yt-dlp's environment
+//   RUMORIA_JS_RUNTIMES  yt-dlp's --js-runtimes (instead of this Node)
+//   RUMORIA_YTDLP_CACHE  yt-dlp's cache folder
 //   RUMORIA_PORT      the port to use (the desktop app keeps the same one between
 //                     runs, so what the page keeps in the browser survives);
 //                     if it's taken, any free one
@@ -25,7 +31,18 @@ function ytDlpPath() {
   return fs.existsSync(local) ? local : 'yt-dlp';
 }
 const cookiesPath = path.join(dataDir, 'cookies.txt');
-const ytEnv = () => ({ ytDlpPath: ytDlpPath(), jsRuntime: process.execPath, cookiesPath: fs.existsSync(cookiesPath) ? cookiesPath : null });
+const json = (v, ok) => { try { const x = JSON.parse(v); return ok(x) ? x : null; } catch { return null; } };
+const ytPrefix = json(env.RUMORIA_YTDLP_PREFIX, (x) => Array.isArray(x) && x.every((a) => typeof a === 'string' && path.isAbsolute(a)));
+const ytExtraEnv = json(env.RUMORIA_YTDLP_ENV, (x) => x && typeof x === 'object' && !Array.isArray(x) && Object.values(x).every((v) => typeof v === 'string'));
+const ytEnv = () => ({
+  ytDlpPath: ytDlpPath(),
+  ytDlpPrefix: ytPrefix || undefined,
+  ytDlpEnv: ytExtraEnv || undefined,
+  jsRuntimes: env.RUMORIA_JS_RUNTIMES || undefined,
+  jsRuntime: env.RUMORIA_JS_RUNTIMES ? undefined : process.execPath,
+  cacheDir: abs(env.RUMORIA_YTDLP_CACHE) || undefined,
+  cookiesPath: fs.existsSync(cookiesPath) ? cookiesPath : null,
+});
 
 const server = createApp({
   token: env.RUMORIA_TOKEN,
@@ -40,6 +57,7 @@ const wanted = /^\d{2,5}$/.test(String(env.RUMORIA_PORT || '')) && Number(env.RU
 function listen(port) {
   const http = server.app.listen(port, '127.0.0.1', () => {
     const { port: real } = http.address();
+    if (abs(env.RUMORIA_PORT_FILE)) fs.writeFileSync(env.RUMORIA_PORT_FILE, String(real));
     if (process.send) process.send({ type: 'ready', port: real });
     else console.log(`Rumoria: servidor en http://127.0.0.1:${real}`);
   });

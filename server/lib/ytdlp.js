@@ -44,14 +44,31 @@ const httpsThumb = (e) => {
   return typeof e.thumbnail === 'string' && e.thumbnail.startsWith('https://') ? e.thumbnail : null;
 };
 
+/**
+ * One yt-dlp run on `target` (always after `--`). `env.ytDlpPath` is the program;
+ * on Android it's Python, with the yt-dlp script in `env.ytDlpPrefix` and
+ * `env.ytDlpEnv` added to the environment. YouTube's challenges need a
+ * JavaScript runtime: `env.jsRuntimes` as yt-dlp takes it (Android: QuickJS),
+ * or the Node at `env.jsRuntime` (the desktop app). `env.cacheDir`: where
+ * yt-dlp keeps what it worked out (a phone is slow to work it out each time).
+ */
+function run(env, args, target, opts, done) {
+  const all = [...(env.ytDlpPrefix || []), ...args];
+  if (env.jsRuntimes) all.push('--js-runtimes', env.jsRuntimes);
+  else if (env.jsRuntime) all.push('--js-runtimes', `node:${env.jsRuntime}`);
+  if (env.cacheDir) all.push('--cache-dir', env.cacheDir);
+  if (env.cookiesPath) all.push('--cookies', env.cookiesPath);
+  all.push('--', target);
+  const o = { windowsHide: true, ...opts };
+  if (env.ytDlpEnv) o.env = { ...process.env, ...env.ytDlpEnv };
+  return execFile(env.ytDlpPath, all, o, done);
+}
+
 /** yt-dlp -J --flat-playlist on `target` → { title, entries } or null. */
 function flatList(target, env, limit) {
   return new Promise((resolve) => {
     const args = ['--ignore-config', ...UTF8, '--flat-playlist', '-J', '--ies', 'default,-generic', '--playlist-end', String(limit), '--no-warnings'];
-    if (env.jsRuntime) args.push('--js-runtimes', `node:${env.jsRuntime}`);
-    if (env.cookiesPath) args.push('--cookies', env.cookiesPath);
-    args.push('--', target);
-    execFile(env.ytDlpPath, args, { windowsHide: true, timeout: 90_000, maxBuffer: 32 * 1024 * 1024 }, (err, stdout) => {
+    run(env, args, target, { timeout: 90_000, maxBuffer: 32 * 1024 * 1024 }, (err, stdout) => {
       if (err) return resolve(null);
       let data;
       try { data = JSON.parse(stdout); } catch { return resolve(null); }
@@ -88,4 +105,4 @@ function latestEntries(channelUrl, env, n = 15) {
   return flatList(u.toString(), env, n);
 }
 
-module.exports = { youTubeUrl, flatList, search, latestEntries, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };
+module.exports = { run, youTubeUrl, flatList, search, latestEntries, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };

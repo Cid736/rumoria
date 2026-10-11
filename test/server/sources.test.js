@@ -88,6 +88,31 @@ test('yt-dlp: the arguments end with "--" before anything typed', async () => {
   }
 });
 
+test('yt-dlp on Android: Python runs the script, QuickJS for the challenges, still "--" last', async () => {
+  const seen = [];
+  const childProcess = require('child_process');
+  const real = childProcess.execFile;
+  childProcess.execFile = (bin, args, opts, cb) => { seen.push({ bin, args, opts }); cb(null, JSON.stringify({ _type: 'playlist', entries: [{ id: 'dQw4w9WgXcQ', title: 'x' }] })); };
+  try {
+    delete require.cache[require.resolve('../../server/lib/ytdlp')];
+    const fresh = require('../../server/lib/ytdlp');
+    const env = { ytDlpPath: '/lib/libpython.so', ytDlpPrefix: ['/files/yt-dlp/yt-dlp'], ytDlpEnv: { PYTHONHOME: '/files/python/usr' }, jsRuntimes: 'quickjs:/lib/libqjs.so', jsRuntime: '/ignored/node', cacheDir: '/cache/yt-dlp' };
+    await fresh.search('--exec x', env, 5);
+    const { bin, args, opts } = seen[0];
+    assert.equal(bin, '/lib/libpython.so');
+    assert.equal(args[0], '/files/yt-dlp/yt-dlp', 'the script first, then the options');
+    assert.deepEqual(args.slice(args.indexOf('--js-runtimes'), args.indexOf('--js-runtimes') + 2), ['--js-runtimes', 'quickjs:/lib/libqjs.so']);
+    assert.equal(args.filter((a) => a === '--js-runtimes').length, 1, 'never Node as well');
+    assert.ok(args.includes('/cache/yt-dlp'));
+    assert.equal(args.indexOf('--'), args.length - 2);
+    assert.equal(opts.env.PYTHONHOME, '/files/python/usr');
+    assert.ok(opts.env.PATH !== undefined || opts.env.Path !== undefined, 'the rest of the environment kept');
+  } finally {
+    childProcess.execFile = real;
+    delete require.cache[require.resolve('../../server/lib/ytdlp')];
+  }
+});
+
 test('your music: audio files only, by id, never outside the folder', () => {
   const dir = tmp();
   const outside = tmp();

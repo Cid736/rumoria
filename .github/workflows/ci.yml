@@ -30,6 +30,30 @@ jobs:
       - run: npm run test:ui
       - run: npm run build:ui
 
+  android:
+    name: Android app builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Android SDK pieces (platform, NDK, CMake)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "ndk;28.2.13676358" "cmake;3.31.6" > /dev/null
+      # Node for Android (checksummed), the server and the page in the app's assets.
+      - run: npm run android:prepare
+      - name: Debug APKs
+        working-directory: android
+        run: bash gradlew assembleDebug --no-daemon --console=plain
+
   security:
     name: Security checks
     runs-on: ubuntu-latest

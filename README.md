@@ -1,8 +1,32 @@
 # Rumoria
 
-Tu música en el escritorio: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Elegido para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
+Tu música en el escritorio y en tu móvil Android: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Elegido para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
 
 Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tubegrab). La primera vez trae de allí tus listas, tu historial, tus favoritas y las novedades. Con «Descargar con TubeGrab» le pasas una canción para guardarla.
+
+## Descargar
+
+En la [última versión](https://github.com/Cid736/rumoria/releases/latest):
+
+| Para | Archivo |
+|---|---|
+| Windows (instalador) | `Rumoria-Setup.exe` |
+| Windows (portable) | `Rumoria.exe`, o `Rumoria-Lite.exe` (descarga yt-dlp al abrir) |
+| **Android** (casi todos los móviles) | `Rumoria-Android.apk` |
+| Android antiguo (32 bits) | `Rumoria-Android-32bit.apk` |
+
+**En Android:** abre el enlace en el móvil, descarga `Rumoria-Android.apk` y ábrelo. La primera vez Android pide permitir instalar apps de este origen (el navegador o la app de archivos): acepta y pulsa «Instalar». No está en Google Play, que no acepta apps que reproducen YouTube. Se actualiza sola: cuando hay versión nueva, Rumoria la descarga, la comprueba y te pregunta si instalarla.
+
+## En el móvil (Android)
+
+La misma Rumoria, hecha para el dedo:
+- abajo, cuatro pestañas: **Inicio, Buscar, Biblioteca y Ajustes**;
+- encima, **lo que suena**: tócalo y se abre en grande, con la portada, la barra, los controles, la **letra**, la **cola**, **Parecidas** y **Sonido**;
+- **sigue sonando** con la pantalla apagada o en otra app, con los controles en la **notificación**, en la pantalla de bloqueo y en los auriculares o el Bluetooth;
+- un toque pone una canción y una pulsación larga abre sus opciones; el botón atrás cierra lo que esté abierto y vuelve atrás;
+- yt-dlp va dentro del móvil, así que **no hace falta el ordenador**.
+
+Lo del escritorio que no está en el móvil: el mini reproductor, los atajos de teclado, Discord y «Tu música» (tus archivos).
 
 ## Funciones
 
@@ -59,15 +83,17 @@ npm install
 npm run fetch-ytdlp   # opcional
 npm test              # servidor + seguridad + interfaz
 npm run test:e2e      # la app de verdad con Playwright: capturas de cada estilo y del mini reproductor
-npm run dev           # http://127.0.0.1:5173
+npm run dev           # http://127.0.0.1:5173 (con ?phone, el diseño del móvil)
 npm start             # app de escritorio
 ```
+
+La app de Android, cómo se compila, se firma y se publica: [docs/ANDROID.md](docs/ANDROID.md).
 
 La arquitectura, la guía completa para levantar los dos proyectos y el resumen de los tests de seguridad están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 ## Privacidad
 
-Todo se queda en tu ordenador: listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras), a Spotify o Apple Music (solo cuando importas una lista) y, si activas la traducción de letras, a Google Translate (solo el texto de la letra). Lo que enseña en Discord, si lo activas, va a la app de Discord de tu ordenador.
+Todo se queda en tu ordenador (o en tu móvil): listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras), a Spotify o Apple Music (solo cuando importas una lista) y, si activas la traducción de letras, a Google Translate (solo el texto de la letra). Lo que enseña en Discord, si lo activas, va a la app de Discord de tu ordenador.
 
 ## Licencia
 

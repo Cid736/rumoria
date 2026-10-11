@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { UIS, useLook } from '../store/look.js';
 import { useUi } from '../store/ui.js';
 import { Library, MiniPlayer, Search, Sparkle } from './Icons.jsx';
+import { HERE } from '../lib/android.js';
 
 const KEY = 'rumoria_guide';
 // Someone who already used Rumoria (before the guide existed) isn't new.
@@ -50,7 +51,7 @@ const STEPS = [
   },
   {
     icon: <Sparkle size={30} />, title: 'Elegido para ti',
-    text: 'Cuanto más escuchas, mejor te conoce: «Para hoy», «Descubre algo nuevo», mezclas del día y la carpeta «Para ti». Si algo no te gusta, clic derecho → «No me recomiendes…». Lo que escuchas está en «Historial», y solo en este ordenador.',
+    text: `Cuanto más escuchas, mejor te conoce: «Para hoy», «Descubre algo nuevo», mezclas del día y la carpeta «Para ti». Si algo no te gusta, clic derecho → «No me recomiendes…». Lo que escuchas está en «Historial», y solo en ${HERE}.`,
   },
   {
     icon: <MiniPlayer size={30} />, title: 'Controles a mano',

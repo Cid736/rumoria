@@ -57,6 +57,8 @@ export const useUi = create((set, get) => ({
     const history = [...get().history.slice(0, get().at + 1), view].slice(-50);
     set({ history, at: history.length - 1 });
   },
+  /** A tab on the phone: starts over there (nothing to go back to). */
+  goTab(view) { set({ history: [view], at: 0 }); },
   back() { if (get().at > 0) set((s) => ({ at: s.at - 1 })); },
   forward() { if (get().at < get().history.length - 1) set((s) => ({ at: s.at + 1 })); },
   canBack: () => get().at > 0,

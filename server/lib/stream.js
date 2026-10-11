@@ -4,7 +4,7 @@
 // app's server then relays it to the player in pieces (so you can seek), only
 // ever to YouTube's own media servers. "Radio" is YouTube's own mix of
 // similar songs for that video.
-const { execFile } = require('child_process');
+const { run } = require('./ytdlp');
 const netfetch = require('./netfetch');
 
 const ID_RE = /^[A-Za-z0-9_-]{11}$/;
@@ -55,10 +55,8 @@ function lookUp(id, env, kind = 'audio') {
   return new Promise((resolve, reject) => {
     const args = ['--ignore-config', '--encoding', 'utf-8', '-J', '--no-playlist', '--no-warnings', '--ies', 'youtube',
       '-f', Object.hasOwn(FORMATS, kind) ? FORMATS[kind] : FORMATS.audio];
-    if (env.jsRuntime) args.push('--js-runtimes', `node:${env.jsRuntime}`);
-    if (env.cookiesPath) args.push('--cookies', env.cookiesPath);
-    args.push('--', `https://www.youtube.com/watch?v=${id}`);
-    execFile(env.ytDlpPath, args, { windowsHide: true, timeout: 60_000, maxBuffer: 16 * 1024 * 1024 }, (err, stdout) => {
+    // A phone works YouTube's challenge out more slowly than a PC.
+    run(env, args, `https://www.youtube.com/watch?v=${id}`, { timeout: env.ytDlpPrefix ? 120_000 : 60_000, maxBuffer: 16 * 1024 * 1024 }, (err, stdout) => {
       if (err) return reject(new Error('No se puede escuchar este vídeo (puede ser privado, tener límite de edad o no estar en tu país).'));
       let d;
       try { d = JSON.parse(stdout); } catch { return reject(new Error('YouTube no respondió bien.')); }

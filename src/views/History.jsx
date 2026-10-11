@@ -6,6 +6,7 @@ import { api } from '../api.js';
 import { fold, fromSaved } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import TrackTable from '../components/TrackTable.jsx';
+import { HERE } from '../lib/android.js';
 
 const RANGES = [[1, 'Hoy'], [7, '7 días'], [30, '30 días'], [90, '3 meses']];
 
@@ -54,7 +55,7 @@ export default function History() {
   return (
     <div className="history">
       <h1>Historial</h1>
-      <p className="muted">Lo que has escuchado, con la hora. Se guarda solo en este ordenador (Ajustes → Historial de escucha).</p>
+      <p className="muted">Lo que has escuchado, con la hora. Se guarda solo en {HERE} (Ajustes → Historial de escucha).</p>
       <div className="history-tools">
         <div className="chips" role="radiogroup" aria-label="Desde cuándo">
           {RANGES.map(([d, label]) => <button key={d} type="button" role="radio" aria-checked={days === d} className={`chip ${days === d ? 'on' : ''}`} onClick={() => setDays(d)}>{label}</button>)}

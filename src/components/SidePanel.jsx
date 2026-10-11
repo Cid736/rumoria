@@ -1,6 +1,7 @@
 // Right: the queue (what's playing and what comes next), or the lyrics
 // following the song (click a line to jump there).
 import { useEffect, useRef, useState } from 'react';
+import { isPhone } from '../lib/android.js';
 import { MODES, planSession } from '../player/dj.js';
 import { lineIndex, useLyrics } from '../player/useLyrics.js';
 import { useLyricsExtra } from '../player/useLyricsExtra.js';
@@ -13,7 +14,7 @@ import { Close, Wand } from './Icons.jsx';
 
 function QueueRow({ t, i, now, onPlay, onRemove }) {
   return (
-    <div className={`q-row ${now ? 'now' : ''}`} onDoubleClick={() => onPlay(i)}>
+    <div className={`q-row ${now ? 'now' : ''}`} onDoubleClick={() => onPlay(i)} onClick={isPhone ? () => onPlay(i) : undefined}>
       <Cover src={t.thumbnail} name={t.title} size={40} />
       <div className="q-text">
         <span className="q-title">{t.title}</span>
