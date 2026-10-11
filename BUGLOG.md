@@ -4,6 +4,33 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión 5: Rumoria para Mac (1.9.1)
+
+Compilada y probada en los Mac de GitHub (macOS 14, chip de Apple). En el Mac se pasaron los tests de servidor, seguridad e interfaz; se comprobó la firma y el contenido del `.zip` de actualización; y se abrió la app empaquetada con Playwright, con capturas en tema claro y oscuro y en los estilos Rumoria y Mac, y una búsqueda y un audio de verdad.
+
+### [Bug] Un Mac no podía usar yt-dlp
+- **Archivo:** `electron/main.js`, `scripts/fetch-ytdlp.js`
+- **Descripción:** fuera de Windows se descargaba el archivo `yt-dlp` de la release, que es un script de Python. Un Mac no trae Python, así que no se habría encontrado ninguna canción.
+- **Fix:** se descarga la versión independiente de cada sistema (`yt-dlp_macos`, `yt-dlp_linux`), con la misma comprobación SHA-256.
+
+### [Bug] El empaquetado intentaba publicar solo
+- **Archivo:** `package.json` (`dist:mac`)
+- **Descripción:** en GitHub Actions, electron-builder intenta subir la release por su cuenta y falla sin token.
+- **Fix:** `--publish never`; los archivos los sube el propio flujo con `gh release upload`.
+
+### [Seguridad] Actualizaciones en Mac
+- **Archivo:** `electron/updater.js` (`macBundle`, `MAC_SWAP`)
+- **Descripción:**
+  - Solo se descarga el `.zip` de tu procesador, comprobado con su SHA-256.
+  - El cambio de `Rumoria.app` recibe todas las rutas por el entorno, nunca escritas en el script.
+  - Si el zip está mal, se queda la versión anterior; un test lo prueba con `ditto` en el Mac.
+  - No se actualiza desde el `.dmg` ni desde una copia trasladada por macOS: avisa de que hay que moverla a Aplicaciones.
+
+### [Pendiente] Sin cuenta de desarrollador de Apple
+- **Descripción:** la firma es *ad-hoc*. La primera vez, macOS avisa de «desarrollador no identificado» y hay que abrirla con clic derecho → Abrir. Con la cuenta de Apple (99 $ al año) se podría firmar y notarizar, y el aviso desaparecería.
+
+---
+
 ## 2026-10-11 — Revisión 4: Rumoria para Android (1.9)
 
 Probado en el emulador (Pixel 7, Android 15, x86_64), con el APK de depuración y con el de publicación firmado. Instalación limpia, Inicio, buscar, poner canciones, pantalla apagada, notificación, botón atrás, giro de pantalla, tema claro y oscuro. El diseño también se probó a tamaño de móvil en un navegador.

@@ -94,6 +94,19 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.9.1: Rumoria para Mac (todo en [MAC.md](MAC.md))**
+
+- Se compila en los Mac de GitHub (`.github/workflows/mac.yml`), para chip de Apple (arm64) e Intel (x64), con firma *ad-hoc*: sin ella, macOS no abre una app en un Mac con chip de Apple.
+- **yt-dlp:** la versión independiente de cada sistema (`yt-dlp_macos`; un Mac no trae Python).
+- **Ventana:** los tres botones propios del Mac (la página les deja sitio, `.titlebar-native`), su menú (Edición, para copiar y pegar) y el Dock devuelve la ventana.
+- **Actualizaciones:** `Rumoria-mac-<arch>.zip`, comprobado con su SHA-256. Al cerrar Rumoria, un paso de shell (las rutas solo por el entorno) cambia `Rumoria.app` y, si algo falla, vuelve a poner la anterior. No se actualiza desde el `.dmg` ni desde una copia que macOS haya trasladado (*App Translocation*).
+- **Comprobado en el Mac de GitHub** (macOS 14, chip de Apple), con la app empaquetada:
+  - arranca;
+  - busca en YouTube (20 resultados en 5 s);
+  - recibe el audio;
+  - la firma es válida en los dos tipos de procesador;
+  - el cambio del `.app` funciona con `ditto` de verdad, y si el zip está mal se queda la versión anterior.
+
 **v1.9: Rumoria para Android (`android/`, todo en [ANDROID.md](ANDROID.md))**
 
 - **La misma pila dentro del teléfono:**

@@ -1,6 +1,6 @@
 # Rumoria
 
-Tu música en el escritorio y en tu móvil Android: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Elegido para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
+Tu música en Windows, en Mac y en tu móvil Android: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Elegido para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
 
 Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tubegrab). La primera vez trae de allí tus listas, tu historial, tus favoritas y las novedades. Con «Descargar con TubeGrab» le pasas una canción para guardarla.
 
@@ -12,8 +12,12 @@ En la [última versión](https://github.com/Cid736/rumoria/releases/latest):
 |---|---|
 | Windows (instalador) | `Rumoria-Setup.exe` |
 | Windows (portable) | `Rumoria.exe`, o `Rumoria-Lite.exe` (descarga yt-dlp al abrir) |
+| **Mac** con chip de Apple (M1 o más nuevo) | `Rumoria-mac-arm64.dmg` |
+| Mac con Intel | `Rumoria-mac-x64.dmg` |
 | **Android** (casi todos los móviles) | `Rumoria-Android.apk` |
 | Android antiguo (32 bits) | `Rumoria-Android-32bit.apk` |
+
+**En Mac:** abre el `.dmg` y arrastra Rumoria a **Aplicaciones**. La primera vez macOS dice que es de un desarrollador no identificado (Rumoria no paga la cuenta de desarrollador de Apple): haz **clic derecho sobre Rumoria → Abrir → Abrir**, o ve a Ajustes del Sistema → Privacidad y seguridad → «Abrir igualmente». Solo la primera vez. Se actualiza sola si está en Aplicaciones.
 
 **En Android:** abre el enlace en el móvil, descarga `Rumoria-Android.apk` y ábrelo. La primera vez Android pide permitir instalar apps de este origen (el navegador o la app de archivos): acepta y pulsa «Instalar». No está en Google Play, que no acepta apps que reproducen YouTube. Se actualiza sola: cuando hay versión nueva, Rumoria la descarga, la comprueba y te pregunta si instalarla.
 
@@ -87,7 +91,7 @@ npm run dev           # http://127.0.0.1:5173 (con ?phone, el diseño del móvil
 npm start             # app de escritorio
 ```
 
-La app de Android, cómo se compila, se firma y se publica: [docs/ANDROID.md](docs/ANDROID.md).
+La app de Android, cómo se compila, se firma y se publica: [docs/ANDROID.md](docs/ANDROID.md). La de Mac la compilan los Mac de GitHub: [docs/MAC.md](docs/MAC.md).
 
 La arquitectura, la guía completa para levantar los dos proyectos y el resumen de los tests de seguridad están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
