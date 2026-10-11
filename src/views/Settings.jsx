@@ -14,7 +14,8 @@ import { DiscordSettings, GuideSettings, HiddenSettings, LyricsSettings, SearchS
 import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 import AlarmSettings from '../components/AlarmSettings.jsx';
 import SyncSettings from './SyncSettings.jsx';
-import { Gear, Keyboard, MiniPlayer, Moon, Play, Refresh, Search, Shield, Sparkle } from '../components/Icons.jsx';
+import MobileApp from './MobileApp.jsx';
+import { Gear, Keyboard, MiniPlayer, Moon, Phone, Play, Refresh, Search, Shield, Sparkle } from '../components/Icons.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
 const TAB_KEY = 'rumoria_settings_tab';
@@ -164,7 +165,8 @@ function WindowKeys() {
 // The topics, in the menu's order.
 export const TABS = [
   ['look', 'Aspecto', Moon, 'Tema, colores y estilo'],
-  ['sync', 'Sincronizar', Refresh, 'PC, Mac y móvil, sin cuenta'],
+  // On the computer: get the phone app and sync it; on the phone: sync.
+  ['sync', isPhone ? 'Sincronizar' : 'Tu móvil', isPhone ? Refresh : Phone, isPhone ? 'Tus listas en tus otros dispositivos' : 'Descargar la app y sincronizar'],
   ['play', 'Reproducción', Play, 'Al abrir, despertador, letras'],
   ['foryou', 'Recomendaciones', Sparkle, 'Para ti y lo que no quieres'],
   ['privacy', 'Privacidad', Shield, 'Historial, búsquedas, Discord'],
@@ -177,6 +179,7 @@ export const TABS = [
 export const SECTIONS = [
   { tab: 'look', id: 'customize', title: 'Personalizar', words: 'tema oscuro claro estilo windows mac color acento fondo tamaño texto letra densidad esquinas tipo de letra fuente biblioteca ancho portada animaciones inicio estanterías explorar radios rotación restablecer', C: Customize },
   { tab: 'look', id: 'guide', title: 'Guía de bienvenida', words: 'guía ayuda tutorial primeros pasos', C: GuideSettings },
+  { tab: 'sync', id: 'phone', title: 'Rumoria en tu móvil', words: 'móvil android app apk descargar instalar qr teléfono celular iphone', C: MobileApp },
   { tab: 'sync', id: 'sync', title: 'Sincronizar', words: 'sincronizar sincronización nube código móvil android mac pc otro dispositivo copia mismas listas', C: SyncSettings },
   { tab: 'play', id: 'playback', title: 'Reproducción', words: 'seguir donde lo dejaste cola empezar a sonar al abrir bandeja cerrar segundo plano sonido ecualizador', C: PlaybackSettings },
   { tab: 'play', id: 'alarm', title: 'Despertador', words: 'despertador alarma hora días volumen subir mañana', C: AlarmSection },
@@ -220,7 +223,7 @@ function PhoneUpdates() {
 }
 
 // On the phone: no mini player, no keyboard, no music folder; its own updates.
-const PHONE_HIDDEN = new Set(['mini', 'shortcuts', 'windowkeys', 'music', 'discord', 'youtube', 'updates']);
+const PHONE_HIDDEN = new Set(['phone', 'mini', 'shortcuts', 'windowkeys', 'music', 'discord', 'youtube', 'updates']);
 const sections = () => (isPhone
   ? [...SECTIONS.filter((s) => !PHONE_HIDDEN.has(s.id)), { tab: 'system', id: 'phoneupdates', title: 'Actualizaciones', words: 'actualizaciones versión actualizar github youtube yt-dlp no carga canciones', C: PhoneUpdates }]
   : SECTIONS);

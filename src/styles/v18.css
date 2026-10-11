@@ -57,3 +57,11 @@
 .set-row .sync-join-box { flex-direction: row; align-items: center; }
 .sync-join-box .btn, .sync .set-row > .btn, .sync-actions .btn { flex: none; white-space: nowrap; }
 .set-row .sync-actions { flex-direction: row; align-items: center; }
+
+/* ---- Ajustes → Tu móvil: the QR code and the steps ---- */
+.mobile-app-body { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; margin-top: 12px; }
+.mobile-qr { flex: none; width: 168px; height: 168px; padding: 8px; border-radius: var(--radius-sm); background: #fff; image-rendering: pixelated; }
+.mobile-app-text { flex: 1 1 280px; min-width: 0; }
+.mobile-steps { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+.mobile-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.mobile-actions .btn { text-decoration: none; display: inline-flex; align-items: center; }

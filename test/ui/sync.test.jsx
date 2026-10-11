@@ -93,3 +93,18 @@ describe('Sincronizar', () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+describe('Tu móvil', () => {
+  it('the QR, the link to the newest APK (opens outside), and how to install it', async () => {
+    const { default: MobileApp, ANDROID_URL } = await import('../../src/views/MobileApp.jsx');
+    render(<MobileApp />);
+    expect(ANDROID_URL).toBe('https://github.com/Cid736/rumoria/releases/latest/download/Rumoria-Android.apk');
+    expect(screen.getByAltText(/Código QR/)).toHaveAttribute('src', '/qr-android.svg');
+    const link = screen.getByRole('link', { name: 'Abrir el enlace' });
+    expect(link).toHaveAttribute('href', ANDROID_URL);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByText(/iPhone/)).toBeInTheDocument();
+    expect(findSections('descargar apk').map((s) => s.id)).toEqual(['phone']);
+  });
+});

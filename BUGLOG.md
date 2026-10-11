@@ -4,6 +4,25 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — 1.10.1: descargar la app del móvil desde el ordenador
+
+### [Mejora] Ajustes → Tu móvil
+- **Archivo:** `src/views/MobileApp.jsx`, `public/qr-android.svg`, `electron/main.js` (`EXTERNAL_RE`)
+- **Descripción:** en el ordenador (Windows, Mac y en el navegador), Ajustes tiene un apartado «Tu móvil» con lo necesario para pasar Rumoria al móvil y luego sincronizarlo:
+  - un código QR para escanear con la cámara del móvil;
+  - «Abrir el enlace» y «Copiar enlace»;
+  - los pasos para instalarla;
+  - una explicación de por qué no hay versión para iPhone.
+
+  El enlace es `…/releases/latest/download/Rumoria-Android.apk`, así que siempre da la última versión. El QR se generó una sola vez, porque el enlace no cambia, y no añade ninguna dependencia.
+- **Seguridad:** la app de escritorio solo abre en el navegador enlaces de YouTube, Spotify, Apple Music y, ahora, `github.com/Cid736/rumoria/releases/`. Ningún otro enlace de GitHub. Hay un test para esto.
+- **Comprobado:**
+  - el QR leído desde una imagen da el enlace exacto;
+  - el enlace lleva a la 1.10.0;
+  - en la app de Windows, «Abrir el enlace» pasa al navegador y la ventana se queda en Rumoria.
+
+---
+
 ## 2026-10-11 — Revisión 6: Sincronizar (1.10)
 
 Probado contra el Supabase real. Primero con dos dispositivos simulados en el PC. Después, el servidor real de Rumoria en el PC con la app del emulador de Android (Node sin Intl): crear el código, unirse escribiéndolo en mayúsculas y sin guiones, listas y favoritas en los dos sentidos, un borrado que llega al otro y borrar de la nube. Tests: 12 de la sincronización y 7 de la pantalla.

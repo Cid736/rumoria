@@ -19,7 +19,7 @@ En la [última versión](https://github.com/Cid736/rumoria/releases/latest):
 
 **En Mac:** abre el `.dmg` y arrastra Rumoria a **Aplicaciones**. La primera vez macOS dice que es de un desarrollador no identificado (Rumoria no paga la cuenta de desarrollador de Apple): haz **clic derecho sobre Rumoria → Abrir → Abrir**, o ve a Ajustes del Sistema → Privacidad y seguridad → «Abrir igualmente». Solo la primera vez. Se actualiza sola si está en Aplicaciones.
 
-**En Android:** abre el enlace en el móvil, descarga `Rumoria-Android.apk` y ábrelo. La primera vez Android pide permitir instalar apps de este origen (el navegador o la app de archivos): acepta y pulsa «Instalar». No está en Google Play, que no acepta apps que reproducen YouTube. Se actualiza sola: cuando hay versión nueva, Rumoria la descarga, la comprueba y te pregunta si instalarla.
+**En Android:** desde el ordenador, Ajustes → **Tu móvil** tiene un código QR: escanéalo con la cámara del móvil. O abre el enlace en el móvil, descarga `Rumoria-Android.apk` y ábrelo. La primera vez Android pide permitir instalar apps de este origen (el navegador o la app de archivos): acepta y pulsa «Instalar». No está en Google Play, que no acepta apps que reproducen YouTube. Se actualiza sola: cuando hay versión nueva, Rumoria la descarga, la comprueba y te pregunta si instalarla.
 
 ## En el móvil (Android)
 

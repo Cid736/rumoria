@@ -197,7 +197,7 @@ function startServer() {
 const isAppUrl = (u) => { try { return new URL(u).origin === appOrigin; } catch { return false; } };
 const isTrustedSender = (event) => Boolean(event.senderFrame) && isAppUrl(event.senderFrame.url) && mainWindow && event.sender === mainWindow.webContents;
 // Links that may open in the browser: YouTube, Spotify, Apple Music; nothing else.
-const EXTERNAL_RE = /^https:\/\/(www\.|music\.)?(youtube\.com|youtu\.be|open\.spotify\.com|music\.apple\.com)\//;
+const EXTERNAL_RE = /^https:\/\/((www\.|music\.)?(youtube\.com|youtu\.be|open\.spotify\.com|music\.apple\.com)\/|github\.com\/Cid736\/rumoria\/releases\/)/;
 
 app.on('web-contents-created', (_e, contents) => {
   contents.on('will-navigate', (e, url) => { if (!isAppUrl(url)) e.preventDefault(); });
