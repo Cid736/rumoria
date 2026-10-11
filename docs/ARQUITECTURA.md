@@ -94,6 +94,21 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.11: Android Auto, la música sin la ventana y avisos discretos (todo en [ANDROID.md](ANDROID.md))**
+
+- **`WebHost.java`:** la página, que es la que reproduce, vive con la app y no con la ventana: es un WebView con `MutableContextWrapper` que la ventana solo muestra. Sin ventana sigue sonando, por ejemplo al quitar la app de recientes o al empezar desde el coche. Las órdenes que llegan mientras carga esperan en cola.
+- **Android Auto:** `PlaybackService` es un `MediaBrowserServiceCompat`.
+  - `AutoLibrary.java` le da dos pestañas, Favoritas y Tus listas, y las canciones de cada lista. Las saca del servidor local con el secreto de esa sesión.
+  - Con `onPlayFromMediaId` y `onPlayFromSearch` se pone música desde el coche o por voz (`playFromCar` en `src/lib/android.js`).
+  - Solo pueden navegar esta app, Android Auto, el coche, el Asistente y el sistema; se comprueba el paquete contra el uid de quien llama.
+  - Hay una prueba instrumentada (`androidTest/.../AutoTest.java`).
+- **Bluetooth:** con `ACTION_AUDIO_BECOMING_NOISY` se pausa al desconectar los auriculares o el Bluetooth.
+- **Actualizaciones en Android:** una versión encontrada sola no abre ninguna ventana. Sale un punto en Ajustes, «Instalar» en Ajustes → Sistema y un aviso corto, una vez por versión.
+
+**v1.10.2:** si la copia de la nube desaparece o empieza de nuevo (falta, o su versión es más antigua que la última vista), ya no hay nada en común y las bibliotecas se juntan, en vez de darlo todo por borrado. Una tabla o funciones que faltan se explican con un mensaje claro.
+
+**v1.10.1:** Ajustes → Tu móvil, en el ordenador. Lleva un QR (`public/qr-android.svg`, generado una sola vez, porque el enlace a `releases/latest/download/Rumoria-Android.apk` no cambia), «Abrir el enlace» y «Copiar enlace». `EXTERNAL_RE` solo deja abrir, de GitHub, las releases de Rumoria.
+
 **v1.10: Sincronizar (todo en [SINCRONIZAR.md](SINCRONIZAR.md))**
 
 - Las listas, las Favoritas y las listas inteligentes se sincronizan entre PC, Mac y móvil, sin cuenta y sin que la nube pueda leerlas.

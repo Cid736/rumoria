@@ -8,6 +8,8 @@
 
 # Privacidad y condiciones de uso
 
+*Última actualización: 11 de octubre de 2026 (Rumoria 1.11).*
+
 Rumoria es software gratuito y de código abierto (licencia MIT), mantenido por Eric Cid López a título personal. No se vende nada, no hay cuentas de usuario, pagos ni publicidad.
 
 ## Privacidad
@@ -61,6 +63,10 @@ Tu carpeta de música solo se lee en tu equipo; nada de ella sale a internet.
 
 **En Android:** todo lo anterior se guarda en el almacenamiento privado de la app en tu móvil (ninguna otra app lo puede leer) y queda **fuera de la copia de seguridad de Google** y de la transferencia a otro móvil: si desinstalas Rumoria, se borra. Las conexiones son las mismas que en el escritorio (YouTube, LRCLIB, Spotify o Apple Music al importar, Google Translate solo si lo activas, GitHub para yt-dlp cada 6 horas y para buscar versiones nuevas de Rumoria cada 12 horas). La notificación y la pantalla de bloqueo muestran la canción que suena; descargar la portada para ellas solo se hace desde los servidores de imágenes de YouTube. Una actualización solo se instala si tú lo aceptas y su huella SHA-256 coincide con la publicada en GitHub. Sin Discord ni atajos globales.
 
+**Android Auto y el Asistente de Google (Android):** al conectar el móvil al coche, Rumoria enseña a Android Auto los nombres de tus listas y los títulos y artistas de sus canciones y de tus Favoritas, para mostrarlos en la pantalla del coche. Si pides música por voz («Ok Google, pon … en Rumoria»), Google procesa lo que dices según su propia política de privacidad, y Rumoria solo recibe el texto de la búsqueda, que busca en YouTube como cualquier otra. Solo pueden ver tu biblioteca Rumoria, Android Auto, el sistema multimedia del coche, el Asistente y los controles multimedia del propio Android. Ninguna otra app instalada puede.
+
+**Descargar la app del móvil desde el ordenador (Ajustes → Tu móvil):** el código QR y el enlace llevan a la última versión publicada en GitHub (`github.com/Cid736/rumoria/releases`). Se abren en tu navegador, que conecta con GitHub. Rumoria no envía nada.
+
 **Cookies:** el servidor interno de la app usa una cookie técnica que caduca al cerrarla, imprescindible para que solo la propia app pueda hablar con él. Está exenta de consentimiento (art. 22.2 LSSI / art. 5.3 Directiva ePrivacy).
 
 ## Condiciones de uso
@@ -83,6 +89,8 @@ Dudas, problemas o solicitudes de retirada: abre un *issue* en [github.com/Cid73
 
 # Privacy and terms of use
 
+*Last updated: 11 October 2026 (Rumoria 1.11).*
+
 Rumoria is free, open-source software (MIT licence), maintained by Eric Cid López as an individual. Nothing is sold; there are no user accounts, payments or ads.
 
 ## Privacy
@@ -96,6 +104,10 @@ Third-party connections (each service has its own privacy policy): **Sincronizar
 **On a Mac:** the same as on Windows; your data is in `~/Library/Application Support/rumoria`, and updates are the app's `.zip` for your processor, checked against its SHA-256.
 
 **On Android:** all of the above is kept in the app's private storage on your phone (no other app can read it) and is **left out of Google's backup** and of transfers to another phone: uninstalling Rumoria deletes it. The connections are the same as on the desktop (YouTube, LRCLIB, Spotify or Apple Music when importing, Google Translate only if you turn it on, GitHub for yt-dlp every 6 hours and to look for new Rumoria versions every 12 hours). The notification and the lock screen show the song playing; its cover is only fetched from YouTube's image servers. An update is installed only if you accept it and its SHA-256 matches the one published on GitHub. No Discord or global shortcuts.
+
+**Android Auto and the Google Assistant (Android):** when the phone is connected to the car, Rumoria shows Android Auto your lists' names and the titles and artists of their songs and of your favourites, to display them on the car's screen. If you ask for music by voice ("Ok Google, play … on Rumoria"), Google processes what you say under its own privacy policy, and Rumoria only receives the search text, which it searches on YouTube like any other. Only Rumoria, Android Auto, the car's media system, the Assistant and Android's own media controls can see your library; no other installed app can.
+
+**Getting the phone app from the computer (Settings → Tu móvil):** the QR code and the link go to the newest release on GitHub (`github.com/Cid736/rumoria/releases`). They open in your browser, which connects to GitHub; Rumoria sends nothing.
 
 **Cookies:** the app's internal server uses one technical session cookie, so that only the app itself can talk to it; it's exempt from consent (EU ePrivacy Directive art. 5(3)).
 

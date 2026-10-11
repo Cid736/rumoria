@@ -100,7 +100,7 @@ La arquitectura, la guía completa para levantar los dos proyectos y el resumen 
 
 ## Privacidad
 
-Todo se queda en tu ordenador (o en tu móvil): listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras), a Spotify o Apple Music (solo cuando importas una lista) y, si activas la traducción de letras, a Google Translate (solo el texto de la letra). Lo que enseña en Discord, si lo activas, va a la app de Discord de tu ordenador.
+Todo se queda en tu ordenador (o en tu móvil): listas, historial y favoritas. El historial se puede pausar o borrar en Ajustes. Solo se conecta a YouTube (para buscar y reproducir), a LRCLIB (para las letras), a Spotify o Apple Music (solo cuando importas una lista) y, si activas la traducción de letras, a Google Translate (solo el texto de la letra). Lo que enseña en Discord, si lo activas, va a la app de Discord de tu ordenador. En el coche, Android Auto ve tus listas para enseñarlas en su pantalla. Sincronizar, si lo activas, sube tu biblioteca cifrada en tu dispositivo: la nube no puede leerla. Todo en [LEGAL.md](LEGAL.md).
 
 ## Licencia
 

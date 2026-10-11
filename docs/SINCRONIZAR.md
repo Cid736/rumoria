@@ -26,11 +26,13 @@ Tus listas, Favoritas y listas inteligentes quedan iguales en el PC, el Mac y el
   - Lo nuevo de cualquier lado se queda.
   - Al unirse con un código, se juntan las dos bibliotecas.
   - Las listas de «Para ti» no se sincronizan, porque cada dispositivo hace las suyas.
+- **Lo que un dispositivo no puede guardar:** por ejemplo, de otra versión de Rumoria. Antes de mezclar, lo que llega de la nube se limpia igual que al guardar. Lo que este dispositivo no puede guardar vuelve a la nube intacto, para los que sí pueden, y nunca cuenta como borrado.
+- **Si la nube pierde la copia o empieza de nuevo** (la fila no está, o su versión es más antigua que la última vista): ya no hay nada en común, así que las bibliotecas se juntan, como al unirse por primera vez. Nada se da por borrado.
 - **Dónde está el código:** en `sync.json`, dentro de la carpeta de datos de cada dispositivo, junto al resto de tu biblioteca.
 
 ## Ponerlo en marcha (una vez)
 
-1. En Supabase → **SQL Editor**, pega y ejecuta `supabase/rumoria-sync.sql`. Hace tres cosas:
+1. En Supabase → **SQL Editor**, pega y ejecuta `supabase/rumoria-sync.sql`. Si un día se borra la tabla, se vuelve a ejecutar y ya está. Hace tres cosas:
    - añade las columnas que faltan a `sync_libraries`;
    - **cierra la tabla**: quita las políticas públicas y desactiva Realtime;
    - crea las tres funciones.
