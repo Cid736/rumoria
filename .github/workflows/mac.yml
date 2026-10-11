@@ -1,0 +1,67 @@
+name: Mac
+
+# Rumoria for Mac is built on GitHub's Macs (macOS's tools only run there):
+# the tests, Rumoria.app for Apple chips (arm64) and Intel (x64) with an ad-hoc
+# signature, the packaged app opened and looked at (screenshots and a report
+# as an artifact), and — for a release — its .dmg and .zip added to it.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release to add the Mac files to (empty: only build and test)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    name: Build and test on a Mac
+    runs-on: macos-14
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tests (server, security, interface)
+        run: |
+          npm run test:server
+          npm run test:ui
+      - name: Rumoria.app (arm64 and x64), .dmg and .zip
+        run: npm run dist:mac
+      - name: The signature and what the update zip holds
+        run: |
+          ls -la release
+          for a in arm64 x64; do
+            # electron-builder puts the x64 app in release/mac, the arm64 one in release/mac-arm64.
+            if [ "$a" = arm64 ]; then app=release/mac-arm64/Rumoria.app; else app=release/mac/Rumoria.app; fi
+            codesign --verify --deep --strict --verbose=2 "$app"
+            lipo -archs "$app/Contents/MacOS/Rumoria"
+            unzip -l "release/Rumoria-mac-$a.zip" | grep -q " Rumoria.app/Contents/MacOS/Rumoria$"
+            test -x "$app/Contents/Resources/app/bin/yt-dlp"
+          done
+      - name: The packaged app, opened
+        run: npx playwright test test/e2e/mac.spec.mjs
+        env:
+          RUMORIA_MAC_APP: ${{ github.workspace }}/release/mac-arm64/Rumoria.app/Contents/MacOS/Rumoria
+      - name: Screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-screenshots
+          path: test-results/mac
+          if-no-files-found: warn
+      - name: Added to the release
+        if: env.TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" release/Rumoria-mac-arm64.dmg release/Rumoria-mac-x64.dmg release/Rumoria-mac-arm64.zip release/Rumoria-mac-x64.zip --clobber

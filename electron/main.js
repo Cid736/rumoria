@@ -2,7 +2,7 @@
 // and yt-dlp kept up to date. The page runs sandboxed with no Node access;
 // the few things it may ask for (pick the music folder, send a song to
 // TubeGrab) go through preload.js and are checked again here.
-const { app, BrowserWindow, dialog, globalShortcut, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, session, shell } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -103,6 +103,8 @@ function musicDir() {
 
 // === yt-dlp: our own copy in userData/bin, kept current by `yt-dlp -U` ===
 const YTDLP_NAME = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+// Its release file: the standalone build for this system (a Mac has no Python of its own).
+const YTDLP_ASSET = { win32: 'yt-dlp.exe', darwin: 'yt-dlp_macos', linux: 'yt-dlp_linux' }[process.platform] || 'yt-dlp';
 const ytDlpPath = () => path.join(userData(), 'bin', YTDLP_NAME);
 const ALLOWED_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
 function fetchBuffer(u, redirects = 5) {
@@ -125,8 +127,8 @@ function fetchBuffer(u, redirects = 5) {
 /** The latest release, installed only if its SHA-256 matches the published sums. */
 async function downloadYtDlp(dest) {
   const base = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
-  const [bin, sums] = await Promise.all([fetchBuffer(`${base}/${YTDLP_NAME}`), fetchBuffer(`${base}/SHA2-256SUMS`)]);
-  const line = sums.toString('utf8').split('\n').find((l) => l.trim().endsWith(` ${YTDLP_NAME}`));
+  const [bin, sums] = await Promise.all([fetchBuffer(`${base}/${YTDLP_ASSET}`), fetchBuffer(`${base}/SHA2-256SUMS`)]);
+  const line = sums.toString('utf8').split('\n').find((l) => l.trim().endsWith(` ${YTDLP_ASSET}`));
   const expected = line && line.trim().split(/\s+/)[0].toLowerCase();
   if (!expected || crypto.createHash('sha256').update(bin).digest('hex') !== expected) throw new Error('yt-dlp no coincide con su huella SHA-256');
   fs.writeFileSync(dest, bin, { mode: 0o755 });
@@ -221,6 +223,8 @@ function createWindow(port) {
     // caption buttons or Mac's three lights, as chosen in Personalizar) and
     // its buttons come back through rumoria:window below.
     titleBarStyle: 'hidden',
+    // On a Mac its own three lights stay (the page leaves room for them), centred in the page's bar.
+    ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 12, y: 10 } } : {}),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -308,6 +312,8 @@ app.on('before-quit', () => { app.isQuitting = true; });
 // An update downloaded but not applied yet: put in place as Rumoria closes.
 app.on('will-quit', () => { shortcuts.stop(); discord.stop(); ytdlpKeeper.stop(); updater.onQuit(); });
 app.on('window-all-closed', () => app.quit());
+// Mac: the Dock icon brings back a hidden window ("seguir sonando en la bandeja", or behind the mini).
+app.on('activate', () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } });
 app.on('quit', () => { if (serverProcess) serverProcess.kill(); });
 
 app.whenReady().then(async () => {
@@ -322,6 +328,8 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin) => (
     ['media', 'speaker-selection'].includes(perm) && Boolean(mainWindow) && wc === mainWindow.webContents && isAppUrl(String(origin || ''))
   ));
+  // Mac: its menu bar (Rumoria, Edición for copy and paste in the boxes, Ventana); nothing else.
+  if (process.platform === 'darwin') Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]));
   const copied = E2E ? [] : migrateFromTubeGrab(TUBEGRAB_DATA, userData());
   if (copied.length) console.log(`Rumoria: copiado de TubeGrab: ${copied.join(', ')}`);
   try { await ensureYtDlp(); if (!E2E) ytdlpKeeper.start(); } catch (err) {

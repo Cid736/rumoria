@@ -2,6 +2,8 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('rumoria', {
+  // 'win32', 'darwin' (Mac)…: the page leaves room for a Mac's own window buttons.
+  platform: process.platform,
   settings: () => ipcRenderer.invoke('rumoria:settings'),
   pickMusicDir: () => ipcRenderer.invoke('rumoria:pickMusicDir'),
   setCloseToTray: (on) => ipcRenderer.invoke('rumoria:setCloseToTray', on === true),

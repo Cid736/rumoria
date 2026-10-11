@@ -28,7 +28,8 @@
     "dist": "npm run fetch-ytdlp && npm run notices && vite build && electron-builder",
     "dist:lite": "npm run notices && vite build && electron-builder --config electron-builder.lite.js",
     "android:prepare": "npm run notices && vite build && node scripts/android-prepare.js",
-    "android:build": "npm run android:prepare && cd android && gradlew assembleRelease"
+    "android:build": "npm run android:prepare && cd android && gradlew assembleRelease",
+    "dist:mac": "npm run fetch-ytdlp && npm run notices && vite build && electron-builder --mac"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -48,6 +49,7 @@
       "dist/**/*",
       "build/icon.png",
       "bin/yt-dlp.exe",
+      "bin/yt-dlp",
       "package.json",
       "LICENSE",
       "LEGAL.md",
@@ -72,6 +74,34 @@
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.music",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "artifactName": "Rumoria-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Rumoria",
+      "artifactName": "Rumoria-mac-${arch}.${ext}"
     }
   },
   "devDependencies": {

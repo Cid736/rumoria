@@ -28,6 +28,10 @@ export default function TitleBar() {
     return () => { delete document.documentElement.dataset.titlebar; };
   }, [shown]);
   if (!shown) return null;
+  // On a Mac its own three lights are there already: room for them, and the name.
+  if (desktop.platform === 'darwin') {
+    return <header className={`titlebar titlebar-native ${blurred ? 'blurred' : ''}`}><span className="titlebar-title">Rumoria</span></header>;
+  }
   const act = (a) => () => win.control(a);
   const mac = ui === 'mac';
   return (

@@ -5,8 +5,12 @@
 // y actualizar" — or simply closing Rumoria — puts it in place:
 //  - installed (Rumoria-Setup.exe): the new installer runs silently over it;
 //  - portable (Rumoria.exe / Rumoria-Lite.exe): a small PowerShell step waits
-//    for Rumoria to close, swaps the .exe and (when asked) opens it again.
-// Your lists and history live in %APPDATA%\rumoria and are never touched.
+//    for Rumoria to close, swaps the .exe and (when asked) opens it again;
+//  - Mac (Rumoria-mac-arm64.zip / -x64.zip, the app zipped): a small shell step
+//    waits for Rumoria to close, unzips the new Rumoria.app next to this one and
+//    swaps them (the old one is put back if anything fails).
+// Your lists and history live in your user folder (%APPDATA%\rumoria,
+// ~/Library/Application Support/rumoria) and are never touched.
 const { app, net } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -31,10 +35,36 @@ function isNewer(remote, local) {
 }
 
 /** Which file of a release updates this copy. */
-function assetName({ portable, packaged, lite }) {
+function assetName({ portable, packaged, lite, platform = 'win32', arch = 'x64' }) {
+  if (platform === 'darwin') return `Rumoria-mac-${arch === 'arm64' ? 'arm64' : 'x64'}.zip`;
   if (!portable && packaged) return 'Rumoria-Setup.exe';
   return lite ? 'Rumoria-Lite.exe' : 'Rumoria.exe';
 }
+
+const canWrite = (dir) => { try { fs.accessSync(dir, fs.constants.W_OK); return true; } catch { return false; } };
+
+/**
+ * The Rumoria.app this copy runs from (…/Rumoria.app/Contents/MacOS/Rumoria),
+ * or why it can't update itself: run from the disk image or from a place
+ * macOS moved it to (App Translocation), or a folder it can't write to.
+ */
+function macBundle(execPath, { writable = canWrite } = {}) {
+  const bundle = path.posix.resolve(execPath, '..', '..', '..');
+  if (!bundle.endsWith('.app')) return { error: 'no se encontró Rumoria.app' };
+  if (bundle.includes('/AppTranslocation/') || bundle.startsWith('/Volumes/')) return { error: 'mueve Rumoria a la carpeta Aplicaciones para que se actualice sola' };
+  if (!writable(path.posix.dirname(bundle))) return { error: `no se puede escribir en ${path.posix.dirname(bundle)}` };
+  return { bundle };
+}
+
+// The Mac swap: every path comes in through the environment, never into the script text.
+const MAC_SWAP = [
+  'while kill -0 "$RU_PID" 2>/dev/null; do sleep 0.5; done',
+  'rm -rf "$RU_NEW" && mkdir -p "$RU_NEW" && /usr/bin/ditto -x -k "$RU_SRC" "$RU_NEW" || exit 1',
+  '[ -d "$RU_NEW/Rumoria.app" ] || exit 1',
+  'rm -rf "$RU_OLD" && mv "$RU_DST" "$RU_OLD" || exit 1',
+  'if mv "$RU_NEW/Rumoria.app" "$RU_DST"; then rm -rf "$RU_OLD" "$RU_NEW"; else mv "$RU_OLD" "$RU_DST"; exit 1; fi',
+  'if [ "$RU_RUN" = 1 ]; then /usr/bin/open "$RU_DST"; fi',
+].join('\n');
 
 /** The release's file for this build, with its published SHA-256, or a reason why not. */
 function pickAsset(release, name, current) {
@@ -150,7 +180,8 @@ function sweepOld({ tmp = os.tmpdir(), now = Date.now() } = {}) {
  */
 function createUpdater({ root, send, quit }) {
   const portable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE);
-  const name = assetName({ portable, packaged: app.isPackaged, lite: !fs.existsSync(path.join(root, 'bin', 'yt-dlp.exe')) });
+  const mac = process.platform === 'darwin';
+  const name = assetName({ portable, packaged: app.isPackaged, lite: !fs.existsSync(path.join(root, 'bin', 'yt-dlp.exe')), platform: process.platform, arch: process.arch });
   let state = { status: 'idle', current: app.getVersion(), latest: null, percent: null, error: null };
   let ready = null; // the verified file, waiting to be put in place
   let busy = false;
@@ -161,6 +192,9 @@ function createUpdater({ root, send, quit }) {
   async function check() {
     if (!app.isPackaged) { set({ status: 'dev' }); return; }
     if (busy || ready) return;
+    // On a Mac, only a Rumoria.app it can replace.
+    const where = mac ? macBundle(process.execPath) : null;
+    if (where && where.error) { set({ status: 'error', error: where.error }); return; }
     busy = true;
     set({ status: 'checking', error: null });
     let dir = null;
@@ -193,7 +227,13 @@ function createUpdater({ root, send, quit }) {
   function install(relaunch) {
     if (!ready || installing) return false;
     installing = true;
-    if (!portable) {
+    if (mac) {
+      const { bundle } = macBundle(process.execPath);
+      spawn('/bin/sh', ['-c', MAC_SWAP], {
+        detached: true, stdio: 'ignore',
+        env: { ...process.env, RU_PID: String(process.pid), RU_SRC: ready, RU_DST: bundle, RU_NEW: path.join(path.dirname(ready), 'unzipped'), RU_OLD: path.posix.join(path.posix.dirname(bundle), 'Rumoria.old.app'), RU_RUN: relaunch ? '1' : '0' },
+      }).unref();
+    } else if (!portable) {
       // The verified installer, silent, over this install (per-user, no admin).
       spawn(ready, relaunch ? ['/S', '--force-run'] : ['/S'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     } else {
@@ -223,4 +263,4 @@ function createUpdater({ root, send, quit }) {
   };
 }
 
-module.exports = { createUpdater, isNewer, assetName, pickAsset, sweepOld };
+module.exports = { createUpdater, isNewer, assetName, macBundle, MAC_SWAP, pickAsset, sweepOld };

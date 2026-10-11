@@ -127,3 +127,7 @@
 .guide-again input { accent-color: var(--accent); }
 .guide .dialog-actions { align-self: stretch; }
 .guide-skip { margin-right: auto; }
+/* A Mac's own window buttons (the app on a Mac): room for them on the left, the name centred. */
+.titlebar-native { padding-left: 78px; }
+.titlebar-native .titlebar-title { text-align: center; margin-right: 78px; font-size: 13px; color: var(--text); opacity: 0.8; }
+.titlebar-native.blurred .titlebar-title { opacity: 0.45; }

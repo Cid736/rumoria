@@ -17,6 +17,9 @@ const SONG = {
   upNext: 'La siguiente · Otro artista', queue: [{ i: 1, title: 'La siguiente', artist: 'Otro artista' }, { i: 2, title: 'Y otra', artist: 'Alguien' }],
 };
 
+// Screenshots made and compared on Windows (fonts and scaling); a Mac has its own spec (mac.spec.mjs).
+test.skip(process.platform !== 'win32', 'screenshots are made on Windows');
+
 let app;
 let page;
 let dataDir;

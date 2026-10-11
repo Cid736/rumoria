@@ -83,3 +83,54 @@ test('updater: old download folders go — only ours, only folders, only when no
     assert.equal(sweepOld({ tmp: path.join(tmp, 'nope') }), 0);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
+
+test('updater on a Mac: its zip by processor; only a Rumoria.app it can replace', () => {
+  const { assetName, macBundle } = require('../../electron/updater');
+  assert.equal(assetName({ platform: 'darwin', arch: 'arm64', packaged: true }), 'Rumoria-mac-arm64.zip');
+  assert.equal(assetName({ platform: 'darwin', arch: 'x64', packaged: true }), 'Rumoria-mac-x64.zip');
+  const yes = { writable: () => true };
+  assert.deepEqual(macBundle('/Applications/Rumoria.app/Contents/MacOS/Rumoria', yes), { bundle: '/Applications/Rumoria.app' });
+  assert.match(macBundle('/private/var/folders/x/AppTranslocation/ABC/d/Rumoria.app/Contents/MacOS/Rumoria', yes).error, /Aplicaciones/);
+  assert.match(macBundle('/Volumes/Rumoria/Rumoria.app/Contents/MacOS/Rumoria', yes).error, /Aplicaciones/);
+  assert.match(macBundle('/Applications/Rumoria.app/Contents/MacOS/Rumoria', { writable: () => false }).error, /no se puede escribir/);
+  assert.match(macBundle('/usr/local/bin/rumoria', yes).error, /Rumoria\.app/);
+});
+
+test('updater on a Mac: the swap script takes every path from the environment', () => {
+  const { MAC_SWAP } = require('../../electron/updater');
+  for (const v of ['RU_PID', 'RU_SRC', 'RU_DST', 'RU_NEW', 'RU_OLD', 'RU_RUN']) assert.ok(MAC_SWAP.includes(`"$${v}"`), v);
+  assert.ok(!/\/Applications|Users\//.test(MAC_SWAP), 'no path written into the script');
+});
+
+// Only where ditto exists (macOS; it runs on GitHub's Mac in the release workflow).
+test('updater on a Mac: the swap really replaces Rumoria.app, and puts the old one back if the zip is bad', { skip: process.platform !== 'darwin' }, () => {
+  const { MAC_SWAP } = require('../../electron/updater');
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'rum-mac-'));
+  try {
+    const app = path.join(dir, 'Applications', 'Rumoria.app');
+    fs.mkdirSync(path.join(app, 'Contents'), { recursive: true });
+    fs.writeFileSync(path.join(app, 'Contents', 'version'), 'old');
+    const build = path.join(dir, 'build', 'Rumoria.app');
+    fs.mkdirSync(path.join(build, 'Contents'), { recursive: true });
+    fs.writeFileSync(path.join(build, 'Contents', 'version'), 'new');
+    const zip = path.join(dir, 'dl', 'Rumoria-mac-arm64.zip');
+    fs.mkdirSync(path.dirname(zip));
+    execFileSync('/usr/bin/ditto', ['-c', '-k', '--keepParent', build, zip]);
+    const run = (src) => {
+      try {
+        execFileSync('/bin/sh', ['-c', MAC_SWAP], { env: { ...process.env, RU_PID: '999999', RU_SRC: src, RU_DST: app, RU_NEW: path.join(dir, 'dl', 'unzipped'), RU_OLD: path.join(dir, 'Applications', 'Rumoria.old.app'), RU_RUN: '0' } });
+        return 0;
+      } catch (err) { return err.status; }
+    };
+    assert.equal(run(zip), 0);
+    assert.equal(fs.readFileSync(path.join(app, 'Contents', 'version'), 'utf8'), 'new');
+    assert.ok(!fs.existsSync(path.join(dir, 'Applications', 'Rumoria.old.app')));
+    const bad = path.join(dir, 'dl', 'bad.zip');
+    fs.writeFileSync(bad, 'not a zip');
+    assert.notEqual(run(bad), 0);
+    assert.equal(fs.readFileSync(path.join(app, 'Contents', 'version'), 'utf8'), 'new', 'a bad download leaves Rumoria as it was');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

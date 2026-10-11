@@ -7,6 +7,8 @@ const https = require('https');
 const path = require('path');
 
 const NAME = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+// The standalone build for this system (a Mac has no Python of its own); saved as NAME.
+const ASSET = { win32: 'yt-dlp.exe', darwin: 'yt-dlp_macos', linux: 'yt-dlp_linux' }[process.platform] || 'yt-dlp';
 const BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
 const ALLOWED_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
 const dest = path.join(__dirname, '..', 'bin', NAME);
@@ -31,8 +33,8 @@ function get(u, redirects = 5) {
 
 (async () => {
   if (fs.existsSync(dest) && !process.argv.includes('--force')) { console.log(`yt-dlp ya está en ${dest}`); return; }
-  const [bin, sums] = await Promise.all([get(`${BASE}/${NAME}`), get(`${BASE}/SHA2-256SUMS`)]);
-  const line = sums.toString('utf8').split('\n').find((l) => l.trim().endsWith(` ${NAME}`));
+  const [bin, sums] = await Promise.all([get(`${BASE}/${ASSET}`), get(`${BASE}/SHA2-256SUMS`)]);
+  const line = sums.toString('utf8').split('\n').find((l) => l.trim().endsWith(` ${ASSET}`));
   const expected = line && line.trim().split(/\s+/)[0].toLowerCase();
   const actual = crypto.createHash('sha256').update(bin).digest('hex');
   if (!expected || expected !== actual) throw new Error('la huella SHA-256 no coincide con la publicada');
