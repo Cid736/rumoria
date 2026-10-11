@@ -47,6 +47,7 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Perfiles de rendimiento** (Ajustes): Automático, Mínimo, Medio o Alto, según el ordenador: animaciones, visualizador, cuántas canciones se buscan por adelantado, tamaño de las portadas y cuánto se lee en segundo plano
 - **Carga más rápida**: la siguiente canción se busca mientras suena la actual. Si una no carga, se reintenta 3 veces; en listas de más de 50, si sigue fallando se quita (con «Deshacer»)
 - **Para hoy**: parecidas a lo último que has escuchado, se renueva cuando escuchas otras cosas; «Descubre algo nuevo» acierta más (deja fuera lo que saltas)
+- **Ajustes por temas y con buscador**: Aspecto, Reproducción, Recomendaciones, Privacidad, Mini reproductor, Atajos y Sistema, uno a la vez; escribe arriba («tema», «despertador», «Discord»…) y salen los ajustes que encajan, estén donde estén. Lo que menos se toca del aspecto va en «Más opciones de aspecto»
 - **Personalizar** (Ajustes): 8 colores (cada uno con contraste comprobado en tema claro y oscuro), tamaño del texto, densidad de las listas, esquinas, menos animaciones, portadas en la biblioteca y qué estanterías salen en Inicio
 - **Se actualiza sola** desde GitHub: descarga la versión nueva en segundo plano, la comprueba con su huella SHA-256 y la instala al reiniciar o al cerrar
 - Tema oscuro, claro o el del sistema; atajos de teclado (Espacio, Ctrl+←/→, Ctrl+S, Ctrl+R, Ctrl+L, Ctrl+M, Alt+←/→)

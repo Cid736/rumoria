@@ -91,3 +91,34 @@
 .yt-notice.busy span::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid var(--muted); border-top-color: transparent; border-radius: 50%; animation: spin 0.9s linear infinite; vertical-align: -1px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 :root[data-motion="reduce"] .yt-notice.busy span::after { animation: none; }
+
+/* ---- Ajustes by topic, with a search box ---- */
+.settings { max-width: 1040px; }
+.settings-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-bottom: 20px; }
+.settings-head h1 { margin: 0; }
+.settings-search { flex: 1; min-width: 220px; max-width: 420px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+.settings-search:focus-within { border-color: var(--accent); }
+.settings-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.settings-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; }
+.settings-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 2px; }
+.settings-tab { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--radius-sm); text-align: left; color: var(--muted); transition: background 0.12s, color 0.12s; }
+.settings-tab span { display: flex; flex-direction: column; min-width: 0; }
+.settings-tab strong { font-size: 14px; color: var(--text); }
+.settings-tab small { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-tab:hover { background: var(--surface-2); }
+.settings-tab.on { background: var(--surface-3); color: var(--accent); }
+.settings-content { min-width: 0; max-width: 720px; }
+.settings-found { margin: 0 0 16px; }
+.settings-where { margin-bottom: 4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+.settings-where:hover { text-decoration: underline; }
+.set-more { margin-top: 4px; }
+.set-more > summary { cursor: pointer; padding: 12px 0; font-weight: 700; color: var(--muted); list-style-position: inside; border-bottom: 1px solid var(--line); }
+.set-more > summary:hover { color: var(--text); }
+.set-more[open] > summary { color: var(--text); }
+/* Narrow: the topics become a row of chips above. */
+@container page (max-width: 760px) {
+  .settings-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .settings-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .settings-tab { padding: 6px 12px; border-radius: 999px; background: var(--surface-2); }
+  .settings-tab svg, .settings-tab small { display: none; }
+}

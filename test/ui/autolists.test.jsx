@@ -74,6 +74,7 @@ describe('"Para ti" in Ajustes', () => {
     const refreshLists = vi.fn(async () => {});
     useLibrary.setState({ refreshLists });
     render(<><Settings /><Overlays /></>);
+    fireEvent.click(screen.getByRole('button', { name: /Recomendaciones/ }));
     expect(await screen.findByText('Rock de siempre, Indie')).toBeInTheDocument();
     expect(screen.getByText(/No se descarga nada/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Renovar las listas/), { target: { value: '14' } });

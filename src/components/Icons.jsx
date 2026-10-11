@@ -43,4 +43,5 @@ export const Languages = (p) => <Svg {...p}><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6
 export const Chart = (p) => <Svg {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></Svg>;
 export const Alarm = (p) => <Svg {...p}><circle cx="12" cy="13" r="7" /><path d="M12 9.5V13l2.5 1.5M5 3 2 6M19 3l3 3" /></Svg>;
 export const Wand = (p) => <Svg {...p}><path d="m3 21 12-12M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M18 2.5v2M17 3.5h2" /></Svg>;
+export const Shield = (p) => <Svg {...p}><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Z" /><path d="m9 12 2 2 4-4" /></Svg>;
 export const Sparkle = (p) => <Svg {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" /></Svg>;

@@ -79,10 +79,13 @@ function Choice({ label, hint, value, options, onChange }) {
 export function Customize() {
   const look = useLook((s) => s.look);
   const set = useLook((s) => s.set);
+  const theme = useUi((s) => s.theme);
   return (
     <section className="set-group">
       <h2>Personalizar</h2>
-      <p className="muted">Cambia Rumoria a tu gusto. Se guarda en este ordenador y se ve al momento.</p>
+      <p className="muted">Se guarda en este ordenador y se ve al momento.</p>
+      <Choice label="Tema" hint="Oscuro, claro o el de tu sistema." value={theme} options={[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'El del sistema']]} onChange={(v) => useUi.getState().setTheme(v)} />
+      <Choice label="Estilo de la interfaz" hint="El de Rumoria, o como una app de Windows 11 o de Mac." value={look.ui} options={UIS} onChange={(v) => set({ ui: v })} />
       <div className="set-row set-row-wrap">
         <span><strong>Color</strong><small>Botones, barra de progreso y lo que suena. Cada uno se adapta al tema claro y al oscuro.</small></span>
         <div className="swatches" role="radiogroup" aria-label="Color">
@@ -105,8 +108,9 @@ export function Customize() {
           ))}
         </div>
       </div>
-      <Choice label="Estilo de la interfaz" hint="El de Rumoria, o como una app de Windows 11 o de Mac: botones de la ventana, letra, esquinas y controles." value={look.ui} options={UIS} onChange={(v) => set({ ui: v })} />
       <Choice label="Tamaño del texto" hint="Toda la ventana, más grande o más pequeña." value={look.size} options={SIZES} onChange={(v) => set({ size: Number(v) })} />
+      <details className="set-more">
+      <summary>Más opciones de aspecto</summary>
       <Choice label="Densidad de las listas" hint="Cuánto espacio ocupa cada canción." value={look.density} options={DENSITIES} onChange={(v) => set({ density: v })} />
       <Choice label="Esquinas" value={look.corners} options={CORNERS} onChange={(v) => set({ corners: v })} />
       <Choice label="Tipo de letra" hint="De las que ya tiene Windows." value={look.font} options={FONTS} onChange={(v) => set({ font: v })} />
@@ -138,6 +142,7 @@ export function Customize() {
         <span><strong>Volver a lo de siempre</strong><small>Color, tamaño y lo demás, como venían.</small></span>
         <button type="button" className="btn btn-ghost" onClick={() => { useLook.getState().reset(); useUi.getState().toast('Aspecto como venía'); }}>Restablecer</button>
       </div>
+      </details>
     </section>
   );
 }
