@@ -4,6 +4,21 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — 1.10.2: si la nube pierde la copia, nada se borra
+
+### [Bug — ALTA] Al desaparecer la tabla de la nube, «La nube respondió 404» y riesgo de perder listas
+- **Archivo:** `server/lib/cloudsync.js`
+- **Descripción:** la tabla `sync_libraries` se borró del proyecto de Supabase, probablemente al quitar la fila de prueba, y los dos dispositivos mostraban «La nube respondió 404». Al revisarlo apareció un riesgo peor:
+  - Al volver a crear la tabla, el primer dispositivo en sincronizar sube su biblioteca.
+  - El segundo seguía recordando lo que tenían en común antes, así que las listas que no estaban en esa copia nueva las daba por borradas.
+  - Resultado: se perdían las que el primero aún no había recibido.
+- **Fix:**
+  - Si la copia de la nube no está, o tiene una versión más antigua que la última vista, ya no hay nada en común: las bibliotecas se juntan, como al unirse por primera vez.
+  - El 404 se explica: «La nube no está preparada ahora mismo; se volverá a intentar».
+  - Test: con el arreglo quitado, la prueba falla (el PC pierde 3 listas); con él, pasa.
+
+---
+
 ## 2026-10-11 — 1.10.1: descargar la app del móvil desde el ordenador
 
 ### [Mejora] Ajustes → Tu móvil

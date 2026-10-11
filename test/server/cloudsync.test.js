@@ -286,3 +286,30 @@ test('what a device cannot keep (another version, a broken item) is never taken 
     assert.deepEqual(pc.names().sort(), ['Del móvil', 'Normal', 'Solo la versión nueva la entiende']);
   } finally { for (const d of [pc, phone]) fs.rmSync(d.dir, { recursive: true, force: true }); }
 });
+
+test('the cloud copy lost or started again: the libraries are joined, nothing taken as deleted', async () => {
+  const cloud = fakeCloud();
+  const pc = device(cloud, { lists: [list('p1', 'Del PC')] });
+  const phone = device(cloud, { lists: [list('m1', 'Del móvil')] });
+  try {
+    const { code } = await pc.s.create();
+    await phone.s.join(code);
+    await pc.s.syncNow();
+    // The PC adds lists the phone hasn't seen yet.
+    for (let i = 0; i < 3; i++) { pc.store.lists.push(list(`x${i}`, `Más ${i}`)); await pc.s.syncNow(); }
+    // The table is emptied (deleted and made again).
+    cloud.rows.clear();
+    phone.store.lists.push(list('m2', 'Nueva del móvil'));
+    await phone.s.syncNow(); // the phone puts its library back (rev 1)
+    await pc.s.syncNow(); // the PC had seen a later version: joins, doesn't delete
+    const all = ['Del PC', 'Del móvil', 'Más 0', 'Más 1', 'Más 2', 'Nueva del móvil'];
+    assert.deepEqual(pc.names().sort(), all);
+    await phone.s.syncNow();
+    assert.deepEqual(phone.names().sort(), all);
+  } finally { for (const d of [pc, phone]) fs.rmSync(d.dir, { recursive: true, force: true }); }
+});
+
+test('a project without the table or functions says so in plain words', async () => {
+  const c = createCloud({ url: 'https://abc.supabase.co', key: 'sb_publishable_abcdefghijk', fetchImpl: async () => ({ ok: false, status: 404, text: async () => '{"code":"42P01","message":"relation \\"public.sync_libraries\\" does not exist"}' }) });
+  await assert.rejects(c.get('a'.repeat(64)), /La nube no está preparada/);
+});

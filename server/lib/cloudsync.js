@@ -183,6 +183,8 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, timeoutMs = 30_00
     const text = await res.text();
     if (!res.ok) {
       if (/forbidden/.test(text)) throw new Error('La nube no aceptó el cambio (la clave de escritura no coincide).');
+      // The project isn't set up (the table or the functions of supabase/rumoria-sync.sql are missing).
+      if (res.status === 404 || /42P01|PGRST202/.test(text)) throw new Error('La nube no está preparada ahora mismo; se volverá a intentar.');
       throw new Error(`La nube respondió ${res.status}.`);
     }
     if (!text.trim()) return null; // a function that returns nothing (rumoria_delete)
@@ -293,6 +295,9 @@ class CloudSync {
     for (let attempt = 0; attempt < 4; attempt++) {
       const row = await this.cloud.get(keys.id);
       if (this.state.code !== code) return; // left meanwhile
+      // The cloud's copy was lost or started again (gone, or older than the last one seen here):
+      // nothing in common any more, so the libraries are joined, never taken as all deleted.
+      if (this.state.base && (!row || row.rev < this.state.rev)) this.state = { ...this.state, base: null, rev: 0 };
       const raw = row ? open(row.data, keys) : null;
       // Cleaned as it would be kept here: merging then never thinks this device changed what it only tidied.
       const remote = raw ? (this.stores.clean ? this.stores.clean(raw) : raw) : null;
