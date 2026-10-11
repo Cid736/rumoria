@@ -33,7 +33,7 @@ La app de Android es la misma Rumoria que la de escritorio, con el mismo servido
   - la notificación con portada, posición, anterior, pausa y siguiente,
   - un *wake lock* parcial mientras suena.
 
-  Si se quita la app de recientes mientras suena, la música sigue (en pausa, se para todo). Se pausa sola al desconectar los auriculares o el Bluetooth.
+  Si se quita la app de recientes mientras suena, la música sigue; si está en pausa, se cierra. Se pausa sola al desconectar los auriculares o el Bluetooth.
 - **Actualizaciones:** cada 12 horas, `Updater.java` mira la última release de `Cid736/rumoria`. Descarga el APK de su procesador, lo comprueba con el SHA-256 que publica GitHub y pide permiso para instalarlo encima.
 
 ## Compilar
