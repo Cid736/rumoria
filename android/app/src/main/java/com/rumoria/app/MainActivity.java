@@ -209,6 +209,12 @@ public class MainActivity extends Activity {
         try { send(new JSONObject().put("t", "back")); } catch (Exception ignored) { /* never */ }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Updater.resume(this);
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {

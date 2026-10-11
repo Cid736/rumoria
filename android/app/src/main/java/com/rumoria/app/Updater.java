@@ -37,6 +37,9 @@ final class Updater {
     private static final String LATEST = "https://api.github.com/repos/Cid736/rumoria/releases/latest";
     private static final long EVERY_MS = 12L * 60 * 60 * 1000;
     private static boolean busy = false;
+    // A verified update waiting for the permission to install it (asked in Android's settings).
+    private static String pendingTag = null;
+    private static File pendingApk = null;
 
     private Updater() {}
 
@@ -117,15 +120,28 @@ final class Updater {
         new AlertDialog.Builder(a)
             .setTitle("Rumoria " + tag.replaceFirst("^v", "") + " está lista")
             .setMessage("Se instala encima de esta versión: tus listas, favoritas e historial se quedan.")
-            .setPositiveButton("Instalar", (d, w) -> install(a, apk))
+            .setPositiveButton("Instalar", (d, w) -> install(a, tag, apk))
             .setNegativeButton("Más tarde", null)
             .show();
     }
 
-    private static void install(Activity a, File apk) {
+    /** Back from Android's settings with the permission: the offer comes again. */
+    static void resume(Activity a) {
+        if (pendingApk == null || !pendingApk.isFile()) return;
+        if (Build.VERSION.SDK_INT >= 26 && !a.getPackageManager().canRequestPackageInstalls()) return;
+        String tag = pendingTag;
+        File apk = pendingApk;
+        pendingTag = null;
+        pendingApk = null;
+        offer(a, tag, apk);
+    }
+
+    private static void install(Activity a, String tag, File apk) {
         // Android asks once to let Rumoria install its own updates.
         if (Build.VERSION.SDK_INT >= 26 && !a.getPackageManager().canRequestPackageInstalls()) {
-            toast(a, "Permite a Rumoria instalar sus actualizaciones y vuelve a pulsar «Instalar».");
+            pendingApk = apk;
+            pendingTag = tag;
+            toast(a, "Permite a Rumoria instalar sus actualizaciones y vuelve atrás.");
             a.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + a.getPackageName())));
             return;
         }

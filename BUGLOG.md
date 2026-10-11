@@ -26,6 +26,12 @@ Compilada y probada en los Mac de GitHub (macOS 14, chip de Apple). En el Mac se
   - Si el zip está mal, se queda la versión anterior; un test lo prueba con `ditto` en el Mac.
   - No se actualiza desde el `.dmg` ni desde una copia trasladada por macOS: avisa de que hay que moverla a Aplicaciones.
 
+### [Mejora] Android: la actualización vuelve a ofrecerse tras dar el permiso
+- **Archivo:** `android/.../Updater.java`, `MainActivity.java`
+- **Descripción:** al probar de verdad la actualización de la 1.9.0 a la 1.9.1 en el emulador, después de permitir «instalar apps de este origen» había que volver a pulsar «Buscar ahora».
+- **Fix:** al volver de los ajustes de Android con el permiso dado, el diálogo «Rumoria X está lista» sale solo. Además, en Ajustes del móvil, el tema elegido se marca con tu color. Saldrá en la próxima versión.
+- **Comprobado:** 1.9.0 → 1.9.1 desde GitHub, con la huella verificada y los datos intactos.
+
 ### [Pendiente] Sin cuenta de desarrollador de Apple
 - **Descripción:** la firma es *ad-hoc*. La primera vez, macOS avisa de «desarrollador no identificado» y hay que abrirla con clic derecho → Abrir. Con la cuenta de Apple (99 $ al año) se podría firmar y notarizar, y el aviso desaparecería.
 

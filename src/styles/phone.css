@@ -155,3 +155,5 @@
 :root[data-device="phone"] .col-cover { width: 160px !important; height: 160px !important; }
 :root[data-device="phone"] .col-filter { width: 100%; }
 :root[data-device="phone"] .col-actions { flex-wrap: wrap; padding: 16px var(--gutter); gap: 12px; }
+:root[data-device="phone"] .settings-tab.on { background: var(--accent); color: var(--accent-ink); }
+:root[data-device="phone"] .settings-tab.on strong { color: inherit; }
