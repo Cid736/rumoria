@@ -26,12 +26,14 @@ La app de Android es la misma Rumoria que la de escritorio, con el mismo servido
   - La página manda a la app lo que suena (para la notificación), el color del tema (para las barras del sistema) y si quiere salir.
   - La app manda a la página los botones de la notificación y el botón atrás.
   - No hay `addJavascriptInterface`.
+- **El reproductor vive con la app, no con la ventana** (`WebHost.java`). La página está en un WebView con `MutableContextWrapper`: la ventana la muestra mientras está abierta, y sin ventana sigue sonando, por ejemplo al quitar la app de recientes o al empezar desde Android Auto. Las órdenes que llegan mientras la página carga esperan en cola.
+- **Android Auto:** `PlaybackService` es un `MediaBrowserServiceCompat`, y `AutoLibrary.java` le da Favoritas, Tus listas y las canciones de cada lista. `onPlayFromMediaId` y `onPlayFromSearch` pasan a la página (`playFromCar` en `src/lib/android.js`). Solo navegan esta app, Android Auto, el coche, el Asistente y el sistema. Hay una prueba instrumentada que hace lo mismo que el coche: `cd android && ./gradlew assembleDebug assembleDebugAndroidTest`, se instalan los dos APK y se ejecuta `adb shell am instrument -w -e class com.rumoria.app.AutoTest com.rumoria.app.test/androidx.test.runner.AndroidJUnitRunner`. Necesita un emulador o un móvil con red.
 - **Música en segundo plano:** `PlaybackService` es un servicio en primer plano de tipo `mediaPlayback`. Se encarga de:
   - la `MediaSession`, que da la pantalla de bloqueo, los auriculares y Bluetooth,
   - la notificación con portada, posición, anterior, pausa y siguiente,
   - un *wake lock* parcial mientras suena.
 
-  Si se quita la app de recientes, la música se para.
+  Si se quita la app de recientes mientras suena, la música sigue (en pausa, se para todo). Se pausa sola al desconectar los auriculares o el Bluetooth.
 - **Actualizaciones:** cada 12 horas, `Updater.java` mira la última release de `Cid736/rumoria`. Descarga el APK de su procesador, lo comprueba con el SHA-256 que publica GitHub y pide permiso para instalarlo encima.
 
 ## Compilar
@@ -98,6 +100,5 @@ Huella SHA-256 del certificado: `D3:0C:5C:9B:52:AD:21:A9:F3:E2:DC:38:BD:0D:7E:42
 
 - **Se instala desde GitHub, no desde Google Play.** Google Play no acepta apps que reproducen YouTube en segundo plano. La primera vez, Android pide permitir «instalar apps de origen desconocido».
 - **Móviles con páginas de memoria de 16 KB:** libnode no está alineado a 16 KB. En Android 16, `android:pageSizeCompat="enabled"` lo hace funcionar en modo de compatibilidad.
-- **Al cerrar la app desde recientes, la música se para**, porque la que suena es la página.
 - **Sin «Tu música»:** de momento no lee archivos del teléfono.
 - **iPhone:** no se hace. Apple no permite instalar fuera del App Store, y en el App Store no aceptan apps que reproduzcan audio de YouTube.

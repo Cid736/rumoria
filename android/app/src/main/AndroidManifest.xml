@@ -35,10 +35,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Music in the background, its controls, and Android Auto (it browses Favoritas and your lists here).
+             Exported for the car and the system's media controls; who may browse is checked in onGetRoot. -->
         <service
             android:name=".PlaybackService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

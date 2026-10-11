@@ -157,3 +157,7 @@
 :root[data-device="phone"] .col-actions { flex-wrap: wrap; padding: 16px var(--gutter); gap: 12px; }
 :root[data-device="phone"] .settings-tab.on { background: var(--accent); color: var(--accent-ink); }
 :root[data-device="phone"] .settings-tab.on strong { color: inherit; }
+/* A new version ready: a small dot on Ajustes, and its line in Ajustes → Sistema. */
+.tab-icon { position: relative; display: inline-flex; }
+.tab-dot { position: absolute; top: -1px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+.update-ready { padding: 12px; margin: 4px 0 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent) 12%, transparent); border-bottom: 0; }

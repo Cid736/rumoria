@@ -4,6 +4,50 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión 7: Android Auto, Bluetooth y avisos de actualización (1.11)
+
+Probado en el emulador (Android 15). Una prueba instrumentada (`android/app/src/androidTest/.../AutoTest.java`) hace lo mismo que Android Auto, sin ninguna ventana de Rumoria abierta:
+- se conecta al servicio de música;
+- navega por Favoritas, Tus listas y las canciones de una lista;
+- pone una canción de la lista y la pausa;
+- pone lo que encuentra una búsqueda por voz («despacito luis fonsi»).
+
+Además se probó:
+- cerrar la app desde recientes mientras suena, y la música sigue (12 s de canción en 12 s);
+- simular que se desconectan los auriculares o el Bluetooth, y se pausa.
+
+### [Mejora] Android Auto
+- **Archivo:** `PlaybackService.java` (ahora `MediaBrowserServiceCompat`), `AutoLibrary.java`, `automotive_app_desc.xml`, `src/lib/android.js` (`playFromCar`)
+- **Descripción:**
+  - En el coche: dos pestañas, Favoritas y Tus listas, y las canciones de cada lista.
+  - «Ok Google, pon … en Rumoria» busca y pone. Sin nada concreto, sigue con lo que sonaba o con Favoritas.
+  - Solo pueden navegar por tu biblioteca esta app, Android Auto, el coche, el Asistente y el sistema. Se comprueba el paquete contra el uid de quien llama.
+
+### [Bug] El reproductor dependía de la ventana
+- **Archivo:** `WebHost.java`, `MainActivity.java`
+- **Descripción:** la música estaba en la página de la ventana:
+  - al quitar Rumoria de recientes, se paraba;
+  - Android Auto no podía poner nada si la app no estaba abierta.
+- **Fix:**
+  - La página vive con la app (un WebView con `MutableContextWrapper`) y la ventana solo la muestra.
+  - Mientras suena, sigue sonando sin ventana.
+  - Si el coche pide una canción mientras la página aún carga, la orden espera en cola en vez de perderse. Esto lo destapó la prueba: la primera vez se quedó en pausa.
+
+### [Mejora] Pausa al desconectar los auriculares o el Bluetooth
+- **Archivo:** `PlaybackService.java`
+- **Descripción:** con `ACTION_AUDIO_BECOMING_NOISY` se pausa antes de que la música salga por el altavoz del móvil.
+
+### [Mejora] Las actualizaciones, sin ventanas
+- **Archivo:** `Updater.java`, `src/lib/android.js` (`updateReady`), `Phone.jsx`, `Settings.jsx`
+- **Descripción:** en Android, una versión nueva encontrada sola ya no abre una ventana por encima. Se muestra así:
+  - un punto en la pestaña Ajustes;
+  - «Rumoria X está lista · Instalar» en Ajustes → Sistema;
+  - un aviso corto, una sola vez por versión.
+
+  Si pulsas tú «Buscar ahora», sí pregunta directamente. En el ordenador ya era discreto: un botón «Actualizar a X» arriba, y se instala sola al cerrar.
+
+---
+
 ## 2026-10-11 — 1.10.2: si la nube pierde la copia, nada se borra
 
 ### [Bug — ALTA] Al desaparecer la tabla de la nube, «La nube respondió 404» y riesgo de perder listas

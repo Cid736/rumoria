@@ -4,22 +4,29 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioManager;
 import android.os.Build;
-import android.os.IBinder;
+import android.os.Bundle;
 import android.os.PowerManager;
+import android.os.Process;
+import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
+import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.app.NotificationCompat.MediaStyle;
 
 import org.json.JSONObject;
@@ -27,22 +34,34 @@ import org.json.JSONObject;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 
 /**
- * Keeps the music going with the screen off or in another app: a media
- * notification (cover, title, previous / pause / next, the position) and the
- * lock screen's controls, fed by what the page says is playing. Its buttons
- * go back to the page, which plays the music.
+ * Keeps the music going with the screen off, in another app or in the car:
+ * a media notification (cover, title, previous / pause / next, the position),
+ * the lock screen's controls, the headphones' and the car's buttons, and
+ * Android Auto (Favoritas and your lists, and "play … on Rumoria"). It's fed
+ * by what the page says is playing; its buttons go back to the page (WebHost),
+ * which plays the music. Headphones or Bluetooth going away pause it.
  */
-public class PlaybackService extends Service {
+public class PlaybackService extends MediaBrowserServiceCompat {
     private static final String TAG = "Rumoria";
     private static final String CHANNEL = "playback";
     private static final int ID = 1;
     // Covers only from YouTube's image servers.
     private static final Pattern SAFE_IMG = Pattern.compile("^https://i\\d?\\.ytimg\\.com/[\\w\\-/.]+(\\?[\\w\\-=&%.]*)?$");
+    // Who may browse your library: this app, Android Auto, Android Automotive's media app, the Google
+    // app / Assistant (voice), and the system (its media controls). Checked against the caller's uid.
+    private static final Set<String> BROWSERS = new HashSet<>(Arrays.asList(
+        "com.rumoria.app", "com.google.android.projection.gearhead", "com.google.android.carassistant",
+        "com.android.car.media", "com.google.android.googlequicksearchbox", "com.android.systemui"));
 
     private static PlaybackService running;
     private static JSONObject last;
@@ -50,33 +69,40 @@ public class PlaybackService extends Service {
     private MediaSessionCompat session;
     private PowerManager.WakeLock wake;
     private final ExecutorService images = Executors.newSingleThreadExecutor();
+    private final ExecutorService library = Executors.newSingleThreadExecutor();
     private String artUrl;
     private Bitmap art;
     private boolean foreground = false;
+    private boolean noisyOn = false;
+
+    // Headphones unplugged or Bluetooth gone: pause, before the phone's speaker takes over.
+    private final BroadcastReceiver noisy = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(i.getAction())) send("pause", 0);
+        }
+    };
 
     /** What's playing, from the page: { title, artist, art, playing, pos, dur }. */
     static void update(Context c, JSONObject state) {
         last = state;
-        if (running != null) { running.show(state); return; }
-        if (!state.optBoolean("playing") || state.optString("title").isEmpty()) return;
-        // Started while you're in the app (you pressed play): allowed in the foreground.
-        Intent i = new Intent(c, PlaybackService.class);
+        if (running != null && (running.foreground || !state.optBoolean("playing"))) { running.show(state); return; }
+        if (!state.optBoolean("playing") || state.optString("title").isEmpty()) { if (running != null) running.show(state); return; }
+        // Playing: the service started (and in the foreground) so Android keeps it going.
         try {
-            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+            ContextCompat.startForegroundService(c, new Intent(c, PlaybackService.class));
         } catch (Exception e) {
             Log.w(TAG, "playback service", e);
+            if (running != null) running.show(state);
         }
-    }
-
-    static void stop(Context c) {
-        last = null;
-        c.stopService(new Intent(c, PlaybackService.class));
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
         running = this;
+        // The player (the page) is there even when the car starts Rumoria with no window.
+        NodeRunner.start(this);
+        WebHost.get(this);
         NotificationManager nm = getSystemService(NotificationManager.class);
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "Reproducción", NotificationManager.IMPORTANCE_LOW);
@@ -92,10 +118,19 @@ public class PlaybackService extends Service {
             @Override public void onSkipToPrevious() { send("prev", 0); }
             @Override public void onSeekTo(long pos) { send("seek", pos); }
             @Override public void onStop() { send("pause", 0); }
+            @Override public void onPlayFromMediaId(String mediaId, Bundle extras) {
+                try { JSONObject m = AutoLibrary.playCommand(mediaId); if (m != null) toPage(m); } catch (Exception e) { Log.w(TAG, "play id", e); }
+            }
+            @Override public void onPlayFromSearch(String query, Bundle extras) {
+                // "Play … on Rumoria" (empty: "play some music": what was on, or Favoritas).
+                try { toPage(new JSONObject().put("t", "cmd").put("a", "playSearch").put("q", query == null ? "" : query.trim())); } catch (Exception e) { Log.w(TAG, "play search", e); }
+            }
         });
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         session.setSessionActivity(PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        session.setPlaybackState(state(false, 0));
         session.setActive(true);
+        setSessionToken(session.getSessionToken());
         wake = getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Rumoria:playback");
         wake.setReferenceCounted(false);
     }
@@ -112,9 +147,44 @@ public class PlaybackService extends Service {
         return START_NOT_STICKY;
     }
 
+    // ---- Android Auto: what it can browse ----
+    @Override
+    public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, Bundle rootHints) {
+        return allowed(clientPackageName, clientUid) ? new BrowserRoot(AutoLibrary.ROOT, AutoLibrary.rootExtras()) : null;
+    }
+
+    private boolean allowed(String pkg, int uid) {
+        if (uid == Process.myUid() || uid == Process.SYSTEM_UID) return true;
+        if (!BROWSERS.contains(pkg)) return false;
+        String[] pkgs = getPackageManager().getPackagesForUid(uid);
+        return pkgs != null && Arrays.asList(pkgs).contains(pkg);
+    }
+
+    @Override
+    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaItem>> result) {
+        result.detach();
+        library.execute(() -> {
+            try { result.sendResult(AutoLibrary.children(parentId)); } catch (Exception e) { Log.w(TAG, "browse", e); result.sendResult(new ArrayList<>()); }
+        });
+    }
+
     private void send(String action, long posMs) {
-        MainActivity a = MainActivity.current();
-        if (a != null) a.command(action, posMs);
+        WebHost h = WebHost.peek();
+        if (h != null) h.command(action, posMs);
+    }
+
+    private void toPage(JSONObject m) {
+        WebHost h = WebHost.peek();
+        if (h != null) h.send(m);
+    }
+
+    private static PlaybackStateCompat state(boolean playing, long pos) {
+        return new PlaybackStateCompat.Builder()
+            .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO
+                | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH)
+            .setState(playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, playing ? 1f : 0f)
+            .build();
     }
 
     private void show(JSONObject s) {
@@ -132,11 +202,9 @@ public class PlaybackService extends Service {
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, dur > 0 ? dur : -1);
         if (art != null) meta.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art);
         session.setMetadata(meta.build());
-        session.setPlaybackState(new PlaybackStateCompat.Builder()
-            .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
-                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO)
-            .setState(playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, playing ? 1f : 0f)
-            .build());
+        session.setPlaybackState(state(playing, pos));
+        listenNoisy(playing);
+        if (title.isEmpty()) return;
 
         PendingIntent content = session.getController().getSessionActivity();
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL)
@@ -154,23 +222,31 @@ public class PlaybackService extends Service {
             .addAction(R.drawable.ic_next, "Siguiente", action("next"))
             .setStyle(new MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         Notification n = b.build();
+        int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK : 0;
 
-        if (playing) {
-            wake.acquire(6 * 60 * 60 * 1000L);
-            int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK : 0;
-            ServiceCompat.startForeground(this, ID, n, type);
-            foreground = true;
-        } else {
-            if (wake.isHeld()) wake.release();
-            if (!foreground) {
-                // Android asked for the notification already: shown once, then it can be swiped away.
-                int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK : 0;
+        try {
+            if (playing) {
+                wake.acquire(6 * 60 * 60 * 1000L);
                 ServiceCompat.startForeground(this, ID, n, type);
+                foreground = true;
+            } else {
+                if (wake.isHeld()) wake.release();
+                if (foreground) ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH);
+                foreground = false;
+                getSystemService(NotificationManager.class).notify(ID, n);
             }
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH);
-            foreground = false;
+        } catch (Exception e) {
+            // Android didn't allow the foreground right now (started from the background): the notification at least.
+            Log.w(TAG, "foreground", e);
             getSystemService(NotificationManager.class).notify(ID, n);
         }
+    }
+
+    private void listenNoisy(boolean on) {
+        if (on == noisyOn) return;
+        noisyOn = on;
+        if (on) ContextCompat.registerReceiver(this, noisy, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED);
+        else unregisterReceiver(noisy);
     }
 
     /** A notification button: back to this service, which hands it to the page. */
@@ -207,21 +283,20 @@ public class PlaybackService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        // Swiped away from the recent apps: the window (and its music) is gone.
-        stopSelf();
+        // Swiped away from the recent apps: the music goes on if it's playing (the page lives on); paused, it all stops.
+        if (!foreground) stopSelf();
     }
 
     @Override
     public void onDestroy() {
         running = null;
+        listenNoisy(false);
         if (wake.isHeld()) wake.release();
         session.setActive(false);
         session.release();
         images.shutdownNow();
+        library.shutdownNow();
         getSystemService(NotificationManager.class).cancel(ID);
         super.onDestroy();
     }
-
-    @Override
-    public IBinder onBind(Intent intent) { return null; }
 }

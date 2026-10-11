@@ -28,6 +28,8 @@ La misma Rumoria, hecha para el dedo:
 - encima, **lo que suena**: tócalo y se abre en grande, con la portada, la barra, los controles, la **letra**, la **cola**, **Parecidas** y **Sonido**;
 - **sigue sonando** con la pantalla apagada o en otra app, con los controles en la **notificación**, en la pantalla de bloqueo y en los auriculares o el Bluetooth;
 - un toque pone una canción y una pulsación larga abre sus opciones; el botón atrás cierra lo que esté abierto y vuelve atrás;
+- **Android Auto**: en el coche, Favoritas y tus listas, y «Ok Google, pon … en Rumoria»;
+- se **pausa al desconectar** los auriculares o el Bluetooth; y sigue sonando aunque quites la app de recientes;
 - yt-dlp va dentro del móvil, así que **no hace falta el ordenador**.
 
 Lo del escritorio que no está en el móvil: el mini reproductor, los atajos de teclado, Discord y «Tu música» (tus archivos).

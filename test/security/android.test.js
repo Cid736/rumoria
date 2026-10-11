@@ -13,7 +13,13 @@ test('android manifest: no backups, only the launcher exported, cleartext only t
   assert.match(m, /android:allowBackup="false"/);
   assert.match(m, /android:networkSecurityConfig="@xml\/network_security_config"/);
   const exported = [...m.matchAll(/android:exported="true"/g)].length;
-  assert.equal(exported, 1, 'only MainActivity (the launcher) is exported');
+  assert.equal(exported, 2, 'only the launcher and the media service (for Android Auto) are exported');
+  assert.match(m, /<service\s+android:name="\.PlaybackService"\s+android:exported="true"/);
+  // Who may browse the library through the media service: checked by package and uid.
+  const svc = java('PlaybackService');
+  assert.match(svc, /onGetRoot[\s\S]*allowed\(clientPackageName, clientUid\)[\s\S]*: null;/);
+  assert.match(svc, /getPackagesForUid\(uid\)/);
+  assert.match(svc, /BROWSERS = new HashSet<>\(Arrays\.asList\(\s*"com\.rumoria\.app", "com\.google\.android\.projection\.gearhead"/);
   assert.match(m, /<provider[\s\S]*?android:exported="false"/);
   const net = read('res/xml/network_security_config.xml');
   assert.match(net, /<base-config cleartextTrafficPermitted="false"/);
@@ -23,7 +29,7 @@ test('android manifest: no backups, only the launcher exported, cleartext only t
 });
 
 test('android WebView: no files, only its own page talks to the app, other links go to the browser (https)', () => {
-  const s = java('MainActivity');
+  const s = java('WebHost');
   assert.match(s, /setAllowFileAccess\(false\)/);
   assert.match(s, /setAllowContentAccess\(false\)/);
   assert.match(s, /MIXED_CONTENT_NEVER_ALLOW/);
@@ -32,7 +38,7 @@ test('android WebView: no files, only its own page talks to the app, other links
   assert.match(s, /if \(!isMainFrame\) return;/);
   assert.match(s, /!"https"\.equals\(u\.getScheme\(\)\)\) return;/);
   // Debugging the page only in debug builds.
-  assert.match(s, /setWebContentsDebuggingEnabled\(\(getApplicationInfo\(\)\.flags & ApplicationInfo\.FLAG_DEBUGGABLE\) != 0\)/);
+  assert.match(s, /setWebContentsDebuggingEnabled\(\(app\.getApplicationInfo\(\)\.flags & ApplicationInfo\.FLAG_DEBUGGABLE\) != 0\)/);
   // The secret: a cookie only for the local server, HttpOnly.
   assert.match(s, /setCookie\(origin, "rum_t=" \+ NodeRunner\.token\(\) \+ "; Path=\/; HttpOnly; SameSite=Strict"/);
 });

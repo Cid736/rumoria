@@ -30,6 +30,7 @@ android {
         targetSdk = 36
         versionCode = vMajor * 10000 + vMinor * 100 + vPatch
         versionName = pkgVersion
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
                 arguments += "-DANDROID_STL=c++_shared"
@@ -99,4 +100,7 @@ dependencies {
     implementation("androidx.core:core:1.19.0")
     implementation("androidx.webkit:webkit:1.17.0")
     implementation("androidx.media:media:1.7.1")
+    // On a phone or the emulator: Android Auto's side, browsing and playing (src/androidTest).
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

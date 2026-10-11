@@ -16,13 +16,14 @@ export const TABS = [['home', 'Inicio', Home], ['search', 'Buscar', Search], ['l
 
 export function TabBar() {
   const view = useUi((s) => s.history[s.at]);
+  const update = useUi((s) => s.appUpdate);
   const tab = TAB_OF[view.name] || 'home';
   return (
     <nav className="tabbar" aria-label="Secciones">
       {TABS.map(([name, label, Icon]) => (
         <button key={name} type="button" className={`tab ${tab === name ? 'on' : ''}`} aria-current={tab === name ? 'page' : undefined}
           onClick={() => { const ui = useUi.getState(); ui.setNowPlaying(false); if (ui.panel) ui.togglePanel(ui.panel); ui.goTab({ name }); }}>
-          <Icon size={24} />
+          <span className="tab-icon"><Icon size={24} />{name === 'settings' && update && <i className="tab-dot" aria-label={`Rumoria ${update.version} está lista`} />}</span>
           <span>{label}</span>
         </button>
       ))}

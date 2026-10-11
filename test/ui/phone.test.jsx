@@ -128,3 +128,49 @@ describe('the phone layout', () => {
     expect(bridge.sent).toContainEqual({ t: 'ytdlp' });
   });
 });
+
+describe('Android Auto and the Assistant', () => {
+  const song2 = { ...song, uid: 'u2', yt: 'kJQP7kiw5Fk', key: 'yt:kJQP7kiw5Fk', title: 'Despacito', artist: 'Luis Fonsi' };
+  it('a list or Favoritas from a song; a search plays what it finds; nothing said: Favoritas', async () => {
+    const { usePlayer } = await load();
+    const { playFromCar } = await import('../../src/lib/android.js');
+    const { useLibrary } = await import('../../src/store/library.js');
+    useLibrary.setState({ likes: [{ key: song.key, title: song.title, artist: song.artist, yt: song.yt, at: 2 }, { key: song2.key, title: song2.title, artist: song2.artist, yt: song2.yt, at: 1 }], local: { songs: [] } });
+    await playFromCar({ a: 'playFrom', kind: 'liked', index: 1 });
+    const cur = () => usePlayer.getState().queue.items[usePlayer.getState().queue.index];
+    expect(cur().title).toBe('Despacito');
+    expect(usePlayer.getState().wantPlaying).toBe(true);
+    useLibrary.setState({ open: {} });
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'aaaaaaaaaaaaaaaa', name: 'L', tracks: [{ title: 'Uno', artist: 'A', yt: 'dQw4w9WgXcQ' }, { title: 'Dos', artist: 'B', yt: 'kJQP7kiw5Fk' }] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    await playFromCar({ a: 'playFrom', kind: 'list', id: 'aaaaaaaaaaaaaaaa', index: 1 });
+    expect(cur().title).toBe('Dos');
+    await playFromCar({ a: 'playSearch', q: 'bohemian rhapsody' }, { search: async (q) => ({ results: [{ id: 'fJ9rUzIMcZQ', title: `Queen - ${q}`, channel: 'Queen Official' }] }) });
+    expect(cur().title).toBe('Queen - bohemian rhapsody');
+    usePlayer.setState({ queue: { items: [], index: -1, original: null }, wantPlaying: false });
+    await playFromCar({ a: 'playSearch', q: '' });
+    expect(cur().title).toBe(song.title);
+  });
+});
+
+describe('a new version, quietly', () => {
+  it('a dot on Ajustes, «Instalar» in Ajustes → Sistema, and a short notice only once per version', async () => {
+    const { useUi, phone } = await load();
+    const { updateReady } = await import('../../src/lib/android.js');
+    useUi.setState({ toasts: [], appUpdate: null });
+    localStorage.clear();
+    render(<phone.TabBar />);
+    expect(screen.queryByLabelText(/está lista/)).toBe(null);
+    act(() => updateReady('1.11.0'));
+    expect(screen.getByLabelText('Rumoria 1.11.0 está lista')).toBeInTheDocument();
+    expect(useUi.getState().toasts).toHaveLength(1);
+    act(() => updateReady('1.11.0'));
+    expect(useUi.getState().toasts).toHaveLength(1);
+    act(() => updateReady('nada'));
+    expect(useUi.getState().appUpdate).toEqual({ version: '1.11.0' });
+    const { default: Settings } = await import('../../src/views/Settings.jsx');
+    render(<Settings />);
+    fireEvent.click(screen.getByRole('button', { name: /Sistema/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar' }));
+    expect(bridge.sent).toContainEqual({ t: 'install' });
+  });
+});

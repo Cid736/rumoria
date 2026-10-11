@@ -2,6 +2,8 @@
 // to this page) to tell the phone what's playing (its notification and lock
 // screen), the theme's colour (the status bar), and to hear back the
 // notification's buttons and the back button. Absent everywhere else.
+import { api, urls } from '../api.js';
+import { fromYouTube } from './tracks.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 
@@ -28,12 +30,60 @@ export function goBack() {
   return false;
 }
 
+/**
+ * Android Auto (and the Assistant): play Favoritas or a list from a song, or what a search finds.
+ * An empty search ("play some music"): what was on, or else Favoritas.
+ */
+export async function playFromCar(m, { search = (q) => api.get(urls.search(q)) } = {}) {
+  const p = usePlayer.getState();
+  try {
+    if (m.a === 'playFrom' && (m.kind === 'liked' || m.kind === 'list')) {
+      const { tracksOf } = await import('../views/Home.jsx');
+      const tracks = await tracksOf({ kind: m.kind, id: m.id });
+      const at = Number.isInteger(m.index) && m.index >= 0 && m.index < tracks.length ? m.index : 0;
+      if (tracks.length) p.playTracks(tracks, at);
+      return;
+    }
+    const q = typeof m.q === 'string' ? m.q.trim().slice(0, 200) : '';
+    if (!q) {
+      if (p.queue.items[p.queue.index]) { if (!p.wantPlaying) p.toggle(); return; }
+      const { tracksOf } = await import('../views/Home.jsx');
+      const liked = await tracksOf({ kind: 'liked' });
+      if (liked.length) p.playTracks(liked, 0);
+      return;
+    }
+    const r = await search(q);
+    const found = (r && r.results ? r.results : []).map(fromYouTube);
+    if (found.length) p.playTracks(found, 0);
+    else useUi.getState().toast(`Nada con «${q}»`);
+  } catch (err) {
+    useUi.getState().toast(err.message || 'No se pudo poner');
+  }
+}
+
+/**
+ * A new Rumoria downloaded and checked: shown quietly — a dot on Ajustes, a line in Ajustes →
+ * Sistema with «Instalar», and a short notice once per version. Nothing pops up over the music.
+ */
+export function updateReady(version) {
+  if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) return;
+  const ui = useUi.getState();
+  ui.setAppUpdate({ version });
+  try {
+    if (localStorage.getItem('rumoria_update_told') === version) return;
+    localStorage.setItem('rumoria_update_told', version);
+  } catch { /* told this once anyway */ }
+  ui.toast(`Rumoria ${version} está lista: instálala en Ajustes cuando quieras`, { ms: 6000 });
+}
+
 function onNative(e) {
   let m;
   try { m = JSON.parse(e.data); } catch { return; }
   const p = usePlayer.getState();
   if (m.t === 'back') { if (!goBack()) send({ t: 'exit' }); return; }
+  if (m.t === 'update') { updateReady(m.version); return; }
   if (m.t !== 'cmd') return;
+  if (m.a === 'playFrom' || m.a === 'playSearch') { playFromCar(m); return; }
   if (m.a === 'play') { if (!p.wantPlaying) p.toggle(); }
   else if (m.a === 'pause') { if (p.wantPlaying) p.toggle(); }
   else if (m.a === 'next') p.next();

@@ -38,6 +38,7 @@ export const useUi = create((set, get) => ({
   theme: savedTheme(),
   searchText: '',
   recent: savedRecent(), // [{ kind, id, name, sub, thumbs, payload, plays, at }], newest first
+  appUpdate: null,       // the Android app: { version } of a new Rumoria downloaded and checked, ready to install
 
   /** Something was put on: to the front of "Recientes", one more play. */
   addRecent(item) {
@@ -65,6 +66,7 @@ export const useUi = create((set, get) => ({
   canForward: () => get().at < get().history.length - 1,
 
   setNowPlaying(on) { set({ nowPlaying: Boolean(on) }); },
+  setAppUpdate(appUpdate) { set({ appUpdate }); },
   togglePanel(p) { set((s) => ({ panel: s.panel === p ? null : p })); },
   setSearchText(searchText) { set({ searchText }); },
 

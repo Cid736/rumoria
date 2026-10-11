@@ -206,9 +206,16 @@ export function findSections(q) {
 
 /** On the phone: Rumoria and yt-dlp up to date (the app does it; these look now). */
 function PhoneUpdates() {
+  const ready = useUi((s) => s.appUpdate);
   return (
     <section className="set-group">
       <h2>Actualizaciones</h2>
+      {ready && (
+        <div className="set-row update-ready">
+          <span><strong>Rumoria {ready.version} está lista</strong><small>Ya está descargada y comprobada. Se instala encima: tus listas se quedan.</small></span>
+          <button type="button" className="btn btn-accent" onClick={() => askApp('install')}>Instalar</button>
+        </div>
+      )}
       <p className="muted">Rumoria mira en GitHub si hay una versión nueva cada 12 horas y te pregunta antes de instalarla; solo instala una cuya huella SHA-256 coincide con la publicada. Tus listas y tu historial se quedan.</p>
       <div className="set-row">
         <span><strong>Rumoria</strong><small>Buscar una versión nueva ahora.</small></span>

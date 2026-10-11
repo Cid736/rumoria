@@ -40,6 +40,9 @@ final class Updater {
     // A verified update waiting for the permission to install it (asked in Android's settings).
     private static String pendingTag = null;
     private static File pendingApk = null;
+    // The verified update found by itself: the page shows it quietly (a dot on Ajustes); installed when you say.
+    private static String readyTag = null;
+    private static File readyApk = null;
 
     private Updater() {}
 
@@ -105,7 +108,11 @@ final class Updater {
                         throw new Exception("El archivo descargado no coincide con el publicado.");
                     }
                 }
-                a.runOnUiThread(() -> offer(a, tag, apk));
+                if (asked) { a.runOnUiThread(() -> offer(a, tag, apk)); return; }
+                // Found by itself: no window over what you're doing; the page shows it quietly.
+                readyTag = tag;
+                readyApk = apk;
+                tellPage();
             } catch (Exception e) {
                 Log.w(TAG, "update", e);
                 if (asked) toast(a, "No se pudo buscar la actualización.");
@@ -123,6 +130,19 @@ final class Updater {
             .setPositiveButton("Instalar", (d, w) -> install(a, tag, apk))
             .setNegativeButton("Más tarde", null)
             .show();
+    }
+
+    /** The page hears there's a new version ready (it shows it quietly, see src/lib/android.js). */
+    static void tellPage() {
+        WebHost h = WebHost.peek();
+        if (h == null || readyTag == null) return;
+        try { h.send(new org.json.JSONObject().put("t", "update").put("version", readyTag.replaceFirst("^v", ""))); } catch (Exception ignored) { /* never */ }
+    }
+
+    /** "Instalar" in Ajustes: the one found before. */
+    static void installReady(Activity a) {
+        if (readyApk != null && readyApk.isFile()) install(a, readyTag, readyApk);
+        else checkNow(a);
     }
 
     /** Back from Android's settings with the permission: the offer comes again. */
