@@ -4,6 +4,34 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión 6: Sincronizar (1.10)
+
+Probado contra el Supabase real. Primero con dos dispositivos simulados en el PC. Después, el servidor real de Rumoria en el PC con la app del emulador de Android (Node sin Intl): crear el código, unirse escribiéndolo en mayúsculas y sin guiones, listas y favoritas en los dos sentidos, un borrado que llega al otro y borrar de la nube. Tests: 12 de la sincronización y 7 de la pantalla.
+
+### [Bug — ALTA] Lo que un dispositivo descartaba al guardar se borraba en todos
+- **Archivo:** `server/lib/cloudsync.js` (`dropped`, `withForeign`), `server/app.js` (`clean`)
+- **Descripción:** en la prueba real, una lista que el móvil no podía guardar (un identificador con otro formato) se descartó allí. En la siguiente sincronización contó como «borrada en el móvil» y se borró también del PC. Con datos normales no pasa, pero una versión más nueva o más antigua de Rumoria en otro dispositivo podría haber hecho perder listas.
+- **Fix:** antes de mezclar, lo que llega de la nube se limpia igual que al guardar. Lo que este dispositivo no puede guardar se devuelve a la nube intacto, para los que sí pueden, y nunca cuenta como borrado. Tampoco se reescribe lo mismo en cada sincronización. Test: un dispositivo que descarta una lista y ordena las demás no se la quita a los otros.
+
+### [Bug] En Android no se podía sincronizar: `/tmp` no se puede escribir
+- **Archivo:** `server/app.js`
+- **Descripción:** la limpieza usaba la carpeta temporal del sistema, que en Android da `EACCES`. Además, al unirse decía «Unido» aunque la primera sincronización hubiera fallado.
+- **Fix:** se usa una carpeta dentro de los datos de Rumoria. Si la primera sincronización falla, se dice el error.
+
+### [Bug] «Borrar de la nube» daba error aunque borraba
+- **Archivo:** `server/lib/cloudsync.js`
+- **Descripción:** la función de borrado no devuelve nada, y la respuesta vacía se tomaba por «la nube respondió algo raro».
+- **Fix:** una respuesta vacía es correcta.
+
+### [Seguridad] Comprobado contra la nube real
+- La tabla no se puede leer directamente («permission denied»).
+- Escribir sin la clave de escritura se rechaza.
+- En la nube no aparece nada legible.
+- El código no sale del dispositivo.
+- Cambiar la clave secreta de Supabase quedó como tarea del dueño del proyecto: se pegó en una conversación, y la app nunca la usa.
+
+---
+
 ## 2026-10-11 — 1.9.2: las etiquetas de los botones del reproductor, cortadas
 
 ### [Bug] No se leía lo que dice cada botón del reproductor

@@ -230,6 +230,8 @@ test('cloud client: only an https *.supabase.co project and a publishable key; t
   assert.equal(seen[0].o.headers.apikey, 'sb_publishable_abcdefghijk');
   assert.equal(seen[0].o.headers.Authorization, undefined);
   assert.equal(seen[0].o.redirect, 'error');
+  const empty = createCloud({ url: 'https://abc.supabase.co', key: 'sb_publishable_abcdefghijk', fetchImpl: async () => ({ ok: true, status: 204, text: async () => '' }) });
+  await empty.remove('a'.repeat(64), 'b'.repeat(64));
   const down = createCloud({ url: 'https://abc.supabase.co', key: 'sb_publishable_abcdefghijk', fetchImpl: async () => { throw new Error('offline'); } });
   await assert.rejects(down.get('a'.repeat(64)), /Sin conexión/);
 });
@@ -258,4 +260,29 @@ test('api: Sincronizar from the page (create, status, leave), "Para ti" never le
     assert.equal(off.data.enabled, false);
     assert.equal(cloud.rows.size, 0);
   } finally { await app.close(); }
+});
+
+test('what a device cannot keep (another version, a broken item) is never taken as deleted, nor lost for the others', async () => {
+  const cloud = fakeCloud();
+  const pc = device(cloud, { lists: [list('ok', 'Normal'), list('nuevo', 'Solo la versión nueva la entiende')] });
+  const phone = device(cloud);
+  // The phone's Rumoria drops lists it can't read, and tidies every list (adds a field), as its cleaning does.
+  phone.s.stores.clean = (lib) => ({ ...lib, lists: lib.lists.filter((l) => l.id !== 'nuevo').map((l) => ({ ...l, folder: l.folder || null })) });
+  const write = phone.s.stores.write;
+  let writes = 0;
+  phone.s.stores.write = (m) => { writes += 1; write(phone.s.stores.clean(m)); };
+  try {
+    const { code } = await pc.s.create();
+    await phone.s.join(code);
+    assert.deepEqual(phone.names(), ['Normal']);
+    await phone.s.syncNow();
+    await phone.s.syncNow();
+    assert.equal(writes, 1, 'once: no rewriting the same thing every time');
+    await pc.s.syncNow();
+    assert.deepEqual(pc.names().sort(), ['Normal', 'Solo la versión nueva la entiende'], 'still on the PC');
+    phone.store.lists.push(list('m1', 'Del móvil'));
+    await phone.s.syncNow();
+    await pc.s.syncNow();
+    assert.deepEqual(pc.names().sort(), ['Del móvil', 'Normal', 'Solo la versión nueva la entiende']);
+  } finally { for (const d of [pc, phone]) fs.rmSync(d.dir, { recursive: true, force: true }); }
 });

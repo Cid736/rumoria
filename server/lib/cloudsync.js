@@ -139,6 +139,28 @@ function merge(base, local, remote) {
 
 const sameLib = (a, b) => stable(baseOf(a)) === stable(baseOf(b));
 
+/**
+ * What this device can't keep (an older or newer Rumoria, a broken item):
+ * the items of `raw` that cleaning dropped. They're never taken as deleted
+ * here; they go back to the cloud untouched, for the devices that can keep them.
+ */
+function dropped(raw, cleaned) {
+  const out = {};
+  for (const [c, { key }] of Object.entries(COLLECTIONS)) {
+    const kept = new Set((cleaned[c] || []).map(key));
+    out[c] = (raw[c] || []).filter((x) => x && typeof x === 'object' && !kept.has(key(x)));
+  }
+  return out;
+}
+const withForeign = (lib, foreign) => {
+  const out = { ...lib };
+  for (const [c, { key }] of Object.entries(COLLECTIONS)) {
+    const have = new Set((lib[c] || []).map(key));
+    out[c] = [...(lib[c] || []), ...(foreign[c] || []).filter((x) => !have.has(key(x)))];
+  }
+  return out;
+};
+
 // ---- the cloud ----
 /** The two functions of supabase/rumoria-sync.sql, over HTTPS, with the publishable key. */
 function createCloud({ url, key, fetchImpl = globalThis.fetch, timeoutMs = 30_000 }) {
@@ -163,6 +185,7 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, timeoutMs = 30_00
       if (/forbidden/.test(text)) throw new Error('La nube no aceptó el cambio (la clave de escritura no coincide).');
       throw new Error(`La nube respondió ${res.status}.`);
     }
+    if (!text.trim()) return null; // a function that returns nothing (rumoria_delete)
     try { return JSON.parse(text); } catch { throw new Error('La nube respondió algo raro.'); }
   }
   const one = (rows) => (Array.isArray(rows) ? rows[0] : rows) || null;
@@ -186,7 +209,8 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, timeoutMs = 30_00
 
 // ---- the whole thing, for one device ----
 /**
- * `stores`: { read() → { lists, likes, rules }, write({ lists, likes, rules }), files: [paths it changes] }.
+ * `stores`: { read() → { lists, likes, rules }, write({ lists, likes, rules }), clean(lib) → what write() would keep,
+ *   files: [paths it changes] }.
  * `file`: where this device keeps its code and what both had last time (sync.json).
  */
 class CloudSync {
@@ -269,16 +293,20 @@ class CloudSync {
     for (let attempt = 0; attempt < 4; attempt++) {
       const row = await this.cloud.get(keys.id);
       if (this.state.code !== code) return; // left meanwhile
-      const remote = row ? open(row.data, keys) : null;
+      const raw = row ? open(row.data, keys) : null;
+      // Cleaned as it would be kept here: merging then never thinks this device changed what it only tidied.
+      const remote = raw ? (this.stores.clean ? this.stores.clean(raw) : raw) : null;
+      const foreign = raw ? dropped(raw, remote) : {};
       // What's here right now (taken after the network, so nothing changed meanwhile is lost).
       const local = this.stores.read();
       const merged = remote ? merge(this.state.base, local, remote) : local;
       if (!sameLib(merged, local)) { this.stores.write(merged); this.state.appliedAt = this.now(); }
-      if (row && sameLib(merged, remote)) { this.done(row.rev, merged); return; }
-      const sealed = seal({ v: 1, ...merged }, keys);
+      const out = withForeign(merged, foreign);
+      if (row && sameLib(out, raw)) { this.done(row.rev, out); return; }
+      const sealed = seal({ v: 1, ...out }, keys);
       if (sealed.length > MAX_TEXT) throw new Error('Tu biblioteca es demasiado grande para sincronizarla.');
       const r = await this.cloud.put(keys.id, sealed, keys.write, row ? row.rev : 0);
-      if (r.ok) { this.done(r.rev, merged); return; }
+      if (r.ok) { this.done(r.rev, out); return; }
     }
     throw new Error('Otro dispositivo está guardando a la vez; se volverá a intentar.');
   }

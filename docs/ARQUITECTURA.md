@@ -94,6 +94,15 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.10: Sincronizar (todo en [SINCRONIZAR.md](SINCRONIZAR.md))**
+
+- Las listas, las Favoritas y las listas inteligentes se sincronizan entre PC, Mac y móvil, sin cuenta y sin que la nube pueda leerlas.
+  - El código son 6 palabras y no sale del dispositivo.
+  - Del código se sacan, con PBKDF2 de 600 000 vueltas, el id, la clave AES-256-GCM y una clave de escritura.
+  - En Supabase la tabla está cerrada: solo se puede usar `rumoria_get`, `rumoria_put` (con la clave de escritura y la versión) y `rumoria_delete`.
+- La mezcla es en tres vías, sin necesidad de que los dispositivos coincidan. Lo que un dispositivo no puede guardar se respeta para los demás.
+- El servidor sincroniza al abrir, cada 5 minutos y después de cada cambio. La página vuelve a leer la biblioteca cuando llega algo (`syncWatch`).
+
 **v1.9.1: Rumoria para Mac (todo en [MAC.md](MAC.md))**
 
 - Se compila en los Mac de GitHub (`.github/workflows/mac.yml`), para chip de Apple (arm64) e Intel (x64), con firma *ad-hoc*: sin ella, macOS no abre una app en un Mac con chip de Apple.

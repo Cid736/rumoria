@@ -3,6 +3,6 @@
 // app); it can only call the two functions in supabase/rumoria-sync.sql.
 // RUMORIA_SYNC_URL / RUMORIA_SYNC_KEY replace them (tests, your own project).
 module.exports = {
-  url: process.env.RUMORIA_SYNC_URL || '',
+  url: process.env.RUMORIA_SYNC_URL || 'https://gnjddvzmulagslkoqujg.supabase.co',
   key: process.env.RUMORIA_SYNC_KEY || 'sb_publishable_V9eHsZnUSFt_BpqNBX1QMQ_i5TsltzG',
 };

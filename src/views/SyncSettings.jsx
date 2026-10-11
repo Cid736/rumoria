@@ -38,7 +38,9 @@ export default function SyncSettings() {
       const next = await call();
       setS(next);
       await useLibrary.getState().loadAll();
-      if (done) toast(done(next));
+      // The first sync may have failed (no connection…): said as it is.
+      if (next && next.error) toast(next.error);
+      else if (done) toast(done(next));
     } catch (err) { toast(err.message); } finally { setBusy(null); }
   };
   const copy = async () => {

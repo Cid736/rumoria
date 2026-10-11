@@ -7,6 +7,7 @@
 //    a page from elsewhere can't send without a CORS preflight we never allow.
 // Inputs are checked here; the modules in lib/ clean every field again.
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
@@ -115,6 +116,20 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const mine = (l) => !(l.auto && l.auto.by === 'rumoria');
   const syncStores = {
     files: [lists.file, likes.file, ruleLists.file],
+    // What write() would keep: through the same cleaning as files read from disk (in a scratch folder
+    // of our own: on Android the system's temp folder can't be written).
+    clean(m) {
+      fs.mkdirSync(path.join(dataDir, 'tmp'), { recursive: true });
+      const dir = fs.mkdtempSync(path.join(dataDir, 'tmp', 'sync-'));
+      try {
+        const f = (n, v) => { const p = path.join(dir, n); fs.writeFileSync(p, JSON.stringify(v)); return p; };
+        return {
+          lists: new StreamLists(f('l.json', Array.isArray(m.lists) ? m.lists : [])).lists.filter(mine),
+          likes: new Likes(f('f.json', { songs: Array.isArray(m.likes) ? m.likes : [] })).songs,
+          rules: new RuleLists(f('r.json', { v: 1, lists: Array.isArray(m.rules) ? m.rules : [] })).lists,
+        };
+      } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+    },
     read: () => ({ lists: lists.lists.filter(mine), likes: likes.songs, rules: ruleLists.lists }),
     write(m) {
       // Through the files and back, so everything is cleaned as when it's read from disk.
