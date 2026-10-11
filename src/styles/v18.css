@@ -1,0 +1,43 @@
+/* v1.8: a review of the whole interface — fixes for what broke at some
+   sizes, and help so nobody gets lost (labels on the player's buttons at
+   once). Loaded last; Rumoria's own tokens. */
+
+/* ---- the player bar ---- */
+/* The visualizer sits on the cover's lower edge instead of taking 60 px beside it (empty while paused). */
+.pb-art { position: relative; flex: none; line-height: 0; }
+.pb-art .viz { position: absolute; left: 4px; bottom: 4px; width: 48px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)); }
+/* Each button says what it does as soon as the pointer is on it (the native tooltip took a second). */
+.playerbar [data-tip] { position: relative; }
+.playerbar [data-tip]:hover::before, .playerbar [data-tip]:focus-visible::before {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  padding: 5px 9px; border-radius: 6px; background: var(--text); color: var(--surface); box-shadow: var(--shadow);
+  font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; pointer-events: none; z-index: 30;
+}
+.pb-side [data-tip]:hover::before, .pb-side [data-tip]:focus-visible::before { left: auto; right: -8px; transform: none; }
+/* A smaller window: full screen and the mini player leave the bar (F11 and Ctrl+M still open them) so the song's name fits. */
+@media (max-width: 1000px) {
+  .pb-extra { display: none; }
+  .pb-volume { width: 72px; }
+  .playerbar { grid-template-columns: minmax(150px, 1fr) minmax(260px, 1.5fr) minmax(150px, 1fr); gap: 10px; }
+  .pb-controls { gap: 10px; }
+}
+
+/* ---- a list's page ---- */
+/* Round buttons never squash into ovals, and the actions go onto a second line when they don't fit. */
+.big-play, .play-btn, .icon-btn { flex: none; }
+.col-actions { flex-wrap: wrap; row-gap: 12px; }
+.col-filter { width: min(220px, 100%); }
+
+/* ---- the library ---- */
+/* Its filters on one line (they scroll sideways if the library is narrow). */
+.side-library .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.side-library .chips::-webkit-scrollbar { display: none; }
+.side-library .chip { flex: none; white-space: nowrap; }
+/* A short window: the menu takes less height, so the library has room. */
+@media (max-height: 700px) {
+  .nav-btn { padding: 6px 14px; }
+  .side-nav { padding-top: 4px; padding-bottom: 4px; }
+}
+
+/* ---- Favoritas: its own look (your colour), not another app's ---- */
+.cover-liked { background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 45%, #2a1a12)); }

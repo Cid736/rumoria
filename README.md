@@ -1,6 +1,6 @@
 # Rumoria
 
-Tu música en el escritorio: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Hecho para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
+Tu música en el escritorio: tus listas de **Spotify, Apple Music y YouTube**, favoritas, «Elegido para ti» y tu resumen del año. Suena directamente desde YouTube, sin descargar nada. Tus propios archivos también suenan («Tu música»).
 
 Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tubegrab). La primera vez trae de allí tus listas, tu historial, tus favoritas y las novedades. Con «Descargar con TubeGrab» le pasas una canción para guardarla.
 
@@ -13,7 +13,7 @@ Nació como la pestaña «Escuchar» de [TubeGrab](https://github.com/Cid736/tub
 - **Listas que se llenan solas**: escribe un estilo, un artista o un momento («Rock de los 80», «Bad Bunny», «lo-fi para estudiar»), o pulsa ✨ junto a una carpeta para usar su nombre, y Rumoria la llena al momento y le añade canciones nuevas cada 6 h, 12 h, día o semana. Si quitas una, no vuelve
 - **«Para ti»**: nada más instalarla ya tienes una carpeta con 6 listas llenas. Según lo que escuchas, Rumoria deduce tus géneros (cruzando tus artistas con los de cada categoría), crea sus listas con tus artistas primero, añade una para **descubrir** el género que más se parece a lo tuyo y las **renueva** cada 3 días, semana o 2 semanas. Las que renombres o muevas pasan a ser tuyas; se puede apagar en Ajustes
 - **Inicio con recomendaciones**, sin tener que añadir nada:
-  - **Hecho para ti**: «Descubre algo nuevo» (cada semana, solo canciones que aún no has escuchado), una **Mezcla del día** por cada uno de tus seis artistas favoritos, novedades de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
+  - **Elegido para ti**: «Descubre algo nuevo» (cada semana, solo canciones que aún no has escuchado), una **Mezcla del día** por cada uno de tus seis artistas favoritos, novedades de tus artistas, lo más escuchado, escuchado hace poco y para redescubrir
   - **Lo que más vuelves a poner** y **Recientes** (listas, mezclas, radios…)
   - **Radios para ti** (de tus artistas), **Radios populares** (de unos 60 artistas: Bad Bunny, KAROL G, Rosalía, Coldplay…) y **Si te gusta …** (radios de artistas parecidos a uno de los tuyos)
   - **Explorar, Radios populares y Si te gusta van cambiando**: se eligen en parte al azar, pero según lo que escuchas. Tus géneros siempre tienen sitio (un tercio de Explorar, la mitad de las radios) y lo que viste la última vez pesa menos. Cambian cada 3 horas, cada día o cada vez que abres Rumoria (Ajustes → Personalizar), y el botón **«Otras»** de cada estantería las cambia en el momento

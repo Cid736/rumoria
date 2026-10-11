@@ -353,7 +353,7 @@ export default function Home() {
       <h1 className="greeting">{greeting()}</h1>
       {shows('tiles') && tiles.length > 0 && <div className="tiles">{tiles.map(({ key, ...t }) => <Tile key={key} {...t} />)}</div>}
 
-      {shows('made') && (<Shelf title="Hecho para ti">
+      {shows('made') && (<Shelf title="Elegido para ti">
         {smart && smart.lately && smart.lately.some((r) => r.yt) && (
           <Card key="today" title="Para hoy" sub="Parecidas a lo último que has escuchado" cover={<Cover name="Para hoy" size={160} />}
             onOpen={() => go({ name: 'today' })} onPlay={playFrom(() => dailyOf(smart), { kind: 'today', name: 'Para hoy', sub: 'Se renueva cada día' })} />
@@ -368,11 +368,11 @@ export default function Home() {
         ))}
         {news.length > 0 && (
           <Card key="news" title="Novedades de tus artistas" sub={`${news.length} canciones nuevas de los que más escuchas`} cover={<Cover thumbs={news.map((n) => n.thumbnail)} src={news[0].thumbnail} name="Novedades" size={160} />}
-            onOpen={() => go({ name: 'news' })} onPlay={playFrom(async () => news.map((n) => fromYouTube({ ...n, id: n.yt })), { kind: 'news', name: 'Novedades de tus artistas', sub: 'Hecho para ti' })} />
+            onOpen={() => go({ name: 'news' })} onPlay={playFrom(async () => news.map((n) => fromYouTube({ ...n, id: n.yt })), { kind: 'news', name: 'Novedades de tus artistas', sub: 'Elegido para ti' })} />
         )}
         {smartCards.map((c) => (
           <Card key={c.k} title={c.name} sub={c.sub} cover={<Cover thumbs={c.tracks.map((t) => t.thumbnail).filter(Boolean)} src={c.tracks[0].thumbnail} name={c.name} size={160} />}
-            onOpen={() => go({ name: 'mix', id: c.k })} onPlay={playFrom(async () => c.tracks, { kind: 'mix', id: c.k, name: c.name, sub: 'Hecho para ti' })} />
+            onOpen={() => go({ name: 'mix', id: c.k })} onPlay={playFrom(async () => c.tracks, { kind: 'mix', id: c.k, name: c.name, sub: 'Elegido para ti' })} />
         ))}
       </Shelf>)}
 
@@ -408,7 +408,7 @@ export default function Home() {
       {loaded && !lists.length && !likes.length && !mixes.length && !recent.length && (
         <section className="welcome">
           <h2>Empieza por donde quieras</h2>
-          <p>Pon cualquier lista de «Explorar» o una radio, trae una playlist de Spotify, Apple Music o YouTube, o busca una canción. Todo suena sin descargar nada, y lo que escuches irá llenando «Hecho para ti».</p>
+          <p>Pon cualquier lista de «Explorar» o una radio, trae una playlist de Spotify, Apple Music o YouTube, o busca una canción. Todo suena sin descargar nada, y lo que escuches irá llenando «Elegido para ti».</p>
           <div className="welcome-actions">
             <button type="button" className="btn btn-accent" onClick={() => useUi.getState().openDialog({ kind: 'import' })}>Importar una lista</button>
             <button type="button" className="btn btn-ghost" onClick={() => go({ name: 'search' })}>Buscar</button>

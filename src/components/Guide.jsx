@@ -49,7 +49,7 @@ const STEPS = [
     text: 'Con el botón del enlace, en «Tu biblioteca», traes listas de Spotify, Apple Music o YouTube. Con «+» creas una vacía o una que se llena sola con un estilo o un artista. Clic derecho en cualquier canción para añadirla a una lista o a Favoritas.',
   },
   {
-    icon: <Sparkle size={30} />, title: 'Hecho para ti',
+    icon: <Sparkle size={30} />, title: 'Elegido para ti',
     text: 'Cuanto más escuchas, mejor te conoce: «Para hoy», «Descubre algo nuevo», mezclas del día y la carpeta «Para ti». Si algo no te gusta, clic derecho → «No me recomiendes…». Lo que escuchas está en «Historial», y solo en este ordenador.',
   },
   {

@@ -143,11 +143,11 @@ export function MixPage({ id }) {
   const mix = built.id === id ? built.tracks : null;
   if (SMART[id]) {
     const tracks = smartTracks(id, smart, local);
-    return <Collection kind="Hecho para ti" name={SMART[id].name} sub={SMART[id].sub} cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name={SMART[id].name} />} tracks={tracks}
-      recent={{ kind: 'mix', id, name: SMART[id].name, sub: 'Hecho para ti' }} />;
+    return <Collection kind="Elegido para ti" name={SMART[id].name} sub={SMART[id].sub} cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name={SMART[id].name} />} tracks={tracks}
+      recent={{ kind: 'mix', id, name: SMART[id].name, sub: 'Elegido para ti' }} />;
   }
   if (!card) return <p className="muted pad">Esta mezcla ya no está.</p>;
-  return <Collection kind="Hecho para ti" name={card.name} sub={`${card.sub} y parecidos`} cover={<BigCover src={card.thumb} name={card.sub} />} tracks={mix || []} loading={!mix}
+  return <Collection kind="Elegido para ti" name={card.name} sub={`${card.sub} y parecidos`} cover={<BigCover src={card.thumb} name={card.sub} />} tracks={mix || []} loading={!mix}
     recent={{ kind: 'mix', id, name: card.name, sub: `${card.sub} y más` }} />;
 }
 
@@ -155,9 +155,9 @@ export function NewsPage() {
   const news = useLibrary((s) => s.news);
   const tracks = news.map((n) => fromYouTube({ ...n, id: n.yt }));
   return (
-    <Collection kind="Hecho para ti" name="Novedades de tus artistas" sub="Lo último de los que más escuchas"
+    <Collection kind="Elegido para ti" name="Novedades de tus artistas" sub="Lo último de los que más escuchas"
       cover={<BigCover thumbs={tracks.map((t) => t.thumbnail).filter(Boolean)} name="Novedades de tus artistas" />} tracks={tracks}
-      recent={{ kind: 'news', name: 'Novedades de tus artistas', sub: 'Hecho para ti' }}
+      recent={{ kind: 'news', name: 'Novedades de tus artistas', sub: 'Elegido para ti' }}
       empty={<p className="muted pad">Cuando tus artistas saquen algo nuevo, aparecerá aquí (se mira cada 12 horas).</p>} />
   );
 }

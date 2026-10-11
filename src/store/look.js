@@ -15,7 +15,7 @@ export const DENSITIES = [['compact', 'Compacta'], ['normal', 'Normal'], ['comfy
 export const CORNERS = [['square', 'Rectas'], ['normal', 'Normales'], ['round', 'Muy redondeadas']];
 // Inicio's shelves, in the order they appear.
 export const SECTIONS = [
-  ['tiles', 'Accesos rápidos'], ['made', 'Hecho para ti'], ['again', 'Lo que más vuelves a poner'], ['recent', 'Recientes'], ['onthisday', 'Tal día como hoy'],
+  ['tiles', 'Accesos rápidos'], ['made', 'Elegido para ti'], ['again', 'Lo que más vuelves a poner'], ['recent', 'Recientes'], ['onthisday', 'Tal día como hoy'],
   ['radios', 'Radios para ti'], ['popular', 'Radios populares'], ['like', 'Si te gusta…'], ['explore', 'Explorar'],
   ['lists', 'Tus listas'], ['categories', 'Todas las categorías'],
 ];

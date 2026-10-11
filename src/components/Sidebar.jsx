@@ -97,7 +97,7 @@ export default function Sidebar() {
         {lists.length > 6 && <input className="side-search" type="search" placeholder="Buscar en tu biblioteca" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar en tu biblioteca" />}
         <div className="side-scroll">
           <Item active={view.name === 'liked'} onClick={() => go({ name: 'liked' })} cover={<Cover liked size={44} />} title="Favoritas" sub={`Lista · ${likes.length} canciones`} />
-          {local.folder && <Item active={view.name === 'local'} onClick={() => go({ name: 'local' })} cover={<Cover name="Tu música" size={44} />} title="Tu música" sub={`Carpeta · ${local.songs.length} canciones`} />}
+          {local.folder && local.songs.length > 0 && <Item active={view.name === 'local'} onClick={() => go({ name: 'local' })} cover={<Cover name="Tu música" size={44} />} title="Tu música" sub={`Carpeta · ${local.songs.length} canciones`} />}
           {ruleLists.filter((l) => filter !== 'link' && (!q || fold(l.name).includes(fold(q)))).map((l) => (
             <Item key={`r:${l.id}`} active={view.name === 'rules' && view.id === l.id} onClick={() => go({ name: 'rules', id: l.id })}
               onContextMenu={(e) => {

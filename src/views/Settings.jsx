@@ -97,7 +97,7 @@ function HistorySettings() {
   return (
     <section className="set-group">
       <h2>Historial de escucha</h2>
-      <p className="muted">Se guarda solo en este ordenador y alimenta «Hecho para ti», tus estadísticas y las novedades de tus artistas.</p>
+      <p className="muted">Se guarda solo en este ordenador y alimenta «Elegido para ti», tus estadísticas y las novedades de tus artistas.</p>
       <label className="set-row">
         <span><strong>Pausar el historial</strong><small>Mientras esté en pausa, no se anota lo que escuchas.</small></span>
         <input type="checkbox" className="switch" checked={paused} onChange={(e) => setPaused(e.target.checked)} />

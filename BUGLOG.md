@@ -4,6 +4,32 @@ El historial anterior a la separación (cuando era la pestaña «Escuchar») est
 
 ---
 
+## 2026-10-11 — Revisión 3: toda la interfaz (1.8)
+
+Recorridas todas las pantallas (Inicio, Buscar, una lista, cola, letra, sonido, Favoritas, Tu resumen, Historial, importar, Ajustes y su buscador, Sonando) en tema oscuro y claro, a 1280×820 y a 900×600.
+
+### [Bug] Hueco vacío entre la portada y el título en el reproductor
+- **Archivo:** `src/components/PlayerBar.jsx`, `src/styles/v18.css`
+- **Descripción:** el visualizador ocupaba 60 px al lado de la portada aunque no dibujara nada (en pausa, o sin la cadena de sonido). Con la ventana pequeña, el título quedaba en «Ca…».
+- **Fix:** el visualizador va encima del borde inferior de la portada.
+
+### [Bug] El botón grande de reproducir se aplastaba en un óvalo
+- **Archivo:** `src/styles/v18.css`
+- **Descripción:** con la ventana pequeña y un panel abierto, las acciones de la lista no cabían y el botón redondo encogía. Los iconos de la barra del reproductor también encogían un poco.
+- **Fix:** los botones redondos no encogen, y las acciones de la lista pasan a una segunda línea cuando no caben.
+
+### [Bug] Los filtros de la biblioteca se partían en dos líneas
+- **Archivo:** `src/styles/v18.css`
+- **Descripción:** en ventanas estrechas, «De un enlace» bajaba de línea y le quitaba sitio a la lista. Con poca altura, el menú dejaba casi sin sitio a la biblioteca.
+- **Fix:** los filtros van en una línea que se desplaza de lado, y con poca altura el menú es más compacto.
+
+### [Uso] Botones del reproductor sin explicación a la vista
+- **Archivo:** `src/components/PlayerBar.jsx`
+- **Descripción:** siete iconos a la derecha (radio, sonido, letra, pantalla completa, mini, cola, volumen) sin texto. El aviso nativo tardaba en salir.
+- **Fix:** cada botón dice lo que hace en cuanto el ratón pasa por encima o recibe el foco con el teclado. Con la ventana estrecha se quitan los dos menos usados, que siguen en F11 y Ctrl+M.
+
+---
+
 ## 2026-10-11 — Revisión de la 1.7: lo nuevo, probado en la app de verdad
 
 Revisado: listas inteligentes, Estadísticas, «Tal día como hoy», despertador, letra romanizada o traducida, Modo sesión, Discord, yt-dlp y los tests de extremo a extremo. Tests: 115 de servidor y seguridad, 105 de interfaz, 7 de Playwright con la app abierta.

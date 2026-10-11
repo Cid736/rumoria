@@ -73,14 +73,14 @@ export default function PlayerBar() {
       <div className="pb-now">
         {cur ? (
           <>
-            <Cover src={cur.thumbnail} name={cur.title} size={56} />
-            <Visualizer />
+            {/* The visualizer sits on the cover (it used to take room beside it, empty while paused). */}
+            <span className="pb-art"><Cover src={cur.thumbnail} name={cur.title} size={56} /><Visualizer /></span>
             <div className="pb-text">
               <span className="pb-title" title={cur.title}>{cur.title}</span>
               <span className="pb-artist" title={cur.artist}>{cur.artist || '—'}</span>
             </div>
             <button type="button" className={`icon-btn pb-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked}
-              aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'} title={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
+              aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'} data-tip={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
               onClick={() => useLibrary.getState().setLike(cur, !liked)}><Heart filled={liked} size={18} /></button>
           </>
         ) : <span className="pb-idle">Elige algo que escuchar</span>}
@@ -88,13 +88,13 @@ export default function PlayerBar() {
 
       <div className="pb-center">
         <div className="pb-controls">
-          <button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" title="Aleatorio (Ctrl+S)" onClick={p.toggleShuffle}><Shuffle size={18} /></button>
-          <button type="button" className="icon-btn" aria-label="Anterior" title="Anterior (Ctrl+←)" onClick={p.prev} disabled={!cur}><Prev size={20} /></button>
-          <button type="button" className={`play-btn ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'} title={want ? 'Pausa (Espacio)' : 'Reproducir (Espacio)'} onClick={p.toggle} disabled={!cur}>
+          <button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" data-tip="Aleatorio (Ctrl+S)" onClick={p.toggleShuffle}><Shuffle size={18} /></button>
+          <button type="button" className="icon-btn" aria-label="Anterior" data-tip="Anterior (Ctrl+←)" onClick={p.prev} disabled={!cur}><Prev size={20} /></button>
+          <button type="button" className={`play-btn ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'} data-tip={want ? 'Pausa (Espacio)' : 'Reproducir (Espacio)'} onClick={p.toggle} disabled={!cur}>
             {want ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button type="button" className="icon-btn" aria-label="Siguiente" title="Siguiente (Ctrl+→)" onClick={() => p.next()} disabled={!cur}><Next size={20} /></button>
-          <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} title="Repetir (Ctrl+R)" onClick={p.cycleRepeat}>
+          <button type="button" className="icon-btn" aria-label="Siguiente" data-tip="Siguiente (Ctrl+→)" onClick={() => p.next()} disabled={!cur}><Next size={20} /></button>
+          <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} data-tip="Repetir (Ctrl+R)" onClick={p.cycleRepeat}>
             {repeat === 'one' ? <RepeatOne size={18} /> : <Repeat size={18} />}
           </button>
         </div>
@@ -106,14 +106,14 @@ export default function PlayerBar() {
       </div>
 
       <div className="pb-side">
-        <button type="button" className={`icon-btn toggle ${radio ? 'on' : ''}`} aria-pressed={radio} aria-label="Seguir con canciones parecidas" title="Al acabar, seguir con canciones parecidas" onClick={p.toggleRadio}><Radio size={18} /></button>
-        {sleeping && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" title="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
-        <button type="button" className={`icon-btn toggle ${panel === 'sound' ? 'on' : ''}`} aria-pressed={panel === 'sound'} aria-label="Sonido" title="Sonido: ecualizador, velocidad, temporizador…" onClick={() => useUi.getState().togglePanel('sound')}><Sliders size={18} /></button>
-        <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" title="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
-        <button type="button" className="icon-btn" aria-label="Sonando a pantalla completa" title="Sonando a pantalla completa (F11)" onClick={() => useUi.getState().setNowPlaying(true)} disabled={!cur}><Expand size={18} /></button>
-        {desktop && desktop.mini && <button type="button" className="icon-btn" aria-label="Mini reproductor" title="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
-        <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" title="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>
-        <button type="button" className="icon-btn" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={p.toggleMute}><Volume level={vol} size={18} /></button>
+        <button type="button" className={`icon-btn toggle ${radio ? 'on' : ''}`} aria-pressed={radio} aria-label="Seguir con canciones parecidas" data-tip="Al acabar, seguir con canciones parecidas" onClick={p.toggleRadio}><Radio size={18} /></button>
+        {sleeping && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" data-tip="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
+        <button type="button" className={`icon-btn toggle ${panel === 'sound' ? 'on' : ''}`} aria-pressed={panel === 'sound'} aria-label="Sonido" data-tip="Sonido: ecualizador, velocidad, temporizador…" onClick={() => useUi.getState().togglePanel('sound')}><Sliders size={18} /></button>
+        <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" data-tip="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
+        <button type="button" className="icon-btn pb-extra" aria-label="Sonando a pantalla completa" data-tip="Sonando a pantalla completa (F11)" onClick={() => useUi.getState().setNowPlaying(true)} disabled={!cur}><Expand size={18} /></button>
+        {desktop && desktop.mini && <button type="button" className="icon-btn pb-extra" aria-label="Mini reproductor" data-tip="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
+        <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" data-tip="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>
+        <button type="button" className="icon-btn" aria-label={muted ? 'Activar sonido' : 'Silenciar'} data-tip={muted ? 'Activar sonido' : 'Silenciar'} onClick={p.toggleMute}><Volume level={vol} size={18} /></button>
         <div className="pb-volume"><Slider value={vol} max={1} label="Volumen" step={0.05} format={(v) => `${Math.round(v * 100)} %`} onChange={(v) => p.setVolume(v)} onCommit={(v) => p.setVolume(v)} /></div>
       </div>
     </footer>

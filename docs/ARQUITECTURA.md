@@ -4,7 +4,7 @@ La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **Rumoria**
 
 | | TubeGrab | Rumoria |
 |---|---|---|
-| Para qué | Descargar y convertir; tu biblioteca de archivos | Escuchar sin descargar: listas, favoritas, «Hecho para ti» |
+| Para qué | Descargar y convertir; tu biblioteca de archivos | Escuchar sin descargar: listas, favoritas, «Elegido para ti» |
 | Repositorio | `Cid736/tubegrab` (`main`) | `Cid736/rumoria` (público, `main`) |
 | Pila | Electron 44 + Express 5 + JavaScript sin framework | Electron 44 + Express 5 (servidor) · React 19 + Vite 8 + Zustand 5 (interfaz) |
 | Tests | `node --test` (242) | `node --test` (servidor y seguridad) + Vitest (interfaz) + Playwright (la app de verdad, capturas) |
@@ -20,7 +20,7 @@ La pestaña «Escuchar» de TubeGrab es ahora una app independiente, **Rumoria**
 |---|---|---|
 | Reproducir desde YouTube sin descargar (`lib/stream.js`) | TubeGrab | **Rumoria** |
 | Listas de Spotify / Apple Music / YouTube (`lib/streamlists.js`) y perfiles de Spotify | TubeGrab | **Rumoria** |
-| Historial de escucha, «Hecho para ti», resumen del año (`lib/listenlog.js`) | TubeGrab (Escuchar + Estadísticas) | **Rumoria** («Tu resumen») |
+| Historial de escucha, «Elegido para ti», resumen del año (`lib/listenlog.js`) | TubeGrab (Escuchar + Estadísticas) | **Rumoria** («Tu resumen») |
 | Favoritas (`lib/likes.js`), Novedades de tus artistas (`lib/news.js`) | TubeGrab | **Rumoria** |
 | Búsqueda de YouTube y listas en el mini reproductor; «poner una canción» desde el móvil | TubeGrab | Quitado de TubeGrab (lo hace Rumoria) |
 | Biblioteca de archivos, su reproductor, ecualizador, letras `.lrc`, mini reproductor, modo juego, Last.fm, Discord, tele, el móvil | TubeGrab | **TubeGrab** (solo archivos locales) |
@@ -94,6 +94,18 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.8: revisión de toda la interfaz (`src/styles/v18.css`, se carga la última)**
+
+- Se recorrieron todas las pantallas en tema oscuro y claro, a 1280×820 y con la ventana mínima (900×600), con datos de prueba.
+- **Arreglos:**
+  - El visualizador va encima de la portada (`.pb-art`) y ya no deja 60 px vacíos al lado mientras está en pausa.
+  - Los botones redondos (`.big-play`, `.play-btn`, `.icon-btn`) ya no se aplastan (`flex: none`).
+  - Las acciones de una lista pasan a otra línea si no caben.
+  - Los filtros de la biblioteca van en una sola línea.
+  - Con poca altura, el menú ocupa menos.
+- **Ayuda:** los botones de la barra del reproductor dicen lo que hacen nada más pasar el ratón (`data-tip`, en vez del `title` nativo, que tardaba un segundo). Con la ventana estrecha, «Sonando» y el mini salen de la barra (siguen en F11 y Ctrl+M). «Tu música» no aparece en la biblioteca si la carpeta está vacía.
+- **Algo menos parecido a Spotify:** «Hecho para ti» pasa a «Elegido para ti», y la portada de Favoritas usa tu color en vez del degradado morado con corazón. La estructura (biblioteca a la izquierda, reproductor abajo) es la habitual de cualquier reproductor de música.
+
 **v1.7.1: Ajustes por temas y con buscador (`src/views/Settings.jsx`)**
 
 - `TABS` son los temas del menú y `SECTIONS`, cada sección con su tema y las palabras por las que se encuentra (las suyas y las que escribiría alguien). Se ve un tema a la vez y se recuerda en `rumoria_settings_tab`. `findSections` busca sin mayúsculas ni acentos, y cada palabra escrita tiene que aparecer. Los resultados dicen en qué tema están y llevan a él. Con la página estrecha, el menú pasa a ser una fila de botones. En Personalizar se quedan a la vista el tema, el estilo, el color, el fondo y el tamaño del texto; lo demás va en «Más opciones de aspecto» (`<details>`).
