@@ -29,6 +29,9 @@ const { parseLrc } = require('./lib/lrc');
 const { RuleLists, evaluate: evaluateRules, ID_RE: RULE_ID_RE } = require('./lib/rulelists');
 const { translateLines, TranslationCache } = require('./lib/translate');
 const stats = require('./lib/stats');
+const { writeFileAtomic } = require('./lib/atomic');
+const { CloudSync, createCloud } = require('./lib/cloudsync');
+const syncConfig = require('./lib/sync-config');
 
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 const COOKIE = 'rum_t';
@@ -108,6 +111,23 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const hidden = new Hidden(path.join(dataDir, 'hidden.json'));
   const ruleLists = new RuleLists(path.join(dataDir, 'rule-lists.json'));
   const translations = new TranslationCache(path.join(dataDir, 'translations.json'));
+  // v1.10, Sincronizar: what goes to the cloud (encrypted) and comes back merged. "Para ti" stays per device.
+  const mine = (l) => !(l.auto && l.auto.by === 'rumoria');
+  const syncStores = {
+    files: [lists.file, likes.file, ruleLists.file],
+    read: () => ({ lists: lists.lists.filter(mine), likes: likes.songs, rules: ruleLists.lists }),
+    write(m) {
+      // Through the files and back, so everything is cleaned as when it's read from disk.
+      writeFileAtomic(lists.file, JSON.stringify([...m.lists, ...lists.lists.filter((l) => !mine(l))]));
+      lists.lists = new StreamLists(lists.file).lists;
+      writeFileAtomic(likes.file, JSON.stringify({ songs: m.likes }));
+      likes.songs = new Likes(likes.file).songs;
+      writeFileAtomic(ruleLists.file, JSON.stringify({ v: 1, lists: m.rules }));
+      ruleLists.lists = new RuleLists(ruleLists.file).lists;
+    },
+  };
+  const cloudSync = new CloudSync({ file: path.join(dataDir, 'sync.json'), stores: syncStores, cloud: deps.cloud || createCloud(syncConfig), background });
+  cloudSync.start();
   // Your listening summary without the artists you asked not to be suggested (their mixes, news, radios).
   const smartNow = () => { const sm = history.smart(); return { ...sm, artists: sm.artists.filter((a) => !hidden.artistKeys.has(artistKey(a.name))) }; };
 
@@ -524,6 +544,19 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     return res.sendFile(hit.file, { dotfiles: 'deny', headers: { 'Content-Type': hit.mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
   });
 
+  // ---- Sincronizar: the code stays here; only the encrypted library goes to the cloud ----
+  const syncLimiter = limiter(60);
+  const syncReply = (res, p) => p.then((s) => res.json(s), (err) => res.status(400).json({ error: shortError(err, 'No se pudo sincronizar.') }));
+  app.get('/api/sync', (req, res) => res.json(cloudSync.status()));
+  app.post('/api/sync/create', syncLimiter, (req, res) => syncReply(res, cloudSync.status().enabled ? Promise.reject(new Error('Ya está sincronizando.')) : cloudSync.create()));
+  app.post('/api/sync/join', syncLimiter, (req, res) => {
+    const code = text((req.body || {}).code, 300);
+    if (!code) return res.status(400).json({ error: 'Escribe el código.' });
+    return syncReply(res, cloudSync.join(code));
+  });
+  app.post('/api/sync/now', syncLimiter, (req, res) => syncReply(res, cloudSync.syncNow()));
+  app.post('/api/sync/leave', syncLimiter, (req, res) => syncReply(res, cloudSync.leave({ wipe: (req.body || {}).wipe === true })));
+
   if (staticDir) app.use(express.static(staticDir, { index: 'index.html', dotfiles: 'deny', fallthrough: true }));
   app.use('/api', (req, res) => res.status(404).json({ error: 'No existe.' }));
   // Broken JSON, too big, anything unexpected: a short answer, never a stack.
@@ -620,8 +653,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   return {
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
-    stop() { timers.forEach((t) => clearTimeout(t)); },
-    _state: { lists, history, likes, news, local, browse, curator, hidden, ruleLists, prefs },
+    stop() { timers.forEach((t) => clearTimeout(t)); cloudSync.stop(); },
+    _state: { lists, history, likes, news, local, browse, curator, hidden, ruleLists, prefs, cloudSync },
     _run: { fillAutoLists, curate, warmBrowse },
   };
 }

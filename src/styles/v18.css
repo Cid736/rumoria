@@ -41,3 +41,19 @@
 
 /* ---- Favoritas: its own look (your colour), not another app's ---- */
 .cover-liked { background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 45%, #2a1a12)); }
+
+/* ---- v1.10, Ajustes → Sincronizar: the code, big and numbered, easy to copy by hand ---- */
+.sync-code { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 8px; }
+.sync-word { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 17px; font-weight: 700; letter-spacing: 0.01em; user-select: all; }
+.sync-word small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.sync-hint { margin: 0 0 6px; }
+.sync-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.sync-join { flex-wrap: wrap; }
+.sync-join-box { display: flex; gap: 8px; flex: 1 1 280px; justify-content: flex-end; }
+.sync-join-box input { flex: 1; min-width: 0; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; }
+.sync-join-box input:focus { border-color: var(--accent); outline: none; }
+:root[data-device="phone"] .sync-code { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root[data-device="phone"] .sync-join-box { flex-basis: 100%; }
+.set-row .sync-join-box { flex-direction: row; align-items: center; }
+.sync-join-box .btn, .sync .set-row > .btn, .sync-actions .btn { flex: none; white-space: nowrap; }
+.set-row .sync-actions { flex-direction: row; align-items: center; }

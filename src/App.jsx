@@ -22,6 +22,7 @@ import TopBar from './components/TopBar.jsx';
 import YouTubeNotice from './components/YouTubeNotice.jsx';
 import { MiniBar, PhonePlayer, TabBar } from './components/Phone.jsx';
 import { isPhone, startAndroid } from './lib/android.js';
+import { startSyncWatch } from './lib/syncWatch.js';
 import Home, { tracksOf } from './views/Home.jsx';
 import { LikedPage, ListPage, LocalPage, MixPage, NewsPage, RulePage } from './views/Pages.jsx';
 import Search from './views/Search.jsx';
@@ -133,6 +134,8 @@ export default function App() {
 
   // The Android app: its notification and back button, and the phone layout.
   useEffect(() => startAndroid(), []);
+  // v1.10: what another device synced shows up here by itself.
+  useEffect(() => startSyncWatch(), []);
   useEffect(() => {
     if (!isPhone) return undefined;
     document.documentElement.dataset.device = 'phone';

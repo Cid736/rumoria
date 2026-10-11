@@ -34,6 +34,7 @@ Lo del escritorio que no está en el móvil: el mini reproductor, los atajos de 
 
 ## Funciones
 
+- **Sincronizar** (Ajustes): tus listas, Favoritas y listas inteligentes, iguales en tu PC, tu Mac y tu móvil, sin cuenta: crea un código de 6 palabras en un dispositivo y escríbelo en los demás. No hace falta tenerlos encendidos a la vez. Se cifran en tu dispositivo con el código antes de subir: la nube no puede leerlas
 - **Biblioteca a la izquierda**: Favoritas, Tu música, tus listas en carpetas, con filtros y buscador
 - **Importa** una playlist o un perfil entero de Spotify; las listas de un enlace se mantienen al día solas
 - **Reproductor abajo**: aleatorio, repetir (todo / una), radio al acabar la cola, volumen, teclas multimedia

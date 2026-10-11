@@ -13,7 +13,8 @@ import { useUi } from '../store/ui.js';
 import { DiscordSettings, GuideSettings, HiddenSettings, LyricsSettings, SearchSettings, ShortcutSettings, YouTubeSettings } from './MoreSettings.jsx';
 import { Customize, MiniSettings, PerfSettings, PlaybackSettings } from './Customize.jsx';
 import AlarmSettings from '../components/AlarmSettings.jsx';
-import { Gear, Keyboard, MiniPlayer, Moon, Play, Search, Shield, Sparkle } from '../components/Icons.jsx';
+import SyncSettings from './SyncSettings.jsx';
+import { Gear, Keyboard, MiniPlayer, Moon, Play, Refresh, Search, Shield, Sparkle } from '../components/Icons.jsx';
 
 const ROTATE = [[3, 'Cada 3 días'], [7, 'Cada semana'], [14, 'Cada 2 semanas']];
 const TAB_KEY = 'rumoria_settings_tab';
@@ -163,6 +164,7 @@ function WindowKeys() {
 // The topics, in the menu's order.
 export const TABS = [
   ['look', 'Aspecto', Moon, 'Tema, colores y estilo'],
+  ['sync', 'Sincronizar', Refresh, 'PC, Mac y móvil, sin cuenta'],
   ['play', 'Reproducción', Play, 'Al abrir, despertador, letras'],
   ['foryou', 'Recomendaciones', Sparkle, 'Para ti y lo que no quieres'],
   ['privacy', 'Privacidad', Shield, 'Historial, búsquedas, Discord'],
@@ -175,6 +177,7 @@ export const TABS = [
 export const SECTIONS = [
   { tab: 'look', id: 'customize', title: 'Personalizar', words: 'tema oscuro claro estilo windows mac color acento fondo tamaño texto letra densidad esquinas tipo de letra fuente biblioteca ancho portada animaciones inicio estanterías explorar radios rotación restablecer', C: Customize },
   { tab: 'look', id: 'guide', title: 'Guía de bienvenida', words: 'guía ayuda tutorial primeros pasos', C: GuideSettings },
+  { tab: 'sync', id: 'sync', title: 'Sincronizar', words: 'sincronizar sincronización nube código móvil android mac pc otro dispositivo copia mismas listas', C: SyncSettings },
   { tab: 'play', id: 'playback', title: 'Reproducción', words: 'seguir donde lo dejaste cola empezar a sonar al abrir bandeja cerrar segundo plano sonido ecualizador', C: PlaybackSettings },
   { tab: 'play', id: 'alarm', title: 'Despertador', words: 'despertador alarma hora días volumen subir mañana', C: AlarmSection },
   { tab: 'play', id: 'lyrics', title: 'Letras', words: 'letra letras traducir traducción español romanizar latinas coreano japonés karaoke', C: LyricsSettings },

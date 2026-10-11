@@ -1817,3 +1817,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+------------------------------------------------------------------------
+BIP-39 Spanish word list (bitcoin/bips, bip-0039/spanish.txt) — MIT
+------------------------------------------------------------------------
+The 2048 words of Sincronizar's codes come from BIP-39, which falls under the MIT License.
+https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki

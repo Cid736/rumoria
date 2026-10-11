@@ -36,6 +36,9 @@ for (const n of [...names].sort()) {
   out.push('-'.repeat(72), `${n} ${p.version} — ${lic}`, '-'.repeat(72));
   out.push(file ? fs.readFileSync(path.join(dir, file), 'utf8').trim() : `${lic} license${p.author ? `, ${typeof p.author === 'string' ? p.author : p.author.name}` : ''}.`, '');
 }
+// Not a package: the word list of Sincronizar's codes (server/lib/sync-words.json).
+out.push('-'.repeat(72), 'BIP-39 Spanish word list (bitcoin/bips, bip-0039/spanish.txt) — MIT', '-'.repeat(72),
+  'The 2048 words of Sincronizar\'s codes come from BIP-39, which falls under the MIT License.', 'https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki', '');
 fs.mkdirSync(path.join(root, 'third-party'), { recursive: true });
 fs.writeFileSync(path.join(root, 'third-party', 'THIRD-PARTY-NOTICES.txt'), out.join('\n'));
 console.log(`${names.size} packages → third-party/THIRD-PARTY-NOTICES.txt`);
