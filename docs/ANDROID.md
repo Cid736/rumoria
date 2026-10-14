@@ -30,7 +30,7 @@ La app de Android es la misma Rumoria que la de escritorio, con el mismo servido
 - **Android Auto:** `PlaybackService` es un `MediaBrowserServiceCompat`, y `AutoLibrary.java` le da Favoritas, Tus listas y las canciones de cada lista. `onPlayFromMediaId` y `onPlayFromSearch` pasan a la página (`playFromCar` en `src/lib/android.js`). Solo navegan esta app, Android Auto, el coche, el Asistente y el sistema. Hay una prueba instrumentada que hace lo mismo que el coche: `cd android && ./gradlew assembleDebug assembleDebugAndroidTest`, se instalan los dos APK y se ejecuta `adb shell am instrument -w -e class com.rumoria.app.AutoTest com.rumoria.app.test/androidx.test.runner.AndroidJUnitRunner`. Necesita un emulador o un móvil con red.
 - **Música en segundo plano:** `PlaybackService` es un servicio en primer plano de tipo `mediaPlayback`. Se encarga de:
   - la `MediaSession`, que da la pantalla de bloqueo, los auriculares y Bluetooth,
-  - la notificación con portada, posición, anterior, pausa y siguiente,
+  - la notificación con portada, posición, anterior, pausa y siguiente, y (v1.12.3) aleatorio y repetir. Android 13 y posteriores dibujan esos dos botones a partir de las acciones propias de la sesión (`CustomAction`), y hasta Android 12, a partir de los de la notificación. Si la deslizas para quitarla (solo se puede en pausa), se cierra también el reproductor de la app, y si se cierra el reproductor en la app, se va la notificación,
   - un *wake lock* parcial mientras suena.
 
   Si se quita la app de recientes mientras suena, la música sigue; si está en pausa, se cierra. Se pausa sola al desconectar los auriculares o el Bluetooth.

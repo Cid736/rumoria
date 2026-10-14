@@ -89,6 +89,10 @@ function onNative(e) {
   else if (m.a === 'next') p.next();
   else if (m.a === 'prev') p.prev();
   else if (m.a === 'seek' && Number.isFinite(m.pos)) p.seek(m.pos);
+  // v1.12.3: the notification's (and the car's) aleatorio and repetir, and closing it.
+  else if (m.a === 'shuffle') p.toggleShuffle();
+  else if (m.a === 'repeat') p.cycleRepeat();
+  else if (m.a === 'close') p.close();
 }
 
 /** Starts the channel; returns a function that stops it. */
@@ -108,9 +112,11 @@ export function startAndroid() {
       playing: Boolean(cur && s.wantPlaying),
       pos: Math.round((s.position || 0) * 10) / 10,
       dur: s.duration || (cur && cur.duration) || 0,
+      shuffle: Boolean(s.queue.original),
+      repeat: s.repeat,
     };
     // The phone moves the position on by itself: told again on a change, or every 15 s.
-    const key = `${state.title}|${state.artist}|${state.art}|${state.playing}|${Math.round(state.dur)}`;
+    const key = `${state.title}|${state.artist}|${state.art}|${state.playing}|${Math.round(state.dur)}|${state.shuffle}|${state.repeat}`;
     if (!force && key === last && Date.now() - lastAt < 15_000) return;
     last = key;
     lastAt = Date.now();

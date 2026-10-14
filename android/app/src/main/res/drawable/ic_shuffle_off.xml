@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v1.12.3: the notification's aleatorio / repetir (drawn for Rumoria; dimmed when off). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeAlpha="0.45" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4,7h2.5c2,0 3,1 4.5,3.5l1,1.7c1.5,2.5 2.5,3.8 4.5,3.8h3.5" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeAlpha="0.45" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4,17h2.5c1.1,0 1.9,-0.4 2.6,-1.1" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeAlpha="0.45" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M14.4,8.1c0.7,-0.7 1.5,-1.1 2.6,-1.1h3" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeAlpha="0.45" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M17.5,4.5l2.5,2.5l-2.5,2.5" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeAlpha="0.45" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M17.5,14.5l2.5,2.5l-2.5,2.5" />
+</vector>

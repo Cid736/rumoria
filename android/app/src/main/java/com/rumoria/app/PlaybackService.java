@@ -118,6 +118,19 @@ public class PlaybackService extends MediaBrowserServiceCompat {
             @Override public void onSkipToPrevious() { send("prev", 0); }
             @Override public void onSeekTo(long pos) { send("seek", pos); }
             @Override public void onStop() { send("pause", 0); }
+            // v1.12.3: aleatorio and repetir, from the system's controls (Android 13+: its two extra buttons), the car or Bluetooth.
+            @Override public void onCustomAction(String action, Bundle extras) { if ("shuffle".equals(action) || "repeat".equals(action)) send(action, 0); }
+            @Override public void onSetShuffleMode(int mode) {
+                if ((mode != PlaybackStateCompat.SHUFFLE_MODE_NONE) != (last != null && last.optBoolean("shuffle"))) send("shuffle", 0);
+            }
+            @Override public void onSetRepeatMode(int mode) {
+                // The page goes off → all → one: once or twice to get where asked.
+                String want = mode == PlaybackStateCompat.REPEAT_MODE_ONE ? "one" : mode == PlaybackStateCompat.REPEAT_MODE_NONE ? "off" : "all";
+                String now = last != null ? last.optString("repeat", "off") : "off";
+                java.util.List<String> order = Arrays.asList("off", "all", "one");
+                int steps = (order.indexOf(want) - Math.max(0, order.indexOf(now)) + 3) % 3;
+                for (int i = 0; i < steps; i++) send("repeat", 0);
+            }
             @Override public void onPlayFromMediaId(String mediaId, Bundle extras) {
                 try { JSONObject m = AutoLibrary.playCommand(mediaId); if (m != null) toPage(m); } catch (Exception e) { Log.w(TAG, "play id", e); }
             }
@@ -128,7 +141,7 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         });
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         session.setSessionActivity(PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
-        session.setPlaybackState(state(false, 0));
+        session.setPlaybackState(state(false, 0, false, "off"));
         session.setActive(true);
         setSessionToken(session.getSessionToken());
         wake = getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Rumoria:playback");
@@ -138,9 +151,15 @@ public class PlaybackService extends MediaBrowserServiceCompat {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String a = intent != null ? intent.getAction() : null;
-        if (a != null && (a.equals("prev") || a.equals("play") || a.equals("pause") || a.equals("next"))) {
+        if (a != null && (a.equals("prev") || a.equals("play") || a.equals("pause") || a.equals("next") || a.equals("shuffle") || a.equals("repeat"))) {
             send(a, 0);
             if (foreground || last == null) return START_NOT_STICKY;
+        }
+        // v1.12.3: the notification swiped away (only possible while paused): Rumoria's player closes too.
+        if ("close".equals(a)) {
+            send("close", 0);
+            closeNotification();
+            return START_NOT_STICKY;
         }
         // Android wants the notification at once.
         show(last != null ? last : new JSONObject());
@@ -178,13 +197,42 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         if (h != null) h.send(m);
     }
 
-    private static PlaybackStateCompat state(boolean playing, long pos) {
+    /**
+     * What the system's controls show. v1.12.3: aleatorio and repetir as its
+     * two extra buttons (Android 13+ draws those from here, not from the
+     * notification), each saying whether it's on.
+     */
+    private static PlaybackStateCompat state(boolean playing, long pos, boolean shuffle, String repeat) {
         return new PlaybackStateCompat.Builder()
             .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO
-                | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH)
+                | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
+                | PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE | PlaybackStateCompat.ACTION_SET_REPEAT_MODE)
             .setState(playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, playing ? 1f : 0f)
+            .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("shuffle",
+                shuffle ? "Aleatorio: sí" : "Aleatorio: no", shuffle ? R.drawable.ic_shuffle : R.drawable.ic_shuffle_off).build())
+            .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("repeat", repeatLabel(repeat), repeatIcon(repeat)).build())
             .build();
+    }
+
+    private static String repeatLabel(String repeat) {
+        return "one".equals(repeat) ? "Repetir: esta canción" : "all".equals(repeat) ? "Repetir: todo" : "Repetir: no";
+    }
+
+    private static int repeatIcon(String repeat) {
+        return "one".equals(repeat) ? R.drawable.ic_repeat_one : "all".equals(repeat) ? R.drawable.ic_repeat : R.drawable.ic_repeat_off;
+    }
+
+    /** Nothing playing any more (closed): no notification, no foreground, the service may go. */
+    private void closeNotification() {
+        last = null;
+        if (wake.isHeld()) wake.release();
+        listenNoisy(false);
+        session.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_STOPPED, 0, 0f).build());
+        if (foreground) ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE);
+        foreground = false;
+        getSystemService(NotificationManager.class).cancel(ID);
+        stopSelf();
     }
 
     private void show(JSONObject s) {
@@ -194,6 +242,11 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         long pos = Math.round(s.optDouble("pos", 0) * 1000);
         long dur = Math.round(s.optDouble("dur", 0) * 1000);
         String url = s.optString("art", "");
+        boolean shuffle = s.optBoolean("shuffle");
+        String repeat = s.optString("repeat", "off");
+        // Closed in Rumoria (the page says nothing plays): the notification goes too. An empty
+        // state (Android starting the service, which wants a notification at once) still shows one.
+        if (s.has("title") && title.isEmpty()) { closeNotification(); return; }
         if (!url.equals(artUrl)) { artUrl = url; art = null; loadArt(url); }
 
         MediaMetadataCompat.Builder meta = new MediaMetadataCompat.Builder()
@@ -202,9 +255,10 @@ public class PlaybackService extends MediaBrowserServiceCompat {
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, dur > 0 ? dur : -1);
         if (art != null) meta.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art);
         session.setMetadata(meta.build());
-        session.setPlaybackState(state(playing, pos));
+        session.setPlaybackState(state(playing, pos, shuffle, repeat));
+        session.setShuffleMode(shuffle ? PlaybackStateCompat.SHUFFLE_MODE_ALL : PlaybackStateCompat.SHUFFLE_MODE_NONE);
+        session.setRepeatMode("one".equals(repeat) ? PlaybackStateCompat.REPEAT_MODE_ONE : "all".equals(repeat) ? PlaybackStateCompat.REPEAT_MODE_ALL : PlaybackStateCompat.REPEAT_MODE_NONE);
         listenNoisy(playing);
-        if (title.isEmpty()) return;
 
         PendingIntent content = session.getController().getSessionActivity();
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL)
@@ -217,10 +271,15 @@ public class PlaybackService extends MediaBrowserServiceCompat {
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setOngoing(playing)
+            // Swiped away (Android lets you only while paused): Rumoria's player closes too.
+            .setDeleteIntent(action("close"))
+            // Up to Android 12 the notification's own buttons (from 13, the system draws them from the session's state).
+            .addAction(shuffle ? R.drawable.ic_shuffle : R.drawable.ic_shuffle_off, shuffle ? "Aleatorio: sí" : "Aleatorio: no", action("shuffle"))
             .addAction(R.drawable.ic_prev, "Anterior", action("prev"))
             .addAction(playing ? R.drawable.ic_pause : R.drawable.ic_play, playing ? "Pausa" : "Reproducir", action(playing ? "pause" : "play"))
             .addAction(R.drawable.ic_next, "Siguiente", action("next"))
-            .setStyle(new MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
+            .addAction(repeatIcon(repeat), repeatLabel(repeat), action("repeat"))
+            .setStyle(new MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(1, 2, 3));
         Notification n = b.build();
         int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK : 0;
 

@@ -70,6 +70,26 @@ test('android updates (v1.12.2): no leftovers — installed or older APKs go on 
   assert.match(s, /if \(!f\.equals\(apk\)\) f\.delete\(\);/);
 });
 
+test('android notification (v1.12.3): aleatorio and repetir everywhere, and closing it closes the player', () => {
+  const s = java('PlaybackService');
+  // Android 13+ draws its two extra buttons from the session's custom actions; up to 12, the notification's own.
+  assert.match(s, /addCustomAction\(new PlaybackStateCompat\.CustomAction\.Builder\("shuffle"/);
+  assert.match(s, /addCustomAction\(new PlaybackStateCompat\.CustomAction\.Builder\("repeat"/);
+  assert.match(s, /ACTION_SET_SHUFFLE_MODE \| PlaybackStateCompat\.ACTION_SET_REPEAT_MODE/);
+  assert.match(s, /addAction\(shuffle \? R\.drawable\.ic_shuffle : R\.drawable\.ic_shuffle_off/);
+  assert.match(s, /setShowActionsInCompactView\(1, 2, 3\)/);
+  // Only known actions reach the page.
+  assert.match(s, /onCustomAction\(String action, Bundle extras\) \{ if \("shuffle"\.equals\(action\) \|\| "repeat"\.equals\(action\)\) send\(action, 0\); \}/);
+  // Swiped away → "close" to the page, the notification and the service gone; the page saying nothing plays does the same.
+  assert.match(s, /\.setDeleteIntent\(action\("close"\)\)/);
+  assert.match(s, /if \("close"\.equals\(a\)\) \{\s+send\("close", 0\);\s+closeNotification\(\);/);
+  assert.match(s, /if \(s\.has\("title"\) && title\.isEmpty\(\)\) \{ closeNotification\(\); return; \}/);
+  const close = s.slice(s.indexOf('private void closeNotification()'), s.indexOf('private void closeNotification()') + 700);
+  assert.match(close, /STOP_FOREGROUND_REMOVE/);
+  assert.match(close, /cancel\(ID\)/);
+  assert.match(close, /stopSelf\(\)/);
+});
+
 test('android notification covers: only from YouTube\'s image servers', () => {
   const s = java('PlaybackService');
   assert.match(s, /SAFE_IMG = Pattern\.compile\("\^https:\/\/i\\\\d\?\\\\\.ytimg\\\\\.com\//);

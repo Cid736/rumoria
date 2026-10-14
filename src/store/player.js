@@ -72,6 +72,8 @@ export const usePlayer = create((set, get) => ({
   cycleRepeat() { set((s) => ({ repeat: s.repeat === 'off' ? 'all' : s.repeat === 'all' ? 'one' : 'off' })); },
   toggleShuffle() { set((s) => ({ queue: setShuffle(s.queue, !s.queue.original) })); },
   toggleRadio() { set((s) => ({ radio: !s.radio })); },
+  /** v1.12.3, "Cerrar" (the phone's mini player and its notification): the music stops and the queue goes. */
+  close() { set({ queue: emptyQueue(), wantPlaying: false, position: 0, duration: 0, error: null, resumeAt: null }); },
   enqueue(tracks, where = 'end') {
     const wasEmpty = !get().queue.items.length;
     set((s) => ({ queue: insert(s.queue, tracks, where), ...(wasEmpty ? { wantPlaying: true } : {}) }));

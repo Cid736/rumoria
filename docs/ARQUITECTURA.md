@@ -94,6 +94,16 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.12.3: cerrar el reproductor del móvil, y aleatorio y repetir en la notificación**
+
+- **La barrita de la app** tiene una X: para la música y vacía la cola (`usePlayer.close()`), así que la barrita desaparece. La sesión guardada también se borra, para que no vuelva a salir al abrir la app.
+- **La notificación:**
+  - si la deslizas para quitarla (Android solo lo deja en pausa), se cierra también el reproductor (`setDeleteIntent` → `close`);
+  - si se cierra en la app, la página manda «no suena nada», y la notificación, el primer plano y el servicio se van (`closeNotification`). Antes la notificación se quedaba a la vista;
+  - lleva aleatorio y repetir, cada uno diciendo si está encendido. En Android 13 y posteriores son los dos botones extra de los controles del sistema (`CustomAction` en el `PlaybackState`), y hasta Android 12, botones de la notificación. También responden a `ACTION_SET_SHUFFLE_MODE` y `ACTION_SET_REPEAT_MODE`, para el coche y el Bluetooth.
+- **Favorita** no cabe en la notificación (Android 13 solo deja dos botones extra), así que sigue en el corazón de la barrita.
+- Los iconos (`ic_shuffle*`, `ic_repeat*`) están dibujados para Rumoria, no copiados de un juego de iconos.
+
 **v1.12.2: rendimiento y sin restos**
 
 - **El visualizador gastaba un cuarto de núcleo** mientras sonaba la música, con la ventana visible: un 29 % de un núcleo en total, frente al 4 % sin él. Cada fotograma volvía a pintar la barra del reproductor, que tiene detrás la portada con `blur(40px)`, y además llevaba un `drop-shadow` en CSS. Lo que se ha cambiado:

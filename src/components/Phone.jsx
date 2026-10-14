@@ -8,7 +8,7 @@ import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
 import { Slider } from './PlayerBar.jsx';
-import { ChevronLeft, Gear, Heart, Home, Library, Mic, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
+import { ChevronLeft, Close, Gear, Heart, Home, Library, Mic, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
 
 // Which tab a page belongs to (the rest belong to the one you came from).
 const TAB_OF = { home: 'home', search: 'search', library: 'library', settings: 'settings', liked: 'library', list: 'library', rules: 'library', local: 'library', summary: 'library', stats: 'library', history: 'library' };
@@ -54,6 +54,9 @@ export function MiniBar() {
         onClick={stop(() => useLibrary.getState().setLike(cur, !liked))}><Heart filled={liked} size={22} /></button>
       <button type="button" className={`icon-btn minibar-play ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'}
         onClick={stop(() => usePlayer.getState().toggle())}>{want ? <Pause size={26} /> : <Play size={26} />}</button>
+      {/* v1.12.3: closing it stops the music (and the notification goes with it). */}
+      <button type="button" className="icon-btn minibar-close" aria-label="Cerrar el reproductor"
+        onClick={stop(() => usePlayer.getState().close())}><Close size={20} /></button>
       <span className="minibar-line" style={{ width: `${pct}%` }} aria-hidden="true" />
     </div>
   );

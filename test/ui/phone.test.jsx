@@ -103,6 +103,48 @@ describe('the phone layout', () => {
     stop();
   });
 
+  it('v1.12.3: the small player closes (music stops, queue gone, nothing back next time); the notification is told', async () => {
+    const { usePlayer, phone } = await load();
+    const { startAndroid } = await import('../../src/lib/android.js');
+    const { startSession } = await import('../../src/player/session.js');
+    const stop = startAndroid();
+    const offSession = startSession();
+    const { container } = render(<phone.MiniBar />);
+    act(() => usePlayer.setState({ queue: { items: [song], index: 0, original: null }, wantPlaying: true }));
+    expect(localStorage.getItem('rumoria_session')).not.toBe(null);
+    bridge.sent = [];
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar el reproductor' }));
+    expect(usePlayer.getState().wantPlaying).toBe(false);
+    expect(usePlayer.getState().current()).toBe(null);
+    expect(container.querySelector('.minibar')).toBe(null);
+    // The notification hears "nothing plays" (it goes away), and nothing comes back on opening.
+    expect(bridge.sent.filter((m) => m.t === 'state').pop()).toMatchObject({ title: '', playing: false });
+    expect(localStorage.getItem('rumoria_session')).toBe(null);
+    offSession();
+    stop();
+  });
+
+  it('v1.12.3: the notification\'s aleatorio, repetir and close drive the player, and it is told how they are', async () => {
+    const { usePlayer } = await load();
+    const { startAndroid } = await import('../../src/lib/android.js');
+    const stop = startAndroid();
+    act(() => usePlayer.setState({ queue: { items: [song, { ...song, uid: 'u2', title: 'Otra' }], index: 0, original: null }, wantPlaying: true, repeat: 'off' }));
+    const cmd = (a) => act(() => bridge.onmessage({ data: JSON.stringify({ t: 'cmd', a, pos: 0 }) }));
+    const told = () => bridge.sent.filter((m) => m.t === 'state').pop();
+    expect(told()).toMatchObject({ shuffle: false, repeat: 'off' });
+    cmd('shuffle');
+    expect(usePlayer.getState().shuffle()).toBe(true);
+    expect(told()).toMatchObject({ shuffle: true });
+    cmd('repeat');
+    expect(usePlayer.getState().repeat).toBe('all');
+    cmd('repeat');
+    expect(told()).toMatchObject({ repeat: 'one' });
+    cmd('close');
+    expect(usePlayer.getState().current()).toBe(null);
+    expect(told()).toMatchObject({ title: '', playing: false });
+    stop();
+  });
+
   it('song rows: one tap plays on the phone (a computer selects, and plays on a double click)', async () => {
     const { usePlayer } = await load();
     const { default: TrackTable } = await import('../../src/components/TrackTable.jsx');

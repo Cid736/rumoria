@@ -61,7 +61,8 @@ export function startSession({ store = usePlayer, sound = useSound, storage = ty
   const save = () => {
     if (!sound.getState().resume) { try { storage.removeItem(KEY); } catch { /* fine */ } return; }
     const snap = snapshot(store.getState());
-    try { if (snap) storage.setItem(KEY, JSON.stringify(snap)); } catch { /* full: next time */ }
+    // Nothing playing (closed): nothing comes back next time either.
+    try { if (snap) storage.setItem(KEY, JSON.stringify(snap)); else storage.removeItem(KEY); } catch { /* full: next time */ }
   };
   // On every change of song at once; while playing, every 5 seconds.
   const off = store.subscribe((s, before) => {

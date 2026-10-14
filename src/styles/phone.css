@@ -41,6 +41,7 @@
 .minibar .icon-btn { width: 44px; height: 44px; color: var(--text); flex: none; }
 .minibar-like.on { color: var(--accent); }
 .minibar-play.loading { animation: pulse 1.2s ease-in-out infinite; }
+.minibar .minibar-close { width: 36px; color: var(--muted); }
 .minibar-line { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
