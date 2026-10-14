@@ -81,7 +81,7 @@ Huella SHA-256 del certificado: `D3:0C:5C:9B:52:AD:21:A9:F3:E2:DC:38:BD:0D:7E:42
 
 ## Publicar
 
-1. `npm run android:prepare`, y después `cd android && ./gradlew assembleRelease`.
+1. `npm run android:build` (prepara y compila firmado; equivale a `npm run android:prepare` y después `./gradlew assembleRelease` en `android/`).
 2. Copia los APK con los nombres de la tabla.
 3. Súbelos a la misma release de GitHub que los `.exe`. El actualizador de Windows sigue buscando sus tres `.exe` en la última release, así que **cada release lleva los `.exe` y los APK**.
 

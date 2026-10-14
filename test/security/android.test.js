@@ -59,6 +59,17 @@ test('android updates: only from this repository on GitHub, checked against the 
   assert.match(s, /startsWith\("https:\/\/"\)\) throw/);
 });
 
+test('android updates (v1.12.2): no leftovers — installed or older APKs go on opening, others when a new one is ready', () => {
+  const s = java('Updater');
+  const sweep = s.slice(s.indexOf('static int sweep('), s.indexOf('static void checkSoon('));
+  assert.match(sweep, /if \(m\.matches\(\) && newer\(m\.group\(1\), mine\)\) continue;/, 'a newer one waiting to be installed stays');
+  assert.match(sweep, /if \(f\.isFile\(\) && f\.delete\(\)\) gone\+\+;/);
+  const soon = s.slice(s.indexOf('static void checkSoon('), s.indexOf('static void checkNow('));
+  assert.match(soon, /sweep\(new File\(app\.getCacheDir\(\), "updates"\), mine, null\)/);
+  assert.match(soon, /new Thread\(/, 'not on the main thread');
+  assert.match(s, /if \(!f\.equals\(apk\)\) f\.delete\(\);/);
+});
+
 test('android notification covers: only from YouTube\'s image servers', () => {
   const s = java('PlaybackService');
   assert.match(s, /SAFE_IMG = Pattern\.compile\("\^https:\/\/i\\\\d\?\\\\\.ytimg\\\\\.com\//);

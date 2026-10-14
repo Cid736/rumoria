@@ -67,8 +67,35 @@ final class Updater {
         return false;
     }
 
-    /** At most every 12 hours, a while after opening. */
+    /**
+     * v1.12.2: the downloaded APKs of versions already installed (or older)
+     * go: once installed they're leftovers (about 38 MB each). One newer than
+     * this, waiting to be installed, stays. `keep`: never this one.
+     * Returns how many went.
+     */
+    static int sweep(File dir, String mine, File keep) {
+        File[] files = dir.listFiles();
+        if (files == null) return 0;
+        int gone = 0;
+        for (File f : files) {
+            if (keep != null && f.equals(keep)) continue;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^Rumoria-([0-9.]{1,20})\\.apk$").matcher(f.getName());
+            if (m.matches() && newer(m.group(1), mine)) continue;
+            if (f.isFile() && f.delete()) gone++;
+        }
+        return gone;
+    }
+
+    /** At most every 12 hours, a while after opening; the leftovers of past updates go at once. */
     static void checkSoon(Activity a) {
+        final Context app = a.getApplicationContext();
+        new Thread(() -> {
+            try {
+                String mine = app.getPackageManager().getPackageInfo(app.getPackageName(), 0).versionName;
+                int gone = sweep(new File(app.getCacheDir(), "updates"), mine, null);
+                if (gone > 0) Log.i(TAG, "updates: " + gone + " old APK removed");
+            } catch (Exception e) { Log.w(TAG, "sweep", e); }
+        }, "rumoria-sweep").start();
         SharedPreferences prefs = a.getSharedPreferences("rumoria", Context.MODE_PRIVATE);
         if (System.currentTimeMillis() - prefs.getLong("updateChecked", 0) < EVERY_MS) return;
         new android.os.Handler(a.getMainLooper()).postDelayed(() -> check(a, false), 20_000);
@@ -107,6 +134,12 @@ final class Updater {
                         apk.delete();
                         throw new Exception("El archivo descargado no coincide con el publicado.");
                     }
+                }
+                // Only this one stays (an older download never installed goes too).
+                File[] others = dir.listFiles();
+                if (others != null) for (File f : others) {
+                    //noinspection ResultOfMethodCallIgnored
+                    if (!f.equals(apk)) f.delete();
                 }
                 if (asked) { a.runOnUiThread(() -> offer(a, tag, apk)); return; }
                 // Found by itself: no window over what you're doing; the page shows it quietly.
