@@ -330,7 +330,7 @@ export default function Home() {
   useEffect(() => {
     useLibrary.getState().refreshSmart();
     // Covers of ready-made lists appear as the server reads them ahead.
-    const t = setInterval(() => useLibrary.getState().refreshBrowse(), (PROFILES[usePerf.getState().profile] || PROFILES.mid).browseEveryMs);
+    const t = setInterval(() => { if (!usePerf.getState().game) useLibrary.getState().refreshBrowse(); }, (PROFILES[usePerf.getState().profile] || PROFILES.mid).browseEveryMs);
     return () => clearInterval(t);
   }, []);
 

@@ -101,11 +101,17 @@ export default function App() {
     // "Al abrir Rumoria: lo último que viste".
     if (useLook.getState().look.start === 'last') { const v = lastView(); if (v && v.name !== 'home') useUi.getState().go(v); }
   }, []);
+  // v1.12, Modo juego: a game full screen (the desktop app watches) → Recursos mínimos until it ends.
+  useEffect(() => {
+    if (!desktop || !desktop.game) return undefined;
+    desktop.game.get().then((g) => usePerf.getState().setGame(Boolean(g && g.active)), () => {});
+    return desktop.game.onState((g) => usePerf.getState().setGame(Boolean(g && g.active)));
+  }, []);
   // Lists made or filled in the background ("Para ti", lists that fill themselves) show up by
-  // themselves; less often on "Recursos mínimos".
+  // themselves; less often on "Recursos mínimos", and not during a game.
   const profile = usePerf((s) => s.profile);
   useEffect(() => {
-    const t = setInterval(() => useLibrary.getState().refreshLists(), (PROFILES[profile] || PROFILES.mid).listsEveryMs);
+    const t = setInterval(() => { if (!usePerf.getState().game) useLibrary.getState().refreshLists(); }, (PROFILES[profile] || PROFILES.mid).listsEveryMs);
     return () => clearInterval(t);
   }, [profile]);
   // The page you're on, for next time.

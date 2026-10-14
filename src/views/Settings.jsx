@@ -192,7 +192,7 @@ export const SECTIONS = [
   { tab: 'keys', id: 'shortcuts', title: 'Atajos globales', words: 'atajos globales teclas combinación teclado', C: ShortcutSettings },
   { tab: 'keys', id: 'windowkeys', title: 'Atajos de teclado', words: 'atajos teclado teclas espacio ctrl', C: WindowKeys },
   { tab: 'system', id: 'music', title: 'Tu música', words: 'carpeta música archivos locales', C: MusicFolder },
-  { tab: 'system', id: 'perf', title: 'Rendimiento', words: 'rendimiento perfil rápido lento ordenador animaciones visualizador', C: PerfSettings },
+  { tab: 'system', id: 'perf', title: 'Rendimiento', words: 'rendimiento perfil rápido lento ordenador animaciones visualizador modo juego juegos pantalla completa lag', C: PerfSettings },
   { tab: 'system', id: 'updates', title: 'Actualizaciones', words: 'actualizaciones versión actualizar github', C: Updates },
   { tab: 'system', id: 'youtube', title: 'Reproducción desde YouTube', words: 'youtube yt-dlp no carga canciones fallan actualizar', C: YouTubeSettings },
 ];

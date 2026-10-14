@@ -69,5 +69,7 @@ listen(wanted);
 // The desktop app picks the music folder (a native dialog), never the page.
 process.on('message', (m) => {
   if (m && m.type === 'musicDir' && (m.dir === null || abs(m.dir))) server.setMusicDir(m.dir);
+  // v1.12, Modo juego: a game full screen puts the background work off.
+  if (m && m.type === 'game' && typeof m.on === 'boolean') server.setGame(m.on);
 });
 process.on('disconnect', () => process.exit(0));

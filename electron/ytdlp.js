@@ -25,9 +25,10 @@ function readUpdate(out) {
 
 /**
  * `bin()`: yt-dlp's path; `run(file, args, cb)`: execFile-like; `read()` /
- * `save(patch)`: the settings (`ytDlpCheckedAt`); `send(state)`: to the page.
+ * `save(patch)`: the settings (`ytDlpCheckedAt`); `send(state)`: to the page;
+ * `paused()`: v1.12, a game is on (Modo juego): the scheduled look waits.
  */
-function createYtDlpKeeper({ bin, run, read, save, send = () => {}, now = () => Date.now() }) {
+function createYtDlpKeeper({ bin, run, read, save, send = () => {}, now = () => Date.now(), paused = () => false }) {
   const state = { version: null, updating: false, last: null, lastAt: null, trouble: false, troubleAt: null };
   const fails = new Map(); // song -> time of its failure
   let lastAuto = -Infinity;
@@ -90,7 +91,7 @@ function createYtDlpKeeper({ bin, run, read, save, send = () => {}, now = () => 
   /** Every 6 hours (and soon after starting, if it's been that long); the trouble notice goes away by itself in a while. */
   function start() {
     readVersion().then(tell);
-    const due = () => now() - (read().ytDlpCheckedAt || 0) >= CHECK_EVERY_MS;
+    const due = () => !paused() && now() - (read().ytDlpCheckedAt || 0) >= CHECK_EVERY_MS;
     timers.push(setTimeout(() => { if (due()) update('schedule'); }, 60_000));
     timers.push(setInterval(() => {
       if (due()) update('schedule');

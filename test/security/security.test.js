@@ -262,9 +262,9 @@ test('electron: sandboxed page, no Node, navigation and pop-ups locked, no permi
   const listeners = main.match(/ipcMain\.on\([^,]+,\s*\(event[^)]*\)\s*=>\s*\{?\s*[^\n]*/g) || [];
   for (const h of listeners) assert.ok(h.includes('isTrustedSender(event)'), h);
   // The preload exposes a few named functions (settings, music folder, the tray,
-  // TubeGrab, updates, mini player, zoom, global shortcuts; v1.7: Discord and yt-dlp), never ipcRenderer itself, and only fixed channel names.
+  // TubeGrab, updates, mini player, zoom, global shortcuts; v1.7: Discord and yt-dlp; v1.12: Modo juego), never ipcRenderer itself, and only fixed channel names.
   assert.equal(/exposeInMainWorld\([^)]*ipcRenderer\s*[,)]/.test(preload), false);
-  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 13);
+  assert.equal((preload.match(/ipcRenderer\.invoke/g) || []).length, 15);
   // v1.5: the one permission ever granted is full screen ("Sonando"), to the main window on its own page.
   const perm = main.slice(main.indexOf('setPermissionRequestHandler'), main.indexOf('setPermissionCheckHandler'));
   assert.match(perm, /perm === 'fullscreen' && Boolean\(mainWindow\) && wc === mainWindow\.webContents && isAppUrl\(/);

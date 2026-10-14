@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { fork, execFile } = require('child_process');
+const { fork, execFile, spawn } = require('child_process');
 const { migrateFromTubeGrab } = require('../server/lib/migrate');
 const { createUpdater } = require('./updater');
 const { createMini } = require('./mini');
@@ -15,6 +15,7 @@ const { createTray } = require('./tray');
 const { createShortcuts } = require('./shortcuts');
 const { createDiscord } = require('./discord');
 const { createYtDlpKeeper } = require('./ytdlp');
+const { createGameWatch } = require('./game');
 const os = require('os');
 
 // Isolated runs (tests, a second profile): their own data folder.
@@ -39,6 +40,7 @@ const updater = createUpdater({
   root: path.join(__dirname, '..'),
   send: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:update', state); },
   quit: () => app.quit(),
+  paused: () => game.active(),
 });
 // The mini player (see mini.js). Closing it after the main window was closed
 // behind it really closes Rumoria.
@@ -146,8 +148,20 @@ async function ensureYtDlp() {
 }
 // v1.7: kept up to date every 6 h, and at once when songs keep failing (see ytdlp.js).
 const ytdlpKeeper = createYtDlpKeeper({
-  bin: ytDlpPath, run: execFile, read: () => readSettings(), save: (p) => saveSettings(p),
+  bin: ytDlpPath, run: execFile, read: () => readSettings(), save: (p) => saveSettings(p), paused: () => game.active(),
   send: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:ytdlp', state); },
+});
+
+// v1.12, Modo juego (see game.js): a game full screen → the page on Recursos
+// mínimos, the server's background work put off and the server (and the
+// yt-dlp it starts) at low priority. The music goes on.
+const game = createGameWatch({
+  spawn, read: () => readSettings(), save: (p) => saveSettings(p),
+  onChange: (active) => {
+    if (serverProcess && serverProcess.connected) serverProcess.send({ type: 'game', on: active });
+    try { if (serverProcess && serverProcess.pid) os.setPriority(serverProcess.pid, active ? os.constants.priority.PRIORITY_BELOW_NORMAL : os.constants.priority.PRIORITY_NORMAL); } catch { /* not fatal */ }
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('rumoria:game', game.state());
+  },
 });
 
 /**
@@ -290,6 +304,9 @@ ipcMain.on('rumoria:window', (event, action) => {
 });
 // v1.7, Discord Rich Presence: how it is, and on / off.
 ipcMain.handle('rumoria:discord', (event) => (isTrustedSender(event) ? discord.state() : null));
+// v1.12, Modo juego: how it is ({ available, enabled, active }) and on / off.
+ipcMain.handle('rumoria:game', (event) => (isTrustedSender(event) ? game.state() : null));
+ipcMain.handle('rumoria:setGame', (event, on) => (isTrustedSender(event) && typeof on === 'boolean' ? game.set(on) : null));
 ipcMain.handle('rumoria:setDiscord', (event, on) => (isTrustedSender(event) && typeof on === 'boolean' ? discord.set(on) : null));
 // v1.7, yt-dlp: its version and state, look for a new one now, and how songs go (failures make it look at once).
 ipcMain.handle('rumoria:ytdlp:state', (event) => (isTrustedSender(event) ? ytdlpKeeper.state() : null));
@@ -310,7 +327,7 @@ ipcMain.handle('rumoria:downloadInTubeGrab', (event, id) => {
 app.on('second-instance', () => { if (mainWindow) { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.on('before-quit', () => { app.isQuitting = true; });
 // An update downloaded but not applied yet: put in place as Rumoria closes.
-app.on('will-quit', () => { shortcuts.stop(); discord.stop(); ytdlpKeeper.stop(); updater.onQuit(); });
+app.on('will-quit', () => { game.stop(); shortcuts.stop(); discord.stop(); ytdlpKeeper.stop(); updater.onQuit(); });
 app.on('window-all-closed', () => app.quit());
 // Mac: the Dock icon brings back a hidden window ("seguir sonando en la bandeja", or behind the mini).
 app.on('activate', () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } });
@@ -340,7 +357,7 @@ app.whenReady().then(async () => {
   await session.defaultSession.cookies.set({ url: appOrigin, name: 'rum_t', value: token, httpOnly: true, sameSite: 'strict', secure: false });
   createWindow(port);
   shortcuts.apply();
-  if (!E2E) updater.start();
+  if (!E2E) { updater.start(); game.start(); }
 }).catch((err) => {
   dialog.showErrorBox('Rumoria', err.message);
   app.quit();

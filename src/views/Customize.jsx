@@ -12,18 +12,19 @@ import { HERE, isPhone } from '../lib/android.js';
 
 const ON = (v) => (v ? 'sí' : 'no');
 
-/** Rendimiento: the profile (or Automático) and what it switches. */
+/** Rendimiento: the profile (or Automático) and what it switches; v1.12, Modo juego. */
 export function PerfSettings() {
   const choice = usePerf((s) => s.choice);
   const detected = usePerf((s) => s.detected);
   const profile = usePerf((s) => s.profile);
+  const playing = usePerf((s) => s.game);
   const p = PROFILES[profile];
   return (
     <section className="set-group">
       <h2>Rendimiento</h2>
       <p className="muted">Ajusta cuánto trabaja Rumoria para que vaya fluida en cualquier ordenador, sin bajar la calidad del sonido.</p>
       <label className="set-row">
-        <span><strong>Perfil</strong><small>{choice === 'auto' ? `Automático: ${HERE} va con «${PROFILES[detected].label}».` : 'Elegido a mano.'}</small></span>
+        <span><strong>Perfil</strong><small>{playing ? 'Ahora en «Mínimo» por el modo juego; al terminar vuelve el tuyo.' : choice === 'auto' ? `Automático: ${HERE} va con «${PROFILES[detected].label}».` : 'Elegido a mano.'}</small></span>
         <select value={choice} onChange={(e) => usePerf.getState().setChoice(e.target.value)} aria-label="Perfil de rendimiento">
           {CHOICES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
         </select>
@@ -32,7 +33,33 @@ export function PerfSettings() {
         Ahora: animaciones y desenfoques: {ON(p.motion)} · visualizador: {ON(profile !== 'min')} · canciones buscadas por adelantado: {p.prefetch} ·
         portadas: {p.coverSize === 'mq' ? 'pequeñas' : 'normales'} · Explorar leído por adelantado: {profile === 'min' ? 'no' : profile === 'mid' ? 'las destacadas' : 'todas'}.
       </p>
+      <GameMode />
     </section>
+  );
+}
+
+/** v1.12, Modo juego (Windows): with a game full screen, Rumoria asks for as little as it can. */
+function GameMode() {
+  const [g, setG] = useState(null);
+  useEffect(() => {
+    if (!desktop || !desktop.game) return undefined;
+    desktop.game.get().then(setG, () => {});
+    return desktop.game.onState(setG);
+  }, []);
+  if (!g || !g.available) return null;
+  const set = (on) => desktop.game.set(on).then((s) => { if (s) setG(s); }, () => {});
+  return (
+    <label className="set-row">
+      <span>
+        <strong>Modo juego</strong>
+        <small>
+          Con un juego (o cualquier programa) a pantalla completa, Rumoria pasa a «Mínimo» y deja para después lo que hace por su cuenta:
+          leer Explorar, revisar tus listas, sincronizar y buscar actualizaciones. La música sigue sonando.
+          {g.enabled && (g.active ? ' Ahora: jugando.' : ' Ahora: sin juego.')}
+        </small>
+      </span>
+      <input type="checkbox" className="switch" checked={g.enabled} onChange={(e) => set(e.target.checked)} aria-label="Modo juego" />
+    </label>
   );
 }
 

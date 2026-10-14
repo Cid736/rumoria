@@ -582,21 +582,27 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   });
 
   // ---- now and then, by itself ----
+  // v1.12, Modo juego: while a game fills the screen none of this starts (what
+  // you're listening to still plays); it goes on at its next turn after.
+  let gaming = false;
   async function syncLists() {
+    if (gaming) return;
     for (const id of lists.dueForSync()) {
       const l = lists.get(id);
       if (!l) continue;
       if (refreshing.has(id)) continue;
+      if (gaming) return;
       try { const fresh = await readListLink(l.url); lists.reread(id, fresh.tracks); } catch { /* next round (the list stays as it was) */ }
     }
   }
   // Lists that fill themselves, whose time has come: one at a time, and only
   // with a free slot (what you're listening to always comes first).
   async function fillAutoLists() {
+    if (gaming) return;
     for (const id of lists.dueForAuto()) {
       const l = lists.get(id);
       if (!l || !l.auto) continue;
-      if (!ytSlots.take()) return;
+      if (gaming || !ytSlots.take()) return;
       try { lists.autoFill(id, await songsFor(l.auto.q)); } catch { /* next round */ } finally { ytSlots.release(); }
       await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
     }
@@ -605,6 +611,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // discover, worked out again every few days (see lib/curator.js).
   let curating = false;
   async function curate({ force = false } = {}) {
+    if (gaming && !force) return null;
     if (curating || !ytSlots.take()) return null;
     curating = true;
     try {
@@ -622,7 +629,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     } finally { curating = false; ytSlots.release(); }
   }
   async function lookForNews() {
-    if (history.paused) return;
+    if (history.paused || gaming) return;
     const artists = (smartNow().artists || []).map((a) => a.name).filter(Boolean).slice(0, 8);
     if (!artists.length || !ytSlots.take()) return;
     try {
@@ -640,11 +647,11 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     // The performance profile decides how much: nothing ahead on a modest PC
     // (each list is read when opened), the featured ones on a middling one, all on a strong one.
     const perf = prefs.get().perf;
-    if (perf === 'min') return;
+    if (perf === 'min' || gaming) return;
     const all = browse.list();
     const due = [...all.filter((x) => x.featured && !browse.isFresh(x.id)), ...(perf === 'high' ? all.filter((x) => !x.featured && !browse.isFresh(x.id, 24 * 3600_000)) : [])];
     for (const b of due) {
-      if (!ytSlots.take()) return;
+      if (gaming || !ytSlots.take()) return;
       try { await browse.get(b.id, (target, limit) => yt.flatList(target, ytEnv(), limit)); } catch { /* next time */ } finally { ytSlots.release(); }
       await new Promise((r) => { const t = setTimeout(r, 4000); t.unref(); });
     }
@@ -668,6 +675,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   return {
     app,
     setMusicDir(dir) { local.setRoot(dir); local.scan(); },
+    setGame(on) { gaming = on === true; cloudSync.pause(gaming); },
+    gaming: () => gaming,
     stop() { timers.forEach((t) => clearTimeout(t)); cloudSync.stop(); },
     _state: { lists, history, likes, news, local, browse, curator, hidden, ruleLists, prefs, cloudSync },
     _run: { fillAutoLists, curate, warmBrowse },

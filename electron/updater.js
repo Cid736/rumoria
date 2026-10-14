@@ -24,6 +24,8 @@ const MAX_REDIRECTS = 5;
 const FIRST_CHECK_MS = 15_000;
 const RETRY_MS = 10 * 60_000;
 const PERIOD_MS = 6 * 3600_000;
+// v1.12: while a game is on, another look this often (a manual "Buscar" still goes at once).
+const PAUSED_RETRY_MS = 5 * 60_000;
 const MAX_SIZE = 400 * 1024 * 1024;
 
 /** "1.2.0" newer than "1.1.9"? Plain X.Y.Z only. */
@@ -175,10 +177,11 @@ function sweepOld({ tmp = os.tmpdir(), now = Date.now() } = {}) {
 }
 
 /**
- * The updater. `send(state)` tells the page; `quit()` closes Rumoria.
+ * The updater. `send(state)` tells the page; `quit()` closes Rumoria;
+ * `paused()`: v1.12, a game is on (Modo juego): looking and downloading wait.
  * State: { status: 'idle'|'dev'|'checking'|'up-to-date'|'downloading'|'ready'|'error', current, latest, percent, error }
  */
-function createUpdater({ root, send, quit }) {
+function createUpdater({ root, send, quit, paused = () => false }) {
   const portable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE);
   const mac = process.platform === 'darwin';
   const name = assetName({ portable, packaged: app.isPackaged, lite: !fs.existsSync(path.join(root, 'bin', 'yt-dlp.exe')), platform: process.platform, arch: process.arch });
@@ -219,7 +222,10 @@ function createUpdater({ root, send, quit }) {
 
   function schedule(ms) {
     clearTimeout(timer);
-    timer = setTimeout(() => { check().finally(() => { if (state.status !== 'error' && !ready) schedule(PERIOD_MS); }); }, ms);
+    timer = setTimeout(() => {
+      if (paused()) { schedule(PAUSED_RETRY_MS); return; }
+      check().finally(() => { if (state.status !== 'error' && !ready) schedule(PERIOD_MS); });
+    }, ms);
     timer.unref?.();
   }
 

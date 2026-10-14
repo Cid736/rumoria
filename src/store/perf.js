@@ -2,7 +2,8 @@
 // processor cores and memory). Each one switches heavy things on or off:
 // animations and blur, the visualizer, looking up the next songs ahead, cover
 // sizes, how often lists are checked, and (on the server) how much of
-// Explorar is read ahead.
+// Explorar is read ahead. v1.12, Modo juego: while a game fills the screen
+// (the desktop app says so), Mínimo whatever was chosen, until it ends.
 import { create } from 'zustand';
 import { api } from '../api.js';
 
@@ -40,8 +41,10 @@ export const usePerf = create((set, get) => ({
   choice: savedChoice(),
   detected: browserGuess(),
   profile: 'mid',
-  /** The profile in use: the one chosen, or the one detected. */
-  effective() { const { choice, detected } = get(); return choice === 'auto' ? detected : choice; },
+  /** A game is on (Modo juego). */
+  game: false,
+  /** The profile in use: Mínimo during a game, else the one chosen, or the one detected. */
+  effective() { const { choice, detected, game } = get(); if (game) return 'min'; return choice === 'auto' ? detected : choice; },
   settings() { return PROFILES[get().effective()]; },
   setChoice(choice) {
     const c = cleanChoice(choice);
@@ -51,6 +54,8 @@ export const usePerf = create((set, get) => ({
   },
   /** The desktop app's real figures (cores, total memory). */
   setHardware({ cores, memGB }) { set({ detected: detect({ cores, memGB }) }); get().apply(); },
+  /** Modo juego: a game began or ended. */
+  setGame(on) { if (get().game === (on === true)) return; set({ game: on === true }); get().apply(); },
   /** On the page (data-perf for the stylesheets) and on the server (how much it reads ahead). */
   apply(doc = typeof document !== 'undefined' ? document : null, send = (perf) => api.patch('/api/prefs', { perf }).catch(() => {})) {
     const p = get().effective();

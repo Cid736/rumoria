@@ -25,6 +25,12 @@ contextBridge.exposeInMainWorld('rumoria', {
     get: () => ipcRenderer.invoke('rumoria:discord'),
     set: (on) => ipcRenderer.invoke('rumoria:setDiscord', on === true),
   },
+  // v1.12, Modo juego: how it is ({ available, enabled, active }), on / off, and news of it (returns a way to stop listening).
+  game: {
+    get: () => ipcRenderer.invoke('rumoria:game'),
+    set: (on) => ipcRenderer.invoke('rumoria:setGame', on === true),
+    onState: (cb) => { const f = (_e, s) => cb(s); ipcRenderer.on('rumoria:game', f); return () => ipcRenderer.removeListener('rumoria:game', f); },
+  },
   // v1.7, yt-dlp (what finds each song on YouTube): its state, news of it (returns a way to stop
   // listening), look for a new one now, and how a YouTube song went ('ok' or 'fail', and its id).
   ytdlp: {

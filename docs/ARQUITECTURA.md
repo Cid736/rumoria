@@ -94,6 +94,21 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.12: Modo juego (Windows)**
+
+- **Qué lo motiva:** con Rumoria abierta, un juego en línea (el FIFA) iba a tirones. Lo que choca con el juego es el trabajo que Rumoria hace por su cuenta: leer Explorar a los 90 s de abrirse, buscar las siguientes canciones, revisar listas, las animaciones y el visualizador (tarjeta gráfica) y descargar actualizaciones.
+- **Cómo lo nota (`electron/game.js`):** un bucle de PowerShell con prioridad «Inactiva» mira cada 5 s la ventana de delante. Usa C# compilado una vez con `Add-Type` y devuelve la memoria al terminar (unos 67 MB propios y menos del 0,2 % de un núcleo). Cuenta como juego si Windows dice que hay Direct3D a pantalla completa (`SHQueryUserNotificationState` = 3) o si la ventana tapa su monitor entero. Las ventanas de Rumoria, el escritorio y la barra de tareas nunca cuentan. El pid de Rumoria entra por el entorno (`RU_PID`), nunca en el texto del script, y el bucle se cierra solo si Rumoria ya no está. Se entra en el modo juego al momento y se sale un minuto después de que no haya nada a pantalla completa: un Alt+Tab para cambiar de canción no lo despierta todo. Si el bucle muere solo, se reintenta 3 veces y después se sigue sin él.
+- **Qué cambia mientras dura:**
+  - la página pasa a Mínimo, elijas el perfil que elijas, y tu elección no se toca (`usePerf.game`): sin animaciones, sin desenfoque, sin visualizador y sin buscar canciones por adelantado;
+  - la página deja de revisar listas y Explorar;
+  - el servidor no empieza `warmBrowse`, `curate` (salvo «Renovar ahora»), `fillAutoLists`, `syncLists` ni `lookForNews`, y si una ronda está en marcha la para tras la lista que lleva;
+  - Sincronizar deja las rondas periódicas para después; lo cambiado entretanto sube al terminar y «Sincronizar ahora» sigue funcionando;
+  - el servidor y el yt-dlp que lanza bajan a prioridad «Por debajo de lo normal»;
+  - las actualizaciones de Rumoria (se vuelven a mirar cada 5 min) y las de yt-dlp esperan.
+  - La canción que suena no cambia.
+- **Ajuste:** Ajustes → Rendimiento → «Modo juego», encendido por defecto (`gameMode` en `settings.json`). Solo aparece en Windows. Por IPC, `rumoria:game` (estado) y `rumoria:setGame` (solo un booleano), los dos con `isTrustedSender`.
+- **Tests:** `test/security/game.test.js` y `test/ui/game.test.jsx`.
+
 **v1.11: Android Auto, la música sin la ventana y avisos discretos (todo en [ANDROID.md](ANDROID.md))**
 
 - **`WebHost.java`:** la página, que es la que reproduce, vive con la app y no con la ventana: es un WebView con `MutableContextWrapper` que la ventana solo muestra. Sin ventana sigue sonando, por ejemplo al quitar la app de recientes o al empezar desde el coche. Las órdenes que llegan mientras carga esperan en cola.

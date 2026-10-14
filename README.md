@@ -37,6 +37,7 @@ Lo del escritorio que no está en el móvil: el mini reproductor, los atajos de 
 ## Funciones
 
 - **Sincronizar** (Ajustes): tus listas, Favoritas y listas inteligentes, iguales en tu PC, tu Mac y tu móvil, sin cuenta: crea un código de 6 palabras en un dispositivo y escríbelo en los demás. No hace falta tenerlos encendidos a la vez. Se cifran en tu dispositivo con el código antes de subir: la nube no puede leerlas
+- **Modo juego** (Windows, Ajustes → Rendimiento): con un juego (o cualquier programa) a pantalla completa, Rumoria pasa sola a «Recursos mínimos» y deja para después lo que hace por su cuenta (leer Explorar, revisar tus listas, sincronizar, buscar actualizaciones), así no le quita procesador, tarjeta gráfica ni conexión al juego. La música sigue sonando. Vuelve a lo normal un minuto después de salir del juego
 - **Biblioteca a la izquierda**: Favoritas, Tu música, tus listas en carpetas, con filtros y buscador
 - **Importa** una playlist o un perfil entero de Spotify; las listas de un enlace se mantienen al día solas
 - **Reproductor abajo**: aleatorio, repetir (todo / una), radio al acabar la cola, volumen, teclas multimedia

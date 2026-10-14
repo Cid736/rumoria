@@ -330,11 +330,11 @@ class CloudSync {
     if (!this.background) return;
     const at = (ms, fn) => { const t = setTimeout(fn, ms); t.unref?.(); this.timers.push(t); };
     at(5000, () => this.syncNow());
-    const every = setInterval(() => this.syncNow(), EVERY_MS);
+    const every = setInterval(() => { if (!this.paused) this.syncNow(); }, EVERY_MS);
     every.unref?.();
     let changedAt = null;
     const watch = setInterval(() => {
-      if (!this.state.code || this.running || !this.state.mtimes) return;
+      if (!this.state.code || this.running || !this.state.mtimes || this.paused) return;
       if (this.mtimes() === this.state.mtimes) { changedAt = null; return; }
       if (!changedAt) { changedAt = this.now(); return; }
       if (this.now() - changedAt >= QUIET_MS) { changedAt = null; this.syncNow(); }
@@ -342,6 +342,9 @@ class CloudSync {
     watch.unref?.();
     this.timers.push(every, watch);
   }
+
+  /** v1.12, Modo juego: the periodic syncs wait (a change made meanwhile goes after; "Sincronizar ahora" still goes at once). */
+  pause(on) { this.paused = on === true; }
 
   stop() { for (const t of this.timers) { clearTimeout(t); clearInterval(t); } this.timers = []; }
 }
