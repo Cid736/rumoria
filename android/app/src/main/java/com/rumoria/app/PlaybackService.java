@@ -117,7 +117,15 @@ public class PlaybackService extends MediaBrowserServiceCompat {
             @Override public void onSkipToNext() { send("next", 0); }
             @Override public void onSkipToPrevious() { send("prev", 0); }
             @Override public void onSeekTo(long pos) { send("seek", pos); }
-            @Override public void onStop() { send("pause", 0); }
+            @Override public void onStop() {
+                // v1.12.3: Android 13+ shows the music in the panel's media player; swiping it away (only
+                // while paused) calls stop. From the system and paused: Rumoria's player closes too. Anyone
+                // else's stop (the car, Bluetooth): just a pause, the queue stays.
+                String who = null;
+                try { androidx.media.MediaSessionManager.RemoteUserInfo u = session.getCurrentControllerInfo(); if (u != null) who = u.getPackageName(); } catch (Exception ignored) { /* unknown: a pause */ }
+                if ("com.android.systemui".equals(who) && (last == null || !last.optBoolean("playing"))) { send("close", 0); closeNotification(); }
+                else send("pause", 0);
+            }
             // v1.12.3: aleatorio and repetir, from the system's controls (Android 13+: its two extra buttons), the car or Bluetooth.
             @Override public void onCustomAction(String action, Bundle extras) { if ("shuffle".equals(action) || "repeat".equals(action)) send(action, 0); }
             @Override public void onSetShuffleMode(int mode) {

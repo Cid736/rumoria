@@ -98,7 +98,7 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 
 - **La barrita de la app** tiene una X: para la música y vacía la cola (`usePlayer.close()`), así que la barrita desaparece. La sesión guardada también se borra, para que no vuelva a salir al abrir la app.
 - **La notificación:**
-  - si la deslizas para quitarla (Android solo lo deja en pausa), se cierra también el reproductor (`setDeleteIntent` → `close`);
+  - quitarla cierra también el reproductor de la app. **Hasta Android 12**, deslizándola en pausa (`setDeleteIntent` → `close`). **Desde Android 13**, la música está en el reproductor del panel: al mantenerlo pulsado y tocar «Ocultar», el sistema llama a `stop`, y un `stop` de `com.android.systemui` en pausa cierra (cualquier otro es una pausa). Deslizar el reproductor del panel solo lo esconde: Android no avisa a la app (comprobado en el emulador, Android 15). No se ofrece `ACTION_STOP`, así que la tecla de stop de unos auriculares no cierra nada;
   - si se cierra en la app, la página manda «no suena nada», y la notificación, el primer plano y el servicio se van (`closeNotification`). Antes la notificación se quedaba a la vista;
   - lleva aleatorio y repetir, cada uno diciendo si está encendido. En Android 13 y posteriores son los dos botones extra de los controles del sistema (`CustomAction` en el `PlaybackState`), y hasta Android 12, botones de la notificación. También responden a `ACTION_SET_SHUFFLE_MODE` y `ACTION_SET_REPEAT_MODE`, para el coche y el Bluetooth.
 - **Favorita** no cabe en la notificación (Android 13 solo deja dos botones extra), así que sigue en el corazón de la barrita.

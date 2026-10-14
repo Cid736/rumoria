@@ -84,6 +84,10 @@ test('android notification (v1.12.3): aleatorio and repetir everywhere, and clos
   assert.match(s, /\.setDeleteIntent\(action\("close"\)\)/);
   assert.match(s, /if \("close"\.equals\(a\)\) \{\s+send\("close", 0\);\s+closeNotification\(\);/);
   assert.match(s, /if \(s\.has\("title"\) && title\.isEmpty\(\)\) \{ closeNotification\(\); return; \}/);
+  // Android 13+: «Ocultar» on the panel's media player calls stop; only the system's, and only while paused, closes.
+  assert.match(s, /if \("com\.android\.systemui"\.equals\(who\) && \(last == null \|\| !last\.optBoolean\("playing"\)\)\) \{ send\("close", 0\); closeNotification\(\); \}\s+else send\("pause", 0\);/);
+  // No ACTION_STOP offered: a headset's stop key can't close it by accident.
+  assert.doesNotMatch(s, /ACTION_STOP/);
   const close = s.slice(s.indexOf('private void closeNotification()'), s.indexOf('private void closeNotification()') + 700);
   assert.match(close, /STOP_FOREGROUND_REMOVE/);
   assert.match(close, /cancel\(ID\)/);
