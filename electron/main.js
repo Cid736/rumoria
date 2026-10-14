@@ -156,7 +156,7 @@ const ytdlpKeeper = createYtDlpKeeper({
 // mínimos, the server's background work put off and the server (and the
 // yt-dlp it starts) at low priority. The music goes on.
 const game = createGameWatch({
-  spawn, read: () => readSettings(), save: (p) => saveSettings(p),
+  spawn, read: () => readSettings(), save: (p) => saveSettings(p), dir: path.join(userData(), 'bin'),
   onChange: (active) => {
     if (serverProcess && serverProcess.connected) serverProcess.send({ type: 'game', on: active });
     try { if (serverProcess && serverProcess.pid) os.setPriority(serverProcess.pid, active ? os.constants.priority.PRIORITY_BELOW_NORMAL : os.constants.priority.PRIORITY_NORMAL); } catch { /* not fatal */ }

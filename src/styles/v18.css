@@ -5,7 +5,11 @@
 /* ---- the player bar ---- */
 /* The visualizer sits on the cover's lower edge instead of taking 60 px beside it (empty while paused). */
 .pb-art { position: relative; flex: none; line-height: 0; }
-.pb-art .viz { position: absolute; left: 4px; bottom: 4px; width: 48px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)); }
+.pb-art .viz { position: absolute; left: 4px; bottom: 4px; width: 48px; height: 18px; pointer-events: none; }
+/* v1.12.2: its own layer (and its shadow drawn in the canvas, not a CSS filter):
+   each frame of it no longer repaints the bar with its blurred cover behind. */
+.pb-art .viz { will-change: transform; }
+:root[data-player-cover="on"] .playerbar::before { will-change: transform; }
 /* Each button says what it does as soon as the pointer is on it (the native tooltip took a second). */
 .playerbar [data-tip] { position: relative; }
 .playerbar [data-tip]:hover::before, .playerbar [data-tip]:focus-visible::before {

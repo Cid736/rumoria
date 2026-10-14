@@ -13,7 +13,7 @@ export const CHOICES = [['auto', 'Automático'], ['min', 'Recursos mínimos'], [
 /** What each profile allows. */
 export const PROFILES = {
   min: { label: 'Mínimo', motion: false, blur: false, visualizer: false, prefetch: 0, coverSize: 'mq', listsEveryMs: 5 * 60_000, browseEveryMs: 10 * 60_000 },
-  mid: { label: 'Medio', motion: true, blur: true, visualizer: false, prefetch: 1, coverSize: 'hq', listsEveryMs: 60_000, browseEveryMs: 2 * 60_000 },
+  mid: { label: 'Medio', motion: true, blur: true, visualizer: true, prefetch: 1, coverSize: 'hq', listsEveryMs: 60_000, browseEveryMs: 2 * 60_000 },
   high: { label: 'Alto', motion: true, blur: true, visualizer: true, prefetch: 2, coverSize: 'hq', listsEveryMs: 60_000, browseEveryMs: 2 * 60_000 },
 };
 

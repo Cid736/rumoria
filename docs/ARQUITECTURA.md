@@ -94,6 +94,28 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.12.2: rendimiento y sin restos**
+
+- **El visualizador gastaba un cuarto de núcleo** mientras sonaba la música, con la ventana visible: un 29 % de un núcleo en total, frente al 4 % sin él. Cada fotograma volvía a pintar la barra del reproductor, que tiene detrás la portada con `blur(40px)`, y además llevaba un `drop-shadow` en CSS. Lo que se ha cambiado:
+  - el lienzo y la portada desenfocada van en capas propias (`will-change`);
+  - la sombra se dibuja dentro del lienzo;
+  - se dibuja a 30 fotogramas por segundo, no a 60, y no se redibuja si las barras no se mueven.
+
+  Medido con un audio parecido a la música real: del 29,1 % al 10,9 % de un núcleo.
+- **La barra del reproductor** se redibuja una vez por segundo (segundos enteros), no con cada aviso de tiempo (4 por segundo).
+- **El detector del modo juego** es ahora un programa propio, compilado una sola vez por `Add-Type` (`-OutputAssembly`, con la ruta por `RU_OUT`). Ocupa 12 MB, frente a los 66 de PowerShell.
+  - Se guarda como `rumoria-game-<hash del código>.exe` en `userData/bin` y su SHA-256 queda en `settings.json`. Antes de cada arranque se comprueba la huella, y si no coincide se vuelve a compilar.
+  - Se borran los `.exe` de versiones anteriores.
+  - Si no se puede compilar (o sale una DLL), se usa el bucle de PowerShell de antes.
+  - Comprobado con League of Legends a pantalla completa.
+- **`PROFILES.mid.visualizer`** decía `false`, pero la app (y su texto en Ajustes) lo enciende en Medio. Ahora dice `true`; lo que ves no cambia.
+- **Android, sin restos:** el APK de cada actualización (unos 38 MB) se quedaba en `cache/updates`. Ahora los de la versión instalada o anteriores se borran al abrir, y al descargar uno nuevo se borran los demás.
+- **`npm run android:build`** funciona en Windows: lanza `gradlew.bat` con su ruta (`scripts/android-build.js`), porque con `NoDefaultCurrentDirectoryInExePath` cmd no encuentra `gradlew`.
+- **Medido y descartado**, por no mejorar de forma apreciable el arranque (unos 1,0 s hasta ver la página):
+  - cargar Ajustes, Estadísticas y el móvil por separado;
+  - crear la ventana mientras arranca el servidor;
+  - la caché de compilación de Node para el servidor.
+
 **v1.12.1: límites en la nube de Sincronizar (todo en [SINCRONIZAR.md](SINCRONIZAR.md))**
 
 - La clave publicable va en cada copia de la app, así que cualquiera podía llamar a `rumoria_put` en bucle con ids inventados y llenar la base de datos.
@@ -106,7 +128,7 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 **v1.12: Modo juego (Windows)**
 
 - **Qué lo motiva:** con Rumoria abierta, un juego en línea (el FIFA) iba a tirones. Lo que choca con el juego es el trabajo que Rumoria hace por su cuenta: leer Explorar a los 90 s de abrirse, buscar las siguientes canciones, revisar listas, las animaciones y el visualizador (tarjeta gráfica) y descargar actualizaciones.
-- **Cómo lo nota (`electron/game.js`):** un bucle de PowerShell con prioridad «Inactiva» mira cada 5 s la ventana de delante. Usa C# compilado una vez con `Add-Type` y devuelve la memoria al terminar (unos 67 MB propios y menos del 0,2 % de un núcleo). Cuenta como juego si Windows dice que hay Direct3D a pantalla completa (`SHQueryUserNotificationState` = 3) o si la ventana tapa su monitor entero. Las ventanas de Rumoria, el escritorio y la barra de tareas nunca cuentan. El pid de Rumoria entra por el entorno (`RU_PID`), nunca en el texto del script, y el bucle se cierra solo si Rumoria ya no está. Se entra en el modo juego al momento y se sale un minuto después de que no haya nada a pantalla completa: un Alt+Tab para cambiar de canción no lo despierta todo. Si el bucle muere solo, se reintenta 3 veces y después se sigue sin él.
+- **Cómo lo nota (`electron/game.js`):** un pequeño programa con prioridad «Inactiva» mira cada 5 s la ventana de delante. Desde la v1.12.2 es un `.exe` propio de 12 MB; antes era un bucle de PowerShell de 67 MB, que sigue de respaldo. Gasta menos del 0,2 % de un núcleo. Cuenta como juego si Windows dice que hay Direct3D a pantalla completa (`SHQueryUserNotificationState` = 3) o si la ventana tapa su monitor entero. Las ventanas de Rumoria, el escritorio y la barra de tareas nunca cuentan. El pid de Rumoria entra por el entorno (`RU_PID`), nunca en el texto del script, y el bucle se cierra solo si Rumoria ya no está. Se entra en el modo juego al momento y se sale un minuto después de que no haya nada a pantalla completa: un Alt+Tab para cambiar de canción no lo despierta todo. Si el bucle muere solo, se reintenta 3 veces y después se sigue sin él.
 - **Qué cambia mientras dura:**
   - la página pasa a Mínimo, elijas el perfil que elijas, y tu elección no se toca (`usePerf.game`): sin animaciones, sin desenfoque, sin visualizador y sin buscar canciones por adelantado;
   - la página deja de revisar listas y Explorar;

@@ -146,3 +146,93 @@ test('game: the server starts none of its background work while a game is on', a
     assert.ok(app.state.browse.list().filter((b) => b.featured).length > 1);
   } finally { await app.close(); }
 });
+
+// ---- v1.12.2: the look as a tiny program of its own (12 MB instead of PowerShell's 66) ----
+const os = require('os');
+const { COMPILE, PROBE } = require('../../electron/game');
+
+/** What Add-Type would write: a Windows program (or, `dll`, a library). */
+const pe = (dll = false) => {
+  const b = Buffer.alloc(0x80);
+  b.write('MZ', 0, 'latin1');
+  b.writeUInt32LE(0x40, 0x3c);
+  b.write('PE\0\0', 0x40, 'latin1');
+  b.writeUInt16LE(dll ? 0x2102 : 0x0102, 0x40 + 22);
+  return b;
+};
+/** spawn as Rumoria calls it: the compile step writes `out` where RU_OUT says and ends with `code`. */
+function fakeMaker({ out = pe(), code = 0 } = {}) {
+  const f = fakeSpawn();
+  const spawn = (file, args, opts) => {
+    const child = f.spawn(file, args, opts);
+    if (opts.env && opts.env.RU_OUT) setImmediate(() => { if (out) fs.writeFileSync(opts.env.RU_OUT, out); child.emit('exit', code); });
+    return child;
+  };
+  return { spawn, runs: f.runs };
+}
+const tmpDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rum-game-'));
+const tick = () => new Promise((r) => setImmediate(r));
+
+test('game probe: made once by Add-Type (where it goes only by RU_OUT), checked by SHA-256, then run itself', async () => {
+  const dir = tmpDir();
+  try {
+    fs.writeFileSync(path.join(dir, 'rumoria-game-000000000000.exe'), 'an older Rumoria\'s');
+    let settings = {};
+    const m = fakeMaker();
+    const w = createGameWatch({ spawn: m.spawn, platform: 'win32', pid: 7, dir, read: () => settings, save: (p) => { settings = { ...settings, ...p }; } });
+    w.start();
+    await tick(); await tick();
+    assert.equal(m.runs[0].file, 'powershell.exe');
+    assert.equal(Buffer.from(m.runs[0].args.at(-1), 'base64').toString('utf16le'), COMPILE);
+    assert.match(COMPILE, /-OutputAssembly \$env:RU_OUT -OutputType ConsoleApplication/);
+    assert.ok(m.runs[0].opts.env.RU_OUT.endsWith('.tmp.exe'), 'Add-Type makes a DLL unless the name ends in .exe');
+    assert.ok(!COMPILE.includes(dir), 'no path inside the script text');
+    assert.equal(m.runs[1].file, path.join(dir, PROBE));
+    assert.deepEqual(m.runs[1].args, []);
+    assert.equal(m.runs[1].opts.env.RU_PID, '7');
+    assert.equal(m.runs[1].opts.shell, undefined);
+    assert.deepEqual(fs.readdirSync(dir), [PROBE], 'the old one and the temporary file are gone');
+    assert.match(settings.gameProbe[PROBE], /^[0-9a-f]{64}$/);
+    m.runs[1].child.stdout.emit('data', '1\r\n');
+    assert.equal(w.active(), true);
+    w.stop();
+
+    // Next time: straight to it.
+    const again = fakeMaker();
+    const w2 = createGameWatch({ spawn: again.spawn, platform: 'win32', dir, read: () => settings, save: (p) => { settings = { ...settings, ...p }; } });
+    w2.start();
+    assert.equal(again.runs.length, 1);
+    assert.equal(again.runs[0].file, path.join(dir, PROBE));
+    w2.stop();
+
+    // Changed by someone: not run; made again.
+    fs.appendFileSync(path.join(dir, PROBE), 'x');
+    const third = fakeMaker();
+    const w3 = createGameWatch({ spawn: third.spawn, platform: 'win32', dir, read: () => settings, save: (p) => { settings = { ...settings, ...p }; } });
+    w3.start();
+    assert.equal(third.runs[0].file, 'powershell.exe');
+    assert.ok(third.runs[0].opts.env.RU_OUT);
+    await tick(); await tick();
+    assert.equal(third.runs[1].file, path.join(dir, PROBE));
+    w3.stop();
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('game probe: a library instead of a program, or a failed compile → the PowerShell loop, as before', async () => {
+  for (const how of [{ out: pe(true) }, { out: null, code: 1 }]) {
+    const dir = tmpDir();
+    try {
+      let settings = {};
+      const m = fakeMaker(how);
+      const w = createGameWatch({ spawn: m.spawn, platform: 'win32', dir, read: () => settings, save: (p) => { settings = { ...settings, ...p }; } });
+      w.start();
+      await tick(); await tick();
+      assert.equal(m.runs.length, 2);
+      assert.equal(m.runs[1].file, 'powershell.exe');
+      assert.equal(Buffer.from(m.runs[1].args.at(-1), 'base64').toString('utf16le'), SCRIPT);
+      assert.equal(settings.gameProbe, undefined);
+      assert.deepEqual(fs.readdirSync(dir), []);
+      w.stop();
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  }
+});

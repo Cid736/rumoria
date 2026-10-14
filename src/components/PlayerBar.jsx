@@ -52,7 +52,8 @@ export default function PlayerBar() {
   const cur = usePlayer((s) => s.queue.items[s.queue.index] || null);
   const want = usePlayer((s) => s.wantPlaying);
   const status = usePlayer((s) => s.status);
-  const position = usePlayer((s) => s.position);
+  // Whole seconds: the bar is drawn again once a second, not on every time update (4 a second).
+  const position = usePlayer((s) => Math.floor(s.position || 0));
   const duration = usePlayer((s) => s.duration || (cur && cur.duration) || 0);
   const volume = usePlayer((s) => s.volume);
   const muted = usePlayer((s) => s.muted);
