@@ -313,3 +313,9 @@ test('a project without the table or functions says so in plain words', async ()
   const c = createCloud({ url: 'https://abc.supabase.co', key: 'sb_publishable_abcdefghijk', fetchImpl: async () => ({ ok: false, status: 404, text: async () => '{"code":"42P01","message":"relation \\"public.sync_libraries\\" does not exist"}' }) });
   await assert.rejects(c.get('a'.repeat(64)), /La nube no está preparada/);
 });
+
+test('v1.12.1: the cloud limits (too many calls, no room) say so in plain words', async () => {
+  const answer = (status, body) => createCloud({ url: 'https://abc.supabase.co', key: 'sb_publishable_abcdefghijk', fetchImpl: async () => ({ ok: false, status, text: async () => body }) });
+  await assert.rejects(answer(429, '{"code":"PT429","message":"rate_limited"}').put('a'.repeat(64), 'v1:AAAA', 'b'.repeat(64), 0), /demasiadas peticiones/);
+  await assert.rejects(answer(400, '{"code":"P0001","message":"cloud_full"}').put('a'.repeat(64), 'v1:AAAA', 'b'.repeat(64), 0), /está llena/);
+});

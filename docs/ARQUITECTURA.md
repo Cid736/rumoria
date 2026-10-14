@@ -94,6 +94,15 @@ Las dos apps se hablan en un solo sentido y sin servidor compartido. «Descargar
 - **Segundo plano (`electron/tray.js`):** con «Al cerrar, seguir sonando en la bandeja», cerrar oculta la ventana (`backgroundThrottling: false`) y aparece un icono en la bandeja con la canción, reproducir/pausa, siguiente, anterior, abrir y salir.
 - **Mini reproductor v2:** la portada difuminada de fondo, la línea de la letra que suena (el puente baja la letra solo si el mini la muestra), la siguiente canción, aleatorio, repetir y volumen, y el videoclip: `GET /api/stream/video` (formato de vídeo de 360p sin sonido, por el mismo relé que el audio, solo desde `*.googlevideo.com`) en un `<video muted>` que sigue el tiempo de la canción. La CSP no cambia (`media-src 'self'`).
 - **Recomendaciones (`src/views/recommend.js`):** una canción que aparece en las mezclas de varias de tus canciones puntúa más, y más cuanto más arriba esté. Las que saltas (`smart.skipped`) quedan fuera, los artistas que sueles saltar (`smart.cold`) van al final y hay como mucho 2 canciones por artista (reconocido por el título, no por el canal). «Para hoy» se hace con tus 6 últimas canciones y se rehace cuando cambian (como mucho cada 2 h) o al día siguiente.
+**v1.12.1: límites en la nube de Sincronizar (todo en [SINCRONIZAR.md](SINCRONIZAR.md))**
+
+- La clave publicable va en cada copia de la app, así que cualquiera podía llamar a `rumoria_put` en bucle con ids inventados y llenar la base de datos.
+- Ahora `supabase/rumoria-sync.sql` limita, por IP, los guardados (60 cada 10 min), las bibliotecas nuevas (5 por hora) y los borrados (20 cada 10 min), y responde 429 al pasarse.
+- Cada biblioteca ocupa como mucho 6 MB y la tabla deja de crecer a las 20 000 bibliotecas o los 400 MB.
+- Las funciones solo las puede llamar `anon`.
+- La app explica los rechazos con un mensaje claro y vuelve a intentarlo más tarde.
+- Probado en un Postgres real (PGlite) con 22 casos de abuso. `test/security/sync-sql.test.js` comprueba que el SQL no pierde nada de esto.
+
 **v1.12: Modo juego (Windows)**
 
 - **Qué lo motiva:** con Rumoria abierta, un juego en línea (el FIFA) iba a tirones. Lo que choca con el juego es el trabajo que Rumoria hace por su cuenta: leer Explorar a los 90 s de abrirse, buscar las siguientes canciones, revisar listas, las animaciones y el visualizador (tarjeta gráfica) y descargar actualizaciones.

@@ -28,7 +28,7 @@ const WORDS = require('./sync-words.json');
 const SALT = 'rumoria-sync-v1';
 const ROUNDS = 600_000;
 const CODE_WORDS = 6;
-const MAX_TEXT = 10_000_000; // the encrypted library, as stored (the cloud refuses more)
+const MAX_TEXT = 6_000_000; // the encrypted library, as stored (the cloud refuses more; the biggest Rumoria makes is under 5 MB)
 const ID_RE = /^[0-9a-f]{64}$/;
 const EVERY_MS = 5 * 60_000;
 const QUIET_MS = 15_000;
@@ -183,6 +183,9 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, timeoutMs = 30_00
     const text = await res.text();
     if (!res.ok) {
       if (/forbidden/.test(text)) throw new Error('La nube no aceptó el cambio (la clave de escritura no coincide).');
+      // v1.12.1, the cloud's limits (supabase/rumoria-sync.sql): too many calls from this connection, or no room left.
+      if (res.status === 429 || /rate_limited/.test(text)) throw new Error('La nube recibe demasiadas peticiones desde tu conexión; se volverá a intentar en unos minutos.');
+      if (/cloud_full/.test(text)) throw new Error('La nube de Rumoria está llena ahora mismo; tu biblioteca sigue aquí y se volverá a intentar.');
       // The project isn't set up (the table or the functions of supabase/rumoria-sync.sql are missing).
       if (res.status === 404 || /42P01|PGRST202/.test(text)) throw new Error('La nube no está preparada ahora mismo; se volverá a intentar.');
       throw new Error(`La nube respondió ${res.status}.`);

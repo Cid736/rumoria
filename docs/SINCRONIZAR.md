@@ -32,10 +32,16 @@ Tus listas, Favoritas y listas inteligentes quedan iguales en el PC, el Mac y el
 
 ## Ponerlo en marcha (una vez)
 
-1. En Supabase → **SQL Editor**, pega y ejecuta `supabase/rumoria-sync.sql`. Si un día se borra la tabla, se vuelve a ejecutar y ya está. Hace tres cosas:
+1. En Supabase → **SQL Editor**, pega y ejecuta `supabase/rumoria-sync.sql`. Si un día se borra la tabla, se vuelve a ejecutar y ya está. Hace cuatro cosas:
    - añade las columnas que faltan a `sync_libraries`;
    - **cierra la tabla**: quita las políticas públicas y desactiva Realtime;
-   - crea las tres funciones.
+   - crea las tres funciones, que solo puede llamar `anon` (también se le quitan a `authenticated`, que Supabase las da por defecto);
+   - **pone límites contra abusos** (v1.12.1). La clave publicable va dentro de cada copia de la app, así que cualquiera puede llamar a las funciones. Por eso:
+     - cada IP (la primera de `X-Forwarded-For`, como recomienda la guía de Supabase) puede hacer como mucho 60 guardados y 20 borrados cada 10 minutos, y crear 5 bibliotecas nuevas por hora; si pasa, la API responde 429 (`PT429`);
+     - una biblioteca puede ocupar como mucho 6 MB (la más grande que Rumoria puede hacer, 100 listas de 500 canciones, ocupa 4,6 MB);
+     - la tabla deja de crecer a las 20 000 bibliotecas o los 400 MB (`cloud_full`), antes de los 500 MB del plan gratuito: pasado ese límite, Supabase deja el proyecto en solo lectura y Sincronizar dejaría de funcionar para todos. Aun así, una biblioteca siempre puede guardarse si no crece;
+     - los contadores viven en `rumoria_private.hits`, un esquema que la API no publica, y se limpian solos pasado un día.
+   - Leer no tiene límite: hace falta el id, que solo sale del código.
 2. Pon la URL del proyecto en `server/lib/sync-config.js`. La clave `sb_publishable_…` ya está; es pública por diseño.
 3. **Nunca** pongas la clave `sb_secret_…` en la app ni en el repositorio.
 
@@ -46,5 +52,6 @@ Tus listas, Favoritas y listas inteligentes quedan iguales en el PC, el Mac y el
 - `src/views/SyncSettings.jsx`: Ajustes → Sincronizar.
 - `src/lib/syncWatch.js`: vuelve a leer la biblioteca cuando llega algo de otro dispositivo.
 - Tests:
-  - `test/server/cloudsync.test.js`: dos dispositivos que nunca coinciden, conflictos, alguien con el id pero sin el código, borrar.
+  - `test/server/cloudsync.test.js`: dos dispositivos que nunca coinciden, conflictos, alguien con el id pero sin el código, borrar, los mensajes de los límites de la nube.
+  - `test/security/sync-sql.test.js`: que el SQL sigue cerrado y con sus límites.
   - `test/ui/sync.test.jsx`: la pantalla de Ajustes.
