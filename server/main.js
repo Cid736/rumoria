@@ -55,14 +55,16 @@ const server = createApp({
 
 const wanted = /^\d{2,5}$/.test(String(env.RUMORIA_PORT || '')) && Number(env.RUMORIA_PORT) <= 65535 ? Number(env.RUMORIA_PORT) : 0;
 function listen(port) {
-  const http = server.app.listen(port, '127.0.0.1', () => {
+  // Express 5 calls this with the error too, when the port can't be had.
+  const http = server.app.listen(port, '127.0.0.1', (err) => {
+    // Taken by another program, or reserved by Windows (Hyper-V/WSL keep
+    // ranges, and they move on each reboot): any free one this time.
+    if (err) { if (port && (err.code === 'EADDRINUSE' || err.code === 'EACCES')) { listen(0); return; } throw err; }
     const { port: real } = http.address();
     if (abs(env.RUMORIA_PORT_FILE)) fs.writeFileSync(env.RUMORIA_PORT_FILE, String(real));
     if (process.send) process.send({ type: 'ready', port: real });
     else console.log(`Rumoria: servidor en http://127.0.0.1:${real}`);
   });
-  // That port is taken (another program): any free one this time.
-  http.once('error', (err) => { if (port && err.code === 'EADDRINUSE') listen(0); else throw err; });
 }
 listen(wanted);
 
