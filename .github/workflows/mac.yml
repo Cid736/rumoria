@@ -55,7 +55,7 @@ jobs:
           RUMORIA_MAC_APP: ${{ github.workspace }}/release/mac-arm64/Rumoria.app/Contents/MacOS/Rumoria
       - name: Screenshots and report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-screenshots
           path: test-results/mac
