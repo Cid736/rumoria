@@ -35,8 +35,14 @@ function youTubeUrl(raw) {
   return url.toString();
 }
 
+// v1.13.1: YouTube in Spanish. Without it, YouTube gives the English titles a
+// channel added (The Wild Project's "His photo with…" for "Su foto con…").
+const SPANISH = ['--extractor-args', 'youtube:lang=es'];
+// A channel's picture comes as "//yt3.ggpht.com/…".
+const https = (u) => (typeof u === 'string' && u.startsWith('//') ? `https:${u}` : u);
+
 const httpsThumb = (e) => {
-  const list = Array.isArray(e.thumbnails) ? e.thumbnails : [];
+  const list = (Array.isArray(e.thumbnails) ? e.thumbnails : []).map((t) => (t && typeof t.url === 'string' ? { ...t, url: https(t.url) } : t));
   const pick = list.filter((t) => t && typeof t.url === 'string' && t.url.startsWith('https://'))
     .sort((a, b) => (a.width || 0) - (b.width || 0));
   const mid = pick.find((t) => (t.width || 0) >= 300) || pick[pick.length - 1];
@@ -67,7 +73,7 @@ function run(env, args, target, opts, done) {
 /** yt-dlp -J --flat-playlist on `target` → { title, entries } or null. */
 function flatList(target, env, limit) {
   return new Promise((resolve) => {
-    const args = ['--ignore-config', ...UTF8, '--flat-playlist', '-J', '--ies', 'default,-generic', '--playlist-end', String(limit), '--no-warnings'];
+    const args = ['--ignore-config', ...UTF8, ...SPANISH, '--flat-playlist', '-J', '--ies', 'default,-generic', '--playlist-end', String(limit), '--no-warnings'];
     run(env, args, target, { timeout: 90_000, maxBuffer: 32 * 1024 * 1024 }, (err, stdout) => {
       if (err) return resolve(null);
       let data;
@@ -83,6 +89,7 @@ function flatList(target, env, limit) {
           channel: String(e.channel || e.uploader || '').slice(0, 120) || null,
           channelUrl: typeof e.channel_url === 'string' && /^https:\/\/www\.youtube\.com\/channel\/UC[\w-]{22}$/.test(e.channel_url) ? e.channel_url : null,
           thumbnail: httpsThumb(e),
+          followers: Number.isFinite(e.channel_follower_count) && e.channel_follower_count >= 0 ? e.channel_follower_count : null,
         }))
         .slice(0, limit);
       resolve({ title: String(data.title || 'Playlist').slice(0, 300), entries });
@@ -94,7 +101,7 @@ function flatList(target, env, limit) {
 function description(id, env) {
   return new Promise((resolve) => {
     if (!ID_RE.test(String(id || ''))) { resolve(null); return; }
-    const args = ['--ignore-config', ...UTF8, '--skip-download', '--no-playlist', '--ies', 'default,-generic', '--no-warnings', '-O', 'description'];
+    const args = ['--ignore-config', ...UTF8, ...SPANISH, '--skip-download', '--no-playlist', '--ies', 'default,-generic', '--no-warnings', '-O', 'description'];
     run(env, args, `https://www.youtube.com/watch?v=${id}`, { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => resolve(err ? null : String(stdout)));
   });
 }
@@ -107,6 +114,21 @@ async function search(query, env, n = 15) {
   return result ? result.entries : null;
 }
 
+/**
+ * v1.13.1: YouTube's channel search (its "Canales" filter) → up to `n` channels
+ * { id: 'UC…', title, thumbnail, followers }, or null when yt-dlp failed. A search
+ * of videos gave 20 of the same show, so a single result.
+ */
+async function searchChannels(query, env, n = 12) {
+  const q = String(query || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 200);
+  if (!q) return [];
+  const u = new URL('https://www.youtube.com/results');
+  u.searchParams.set('search_query', q);
+  u.searchParams.set('sp', 'EgIQAg==');
+  const result = await flatList(u.toString(), env, Math.max(1, Math.min(20, n)));
+  return result ? result.entries.filter((e) => /^UC[\w-]{22}$/.test(e.id)) : null;
+}
+
 /** Newest uploads of a channel (its videos tab, not its home page). */
 function latestEntries(channelUrl, env, n = 15) {
   const u = new URL(channelUrl);
@@ -114,4 +136,4 @@ function latestEntries(channelUrl, env, n = 15) {
   return flatList(u.toString(), env, n);
 }
 
-module.exports = { run, youTubeUrl, flatList, search, latestEntries, description, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };
+module.exports = { run, youTubeUrl, flatList, search, searchChannels, latestEntries, description, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };

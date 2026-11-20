@@ -94,7 +94,7 @@ const shortError = (err, fallback) => (err && err.message && err.message.length 
  */
 function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, background = true, deps = {} }) {
   if (!TOKEN_RE.test(String(token || ''))) throw new Error('Se necesita un secreto de 64 caracteres hexadecimales.');
-  const yt = { search: ytdlp.search, flatList: ytdlp.flatList, latestEntries: ytdlp.latestEntries, description: ytdlp.description, ...deps };
+  const yt = { search: ytdlp.search, searchChannels: ytdlp.searchChannels, flatList: ytdlp.flatList, latestEntries: ytdlp.latestEntries, description: ytdlp.description, ...deps };
   const stream = deps.stream || streamLib;
   const lyricsFinder = deps.findLyrics || findLyrics;
   const readImport = deps.readImport || importlist.readImport;
@@ -164,7 +164,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https://*.ytimg.com'],
+        imgSrc: ["'self'", 'data:', 'https://*.ytimg.com', 'https://yt3.ggpht.com', 'https://yt3.googleusercontent.com'],
         mediaSrc: ["'self'"],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
@@ -569,6 +569,24 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     return { name: showName(data.title) || showName(firstChannel) || 'Podcast', thumb: episodes[0] ? episodes[0].thumbnail : null, episodes };
   };
   app.get('/api/podcasts', (req, res) => res.json(podcasts.list()));
+  // v1.13.1: shows to follow, from YouTube's channel search (in Spanish).
+  const CHANNEL_PIC_RE = /^https:\/\/yt3\.(ggpht|googleusercontent)\.com\/[\w\-./=]+$/;
+  app.get('/api/podcasts/find', ytLimiter, async (req, res) => {
+    const q = text(req.query.q, 200);
+    if (!q) return res.json({ shows: [] });
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
+    let found;
+    try { found = await yt.searchChannels(q, ytEnv(), 12); } finally { ytSlots.release(); }
+    if (!found) return res.status(502).json({ error: 'YouTube no respondió.' });
+    return res.json({
+      shows: found.map((c) => ({
+        url: `https://www.youtube.com/channel/${c.id}`,
+        name: showName(c.title) || 'Canal',
+        thumb: typeof c.thumbnail === 'string' && c.thumbnail.length <= 500 && CHANNEL_PIC_RE.test(c.thumbnail) ? c.thumbnail : null,
+        followers: Number.isFinite(c.followers) ? c.followers : null,
+      })),
+    });
+  });
   app.post('/api/podcasts', ytLimiter, async (req, res) => {
     const link = ytdlp.youTubeUrl(text((req.body || {}).url, 2048));
     const show = link && showOf(link);

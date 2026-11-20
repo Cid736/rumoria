@@ -136,4 +136,8 @@ export function startPodcastProgress({ store = usePlayer, podcasts = usePodcasts
   return () => { off(); if (typeof window !== 'undefined') window.removeEventListener('beforeunload', onClose); };
 }
 
-export const searchUrl = (q) => urls.search(`${q} podcast`);
+export const searchUrl = (q) => urls.podcastFind(q);
+
+const FOLLOWERS = new Intl.NumberFormat('es-ES', { notation: 'compact', maximumFractionDigits: 1 });
+/** "7,5 M suscriptores". */
+export const followersText = (n) => (Number.isFinite(n) ? `${FOLLOWERS.format(n)} ${n === 1 ? 'suscriptor' : 'suscriptores'}` : '');

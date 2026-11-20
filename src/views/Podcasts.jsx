@@ -8,7 +8,7 @@ import Cover from '../components/Cover.jsx';
 import { Check, ChevronRight, Link, Pause, Play, Plus, Podcast, Search } from '../components/Icons.jsx';
 import { isPhone } from '../lib/android.js';
 import { usePlayer } from '../store/player.js';
-import { minutes, searchUrl, stateOf, usePodcasts } from '../store/podcasts.js';
+import { followersText, minutes, searchUrl, stateOf, usePodcasts } from '../store/podcasts.js';
 import { useUi } from '../store/ui.js';
 
 const DATE = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
@@ -105,7 +105,7 @@ function ShowRow({ shows }) {
   );
 }
 
-/** Search: YouTube results grouped by channel, each one a show to follow. */
+/** Search: YouTube's channels for those words, each one a show to follow. */
 function useFindShows() {
   const [q, setQ] = useState('');
   const [found, setFound] = useState({ q: '', shows: [], loading: false, error: null });
@@ -116,14 +116,8 @@ function useFindShows() {
     setFound({ q: text, shows: [], loading: true, error: null });
     try {
       const r = await api.get(searchUrl(text));
-      const byChannel = new Map();
-      for (const x of r.results || []) {
-        if (!x.channelUrl || !x.channel) continue;
-        const c = byChannel.get(x.channelUrl) || { url: x.channelUrl, name: x.channel.replace(/\s-\sTopic$/, ''), thumb: x.thumbnail, n: 0, sample: x.title };
-        c.n += 1;
-        byChannel.set(x.channelUrl, c);
-      }
-      setFound({ q: text, shows: [...byChannel.values()].sort((a, b) => b.n - a.n).slice(0, 6), loading: false, error: null });
+      const shows = (r.shows || []).map((c) => ({ ...c, sample: followersText(c.followers) }));
+      setFound({ q: text, shows, loading: false, error: null });
     } catch (err) { setFound({ q: text, shows: [], loading: false, error: err.message }); }
   };
   return { q, setQ, found, search };

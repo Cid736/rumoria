@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Heart, Note } from './Icons.jsx';
 
-const SAFE_IMG = /^https:\/\/i\d?\.ytimg\.com\//;
+// YouTube's pictures: videos (i.ytimg.com) and, since v1.13.1, a channel's (yt3.ggpht.com, yt3.googleusercontent.com).
+const SAFE_IMG = /^https:\/\/(i\d?\.ytimg\.com|yt3\.(ggpht|googleusercontent)\.com)\//;
 
 function hue(text) {
   let h = 0;
