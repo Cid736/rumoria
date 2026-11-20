@@ -114,19 +114,30 @@ async function search(query, env, n = 15) {
   return result ? result.entries : null;
 }
 
+// v1.13.1: YouTube's search filters ("Canales", "Listas de reproducción") and the ids each gives.
+const SHOW_SEARCH = {
+  channel: { sp: 'EgIQAg==', id: /^UC[\w-]{22}$/ },
+  // A mix (RD…) or your own lists (UL, LL, WL) are not shows.
+  playlist: { sp: 'EgIQAw==', id: /^(?!RD|UL|LL|WL)[\w-]{10,64}$/ },
+};
+
 /**
- * v1.13.1: YouTube's channel search (its "Canales" filter) → up to `n` channels
- * { id: 'UC…', title, thumbnail, followers }, or null when yt-dlp failed. A search
- * of videos gave 20 of the same show, so a single result.
+ * v1.13.1: shows on YouTube for some words: its channels (`kind` 'channel') or its
+ * playlists ('playlist', where a show often keeps its whole episodes apart from the
+ * clips) → up to `n` { id, title, channel, thumbnail, followers }, or null when
+ * yt-dlp failed. A search of videos gave 20 of the same show, so a single result.
  */
-async function searchChannels(query, env, n = 12) {
+async function searchShows(query, env, kind = 'channel', n = 12) {
+  const how = SHOW_SEARCH[kind];
+  if (!how) throw new Error('Tipo de búsqueda no válido.');
   const q = String(query || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 200);
   if (!q) return [];
   const u = new URL('https://www.youtube.com/results');
   u.searchParams.set('search_query', q);
-  u.searchParams.set('sp', 'EgIQAg==');
+  u.searchParams.set('sp', how.sp);
   const result = await flatList(u.toString(), env, Math.max(1, Math.min(20, n)));
-  return result ? result.entries.filter((e) => /^UC[\w-]{22}$/.test(e.id)) : null;
+  // A playlist search puts the channel first too: only what was asked for.
+  return result ? result.entries.filter((e) => how.id.test(e.id) && (kind !== 'playlist' || !SHOW_SEARCH.channel.id.test(e.id))) : null;
 }
 
 /** Newest uploads of a channel (its videos tab, not its home page). */
@@ -136,4 +147,4 @@ function latestEntries(channelUrl, env, n = 15) {
   return flatList(u.toString(), env, n);
 }
 
-module.exports = { run, youTubeUrl, flatList, search, searchChannels, latestEntries, description, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };
+module.exports = { run, youTubeUrl, flatList, search, searchShows, latestEntries, description, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };

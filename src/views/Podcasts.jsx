@@ -116,7 +116,8 @@ function useFindShows() {
     setFound({ q: text, shows: [], loading: true, error: null });
     try {
       const r = await api.get(searchUrl(text));
-      const shows = (r.shows || []).map((c) => ({ ...c, sample: followersText(c.followers) }));
+      // A channel says its subscribers; a playlist whose it is (often its whole episodes).
+      const shows = (r.shows || []).map((c) => ({ ...c, sample: c.kind === 'playlist' ? ['Lista', c.by].filter(Boolean).join(' · ') : followersText(c.followers) }));
       setFound({ q: text, shows, loading: false, error: null });
     } catch (err) { setFound({ q: text, shows: [], loading: false, error: err.message }); }
   };
@@ -148,7 +149,7 @@ function FindResults({ find, children }) {
       {found.shows.length > 0 && (
         <div className="pod-results">
           {found.shows.map((c) => (
-            <div key={c.url} className="pod-result">
+            <div key={c.url} className={`pod-result ${c.kind === 'playlist' ? 'pod-result-list' : ''}`}>
               <Cover src={c.thumb} name={c.name} size={56} />
               <span className="pod-result-text"><strong>{c.name}</strong><span className="muted">{c.sample}</span></span>
               {followed.has(c.url)

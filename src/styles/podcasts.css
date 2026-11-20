@@ -15,6 +15,8 @@
 .pod-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; margin-top: 14px; }
 .pod-result { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .pod-result .cover { border-radius: 50%; flex: none; }
+/* A playlist: its first video's picture, square (a channel's is round). */
+.pod-result-list .cover { border-radius: var(--radius-sm); object-fit: cover; }
 .pod-result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .pod-result-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pod-result-text .muted { font-size: 13px; }
