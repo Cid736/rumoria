@@ -239,6 +239,32 @@ describe('the phone, v1.13 design', () => {
     expect(useUi.getState().history[useUi.getState().at]).toEqual({ name: 'podcast', id: 'ch:@ondaslentas' });
   });
 
+  it('the big player: an episode says what is left; the video (muted) replaces the cover and is remembered', async () => {
+    const { usePlayer, useUi, phone } = await load();
+    act(() => usePlayer.setState({ queue: { items: [{ ...song, episode: 'ch:@ondaslentas' }], index: 0, original: null }, position: 60, duration: 213 }));
+    useUi.setState({ nowPlaying: true });
+    const { container, unmount } = render(<phone.PhonePlayer />);
+    expect(screen.getByText('−2:33')).toBeInTheDocument();
+    expect(container.querySelector('.pp-art-wide')).not.toBeNull();
+    expect(container.querySelector('video')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Vídeo/ }));
+    const v = container.querySelector('video.pp-video');
+    expect(v).not.toBeNull();
+    expect(v.muted).toBe(true);
+    expect(v.getAttribute('src')).toContain('/api/stream/video?id=dQw4w9WgXcQ');
+    expect(v.getAttribute('poster')).toContain('i.ytimg.com');
+    // At the episode's speed, or it falls behind and is put back in step every second.
+    const { useSound } = await import('../../src/store/sound.js');
+    act(() => useSound.setState({ podSpeed: 1.5, speed: 1 }));
+    expect(v.playbackRate).toBe(1.5);
+    unmount();
+    // A song: its length, and the video still on (remembered on this phone).
+    act(() => usePlayer.setState({ queue: { items: [song], index: 0, original: null } }));
+    const again = render(<phone.PhonePlayer />);
+    expect(screen.getByText('3:33')).toBeInTheDocument();
+    expect(again.container.querySelector('video.pp-video')).not.toBeNull();
+  });
+
   it('Podcasts: a magnifier and a "+" in the head, the box only after the magnifier', async () => {
     await load();
     globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ shows: [{ id: 'ch:@ondaslentas', name: 'Ondas Lentas', url: 'https://www.youtube.com/@ondaslentas', thumb: null, at: 0 }], progress: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }));

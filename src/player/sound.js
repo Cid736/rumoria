@@ -5,7 +5,7 @@
 // visualizer); until then the <audio> plays straight, at no cost.
 import { usePerf } from '../store/perf.js';
 import { usePlayer } from '../store/player.js';
-import { BANDS, useSound } from '../store/sound.js';
+import { BANDS, useSound, rateFor } from '../store/sound.js';
 
 const LEVELS_KEY = 'rumoria_levels';
 const TARGET_DB = -16;
@@ -84,7 +84,7 @@ export function startSound({ audio, sound = useSound, player = usePlayer, perf =
     audio.preservesPitch = v.pitch;
     // An episode plays at its own speed (the 1× button); songs at Sonido's.
     const cur = player.getState().current();
-    const rate = cur && cur.episode ? v.podSpeed : v.speed;
+    const rate = rateFor(cur, v);
     audio.defaultPlaybackRate = rate;
     audio.playbackRate = rate;
     if (!nodes && needsGraph(v, perf.getState().profile)) build();

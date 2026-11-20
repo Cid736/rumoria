@@ -2,13 +2,15 @@
 // of five tabs (Inicio, Buscar, Podcasts, Biblioteca, Ajustes); tapping the small player
 // opens it big, with the cover, the position and every button, a thumb's size.
 import { useState } from 'react';
+import { audioQuality } from '../lib/network.js';
 import { formatTime } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
+import ClipVideo from './ClipVideo.jsx';
 import Cover from './Cover.jsx';
 import { Slider } from './PlayerBar.jsx';
-import { Back15, ChevronLeft, Close, Forward30, Gear, Heart, Home, Library, Mic, Next, Notes, Pause, Play, Podcast, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
+import { Back15, ChevronLeft, Close, Film, Forward30, Gear, Heart, Home, Library, Mic, Next, Notes, Pause, Play, Podcast, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
 import { SleepButton, SpeedButton } from './PodControls.jsx';
 
 // Which tab a page belongs to (the rest belong to the one you came from).
@@ -74,7 +76,20 @@ export function PhonePlayer() {
   return <PhonePlayerView cur={cur} />;
 }
 
+// The video (muted, in step with the sound) instead of the cover: remembered on this phone.
+const VIDEO_KEY = 'rumoria.phoneVideo';
+function readVideoPref() { try { return localStorage.getItem(VIDEO_KEY) === '1'; } catch { return false; } }
+function saveVideoPref(on) { try { localStorage.setItem(VIDEO_KEY, on ? '1' : '0'); } catch { /* only for now */ } }
+
 function PhonePlayerView({ cur }) {
+  const [video, setVideo] = useState(readVideoPref);
+  const toggleVideo = () => {
+    const on = !video;
+    setVideo(on);
+    saveVideoPref(on);
+    // 360p at most, but still far more than the sound alone.
+    if (on && audioQuality() === 'lite') useUi.getState().toast('El vídeo gasta bastantes más datos que el sonido solo.');
+  };
   const want = usePlayer((s) => s.wantPlaying);
   const status = usePlayer((s) => s.status);
   const position = usePlayer((s) => s.position);
@@ -94,9 +109,16 @@ function PhonePlayerView({ cur }) {
       <header className="pp-head">
         <button type="button" className="icon-btn" aria-label="Cerrar el reproductor" onClick={() => ui.setNowPlaying(false)}><ChevronLeft size={28} className="pp-down" /></button>
         <span className="pp-head-title">Sonando</span>
-        <span className="pp-head-gap" />
+        {cur.yt
+          ? <button type="button" className={`icon-btn toggle ${video ? 'on' : ''}`} aria-pressed={video} aria-label="Vídeo (sin sonido: sigue al sonido)" onClick={toggleVideo}><Film size={24} /></button>
+          : <span className="pp-head-gap" />}
       </header>
-      <div className="pp-art"><Cover src={big} name={cur.title} size={1000} /></div>
+      {/* An episode's picture is YouTube's 16:9 frame: shown whole, not cut to a square. */}
+      <div className={`pp-art ${cur.episode || (video && cur.yt) ? 'pp-art-wide' : ''}`}>
+        {video && cur.yt
+          ? <ClipVideo yt={cur.yt} position={position} playing={want} episode={Boolean(cur.episode)} poster={big} className="pp-video" />
+          : <Cover src={big} name={cur.title} size={1000} />}
+      </div>
       <div className="pp-info">
         <span className="pp-text">
           <span className="pp-title">{cur.title}</span>
@@ -110,7 +132,7 @@ function PhonePlayerView({ cur }) {
       </div>
       <div className="pp-progress">
         <Slider value={position} max={duration} label="Posición" step={5} format={formatTime} onChange={setDragPos} onCommit={(v) => { setDragPos(null); p.seek(v); }} />
-        <div className="pp-times"><span>{formatTime(dragPos ?? position)}</span><span>{duration ? formatTime(duration) : '–:––'}</span></div>
+        <div className="pp-times"><span>{formatTime(dragPos ?? position)}</span><span>{!duration ? '–:––' : cur.episode ? `−${formatTime(Math.max(0, duration - (dragPos ?? position)))}` : formatTime(duration)}</span></div>
       </div>
       <div className="pp-controls">
         {cur.episode

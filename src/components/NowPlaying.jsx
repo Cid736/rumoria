@@ -96,7 +96,7 @@ function NowPlayingView() {
       <div className="np-body">
         <div className="np-art">
           {!cur ? <div className="np-empty">Nada sonando</div>
-            : showVideo ? <ClipVideo yt={cur.yt} position={position} playing={want} className="np-video" />
+            : showVideo ? <ClipVideo yt={cur.yt} position={position} playing={want} episode={Boolean(cur.episode)} poster={cur.thumbnail} className="np-video" />
               : <Cover src={big} name={cur.title} size={480} className="np-cover" />}
         </div>
         <div className="np-side">

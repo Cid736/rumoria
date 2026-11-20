@@ -18,6 +18,8 @@ export const POD_SPEEDS = [1, 1.25, 1.5, 1.75, 2, 0.75];
 /** The next episode speed after this one (the 1× button cycles through them). */
 export const nextPodSpeed = (v) => POD_SPEEDS[(POD_SPEEDS.indexOf(v) + 1) % POD_SPEEDS.length] || 1;
 /** "1,5×". */
+/** The speed something plays at: an episode its own (the 1× button), a song Sonido's. */
+export const rateFor = (track, v) => (track && track.episode ? v.podSpeed : v.speed) || 1;
 export const speedLabel = (v) => `${String(v).replace('.', ',')}×`;
 export const FADES = [0, 2, 4, 6, 10];
 export const SLEEPS = [[15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 hora'], [90, '1 h 30'], ['end', 'Al acabar esta canción']];
