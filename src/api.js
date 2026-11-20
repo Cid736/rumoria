@@ -53,6 +53,7 @@ export const urls = {
   translation: (id, a, t, d) => `/api/stream/translation?${qs({ id, a, t, d: d ? Math.round(d) : undefined })}`,
   search: (q) => `/api/search?${qs({ q })}`,
   podcastFind: (q) => `/api/podcasts/find?${qs({ q })}`,
+  podcastPreview: (url) => `/api/podcasts/preview?${qs({ url })}`,
   find: (q, d, list, n) => `/api/find?${qs({ q, d: d ? Math.round(d) : undefined, list, n })}`,
   list: (id) => `/api/lists/${encodeURIComponent(id)}`,
 };

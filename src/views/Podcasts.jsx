@@ -137,9 +137,17 @@ function FindForm({ find, autoFocus = false }) {
 function FindResults({ find, children }) {
   const { found } = find;
   const shows = usePodcasts((s) => s.shows);
+  // v1.13.2: following takes a few seconds (its episodes are read): the button says so.
+  const [busy, setBusy] = useState(() => new Set());
   if (!children && !found.q) return null;
   const followed = new Set(shows.map((s) => s.url));
-  const follow = (c) => usePodcasts.getState().follow(c.url).then((show) => useUi.getState().toast(`Sigues «${show.name}»`), (err) => useUi.getState().toast(err.message));
+  const mark = (url, on) => setBusy((b) => { const n = new Set(b); if (on) n.add(url); else n.delete(url); return n; });
+  const follow = (c) => {
+    mark(c.url, true);
+    usePodcasts.getState().follow(c.url).then((show) => useUi.getState().toast(`Sigues «${show.name}»`), (err) => useUi.getState().toast(err.message)).finally(() => mark(c.url, false));
+  };
+  // Its page (episodes to listen to before following); the id comes from the server.
+  const open = (c) => { if (c.id) useUi.getState().go({ name: 'podcast', id: c.id, url: c.url }); };
   return (
     <section className="pod-find">
       {children}
@@ -150,11 +158,13 @@ function FindResults({ find, children }) {
         <div className="pod-results">
           {found.shows.map((c) => (
             <div key={c.url} className={`pod-result ${c.kind === 'playlist' ? 'pod-result-list' : ''}`}>
-              <Cover src={c.thumb} name={c.name} size={56} />
-              <span className="pod-result-text"><strong>{c.name}</strong><span className="muted">{c.sample}</span></span>
+              <button type="button" className="pod-result-open" onClick={() => open(c)} aria-label={`Ver los episodios de ${c.name}`}>
+                <Cover src={c.thumb} name={c.name} size={56} />
+                <span className="pod-result-text"><strong>{c.name}</strong><span className="muted">{c.sample}</span></span>
+              </button>
               {followed.has(c.url)
                 ? <span className="pod-following"><Check size={16} /> Lo sigues</span>
-                : <button type="button" className="btn btn-accent btn-small" onClick={() => follow(c)}>Seguir</button>}
+                : <button type="button" className="btn btn-accent btn-small" onClick={() => follow(c)} disabled={busy.has(c.url)} aria-busy={busy.has(c.url)}>{busy.has(c.url) ? 'Siguiendo…' : 'Seguir'}</button>}
             </div>
           ))}
         </div>
@@ -240,15 +250,30 @@ export default function PodcastsPage() {
 }
 
 /** One show: its episodes, newest first. */
-export function PodcastShowPage({ id }) {
-  const show = usePodcasts((s) => s.shows.find((x) => x.id === id) || null);
+export function PodcastShowPage({ id, url = null }) {
+  const followed = usePodcasts((s) => s.shows.find((x) => x.id === id) || null);
+  // v1.13.2: one you don't follow yet (a search result): its page all the same.
+  const peek = usePodcasts((s) => s.previews[id]) || null;
+  const show = followed || (peek && peek.show) || null;
   const loaded = usePodcasts((s) => s.loaded);
-  const got = usePodcasts((s) => s.episodes[id]) || {};
+  const episodes = usePodcasts((s) => s.episodes[id]) || {};
+  const [following, setFollowing] = useState(false);
   useEffect(() => { if (!usePodcasts.getState().loaded) usePodcasts.getState().load(); }, []);
-  useEffect(() => { if (show) usePodcasts.getState().loadEpisodes(id); }, [id, show]);
-  if (!show) return <div className="podcasts"><p className="muted">{loaded ? 'Ya no sigues este podcast.' : 'Cargando…'}</p></div>;
+  useEffect(() => {
+    if (followed) usePodcasts.getState().loadEpisodes(id);
+    else if (loaded && url) usePodcasts.getState().preview(id, url);
+  }, [id, url, followed, loaded]);
+  const got = followed ? episodes : (peek || {});
+  if (!show) {
+    const why = !loaded || (peek && peek.loading) ? 'Buscando los episodios…' : (peek && peek.error) || (url ? 'Buscando los episodios…' : 'Ya no sigues este podcast.');
+    return <div className="podcasts"><p className="muted">{why}</p></div>;
+  }
   const list = got.list || [];
   const unfollow = () => usePodcasts.getState().unfollow(id).then(() => { useUi.getState().toast(`Has dejado de seguir «${show.name}»`); useUi.getState().go({ name: 'podcasts' }); }, (err) => useUi.getState().toast(err.message));
+  const follow = () => {
+    setFollowing(true);
+    usePodcasts.getState().follow(show.url).then((s) => useUi.getState().toast(`Sigues «${s.name}»`), (err) => useUi.getState().toast(err.message)).finally(() => setFollowing(false));
+  };
   return (
     <div className="podcasts pod-show">
       <header className="pod-show-head">
@@ -256,10 +281,12 @@ export function PodcastShowPage({ id }) {
         <div className="pod-show-text">
           <span className="pod-kicker">Podcast</span>
           <h1>{show.name}</h1>
-          <p className="muted">{[list.length ? `${list.length} episodios recientes` : '', show.at ? `lo sigues desde el ${DATE.format(new Date(show.at))}` : ''].filter(Boolean).join(' · ')}</p>
+          <p className="muted">{[list.length ? `${list.length} episodios recientes` : '', followed && show.at ? `lo sigues desde el ${DATE.format(new Date(show.at))}` : ''].filter(Boolean).join(' · ')}</p>
           <div className="pod-show-actions">
-            {list[0] && <button type="button" className="btn btn-accent" onClick={() => usePodcasts.getState().play(list[0], show)}><Play size={16} /> El más reciente</button>}
-            <button type="button" className="btn btn-ghost" onClick={unfollow}>Dejar de seguir</button>
+            {list[0] && <button type="button" className={`btn ${followed ? 'btn-accent' : 'btn-ghost'}`} onClick={() => usePodcasts.getState().play(list[0], show)}><Play size={16} /> El más reciente</button>}
+            {followed
+              ? <button type="button" className="btn btn-ghost" onClick={unfollow}>Dejar de seguir</button>
+              : <button type="button" className="btn btn-accent" onClick={follow} disabled={following} aria-busy={following}>{following ? 'Siguiendo…' : <><Plus size={16} /> Seguir</>}</button>}
           </div>
         </div>
       </header>

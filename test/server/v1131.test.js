@@ -73,8 +73,8 @@ test('/api/podcasts/find: a channel, then a list, in turn; names and pictures ch
     const { shows } = r.data;
     assert.deepEqual(yt.calls.filter((c) => c[0] === 'searchShows').map((c) => c[2]).sort(), ['channel', 'playlist']);
     assert.deepEqual(shows.map((s) => s.kind), ['channel', 'playlist', 'channel', 'channel'], 'one of each in turn');
-    assert.deepEqual(shows[0], { kind: 'channel', url: `https://www.youtube.com/channel/${CHANNEL}`, name: 'The Wild Project', thumb: 'https://yt3.ggpht.com/abc=s176', followers: 7520000 });
-    assert.deepEqual(shows[1], { kind: 'playlist', url: `https://www.youtube.com/playlist?list=${LIST}`, name: 'THE WILD PROJECT PODCAST', thumb: 'https://i.ytimg.com/vi/mStOFBvToUI/hq720.jpg?sqp=x', by: 'The Wild Project' });
+    assert.deepEqual(shows[0], { kind: 'channel', id: `ch:${CHANNEL}`, url: `https://www.youtube.com/channel/${CHANNEL}`, name: 'The Wild Project', thumb: 'https://yt3.ggpht.com/abc=s176', followers: 7520000 });
+    assert.deepEqual(shows[1], { kind: 'playlist', id: `pl:${LIST}`, url: `https://www.youtube.com/playlist?list=${LIST}`, name: 'THE WILD PROJECT PODCAST', thumb: 'https://i.ytimg.com/vi/mStOFBvToUI/hq720.jpg?sqp=x', by: 'The Wild Project' });
     assert.equal(shows[2].name, 'Alaska Wild Project', 'the "- Videos" tab name trimmed');
     assert.equal(shows[2].thumb, 'https://yt3.googleusercontent.com/ytc/AI=s176');
     assert.equal(shows[3].thumb, null, 'a picture from anywhere else is dropped');
@@ -91,5 +91,40 @@ test('/api/podcasts/find: one search failing still gives the other; both failing
     assert.deepEqual((await app.call('GET', '/api/podcasts/find?q=w')).data.shows.map((s) => s.kind), ['channel']);
     fail = 'both';
     assert.equal((await app.call('GET', '/api/podcasts/find?q=w')).status, 502);
+  } finally { await app.close(); }
+});
+
+test('v1.13.2: an exact show name YouTube reads as nothing is searched again with "podcast"', async () => {
+  const asked = [];
+  const yt = fakeYouTube({ searchShows: async (q, env, kind) => { asked.push([q, kind]); return /podcast$/.test(q) && kind === 'channel' ? [{ id: CHANNEL, title: 'La Pija y la Quinqui', thumbnail: null, followers: 1 }] : []; } });
+  const app = await startApp({ yt });
+  try {
+    const r = await app.call('GET', '/api/podcasts/find?q=la%20pija%20y%20la%20quinqui');
+    assert.deepEqual(r.data.shows.map((s) => [s.id, s.name]), [[`ch:${CHANNEL}`, 'La Pija y la Quinqui']]);
+    assert.deepEqual(asked.map((a) => a[0]), ['la pija y la quinqui', 'la pija y la quinqui', 'la pija y la quinqui podcast', 'la pija y la quinqui podcast']);
+    asked.length = 0;
+    await app.call('GET', '/api/podcasts/find?q=mi%20podcast');
+    assert.equal(asked.length, 2, 'not again when "podcast" was already there');
+  } finally { await app.close(); }
+});
+
+test('v1.13.2: a show\'s page before following it; "Seguir" right after reads YouTube no more', async () => {
+  const yt = fakeYouTube();
+  let reads = 0;
+  yt.flatList = async () => { reads += 1; return { title: 'THE WILD PROJECT PODCAST', entries: [{ id: 'aaaaaaaaaaa', title: 'Episodio 1', duration: 5400, channel: 'The Wild Project' }] }; };
+  const app = await startApp({ yt });
+  try {
+    const url = `https://www.youtube.com/playlist?list=${LIST}`;
+    const r = await app.call('GET', `/api/podcasts/preview?url=${encodeURIComponent(url)}`);
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.data.show, { id: `pl:${LIST}`, url, name: 'THE WILD PROJECT PODCAST', thumb: 'https://i.ytimg.com/vi/aaaaaaaaaaa/mqdefault.jpg' });
+    assert.equal(r.data.episodes[0].title, 'Episodio 1');
+    assert.equal((await app.call('GET', '/api/podcasts')).data.shows.length, 0, 'looking is not following');
+    const f = await app.call('POST', '/api/podcasts', { body: { url } });
+    assert.equal(f.status, 200);
+    assert.equal(f.data.show.id, `pl:${LIST}`);
+    assert.equal(reads, 1, 'its episodes were already read');
+    assert.equal((await app.call('GET', `/api/podcasts/preview?url=${encodeURIComponent('https://evil.example.com/playlist?list=PLaaaaaaaaaa')}`)).status, 400, 'only YouTube');
+    assert.equal((await app.call('GET', `/api/podcasts/preview?url=${encodeURIComponent('https://www.youtube.com/watch?v=aaaaaaaaaaa')}`)).status, 400, 'a video is not a show');
   } finally { await app.close(); }
 });

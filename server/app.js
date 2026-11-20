@@ -580,27 +580,57 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
     let channels;
     let lists;
-    try { [channels, lists] = await Promise.all([yt.searchShows(q, ytEnv(), 'channel', 8), yt.searchShows(q, ytEnv(), 'playlist', 8)]); } finally { ytSlots.release(); }
+    const both = (words) => Promise.all([yt.searchShows(words, ytEnv(), 'channel', 8), yt.searchShows(words, ytEnv(), 'playlist', 8)]);
+    try {
+      [channels, lists] = await both(q);
+      // v1.13.2: a show's exact name ("la pija y la quinqui") gets YouTube's page with its big
+      // card, which yt-dlp reads as nothing at all; with "podcast" after it, the usual results.
+      if (channels && lists && !channels.length && !lists.length && !/podcast/i.test(q)) [channels, lists] = await both(`${q} podcast`);
+    } finally { ytSlots.release(); }
     if (!channels && !lists) return res.status(502).json({ error: 'YouTube no respondió.' });
     const a = (channels || []).map((c) => ({
-      kind: 'channel', url: `https://www.youtube.com/channel/${c.id}`, name: showName(c.title) || 'Canal',
+      kind: 'channel', id: `ch:${c.id}`, url: `https://www.youtube.com/channel/${c.id}`, name: showName(c.title) || 'Canal',
       thumb: pic(c.thumbnail, CHANNEL_PIC_RE), followers: Number.isFinite(c.followers) ? c.followers : null,
     }));
     const b = (lists || []).map((l) => ({
-      kind: 'playlist', url: `https://www.youtube.com/playlist?list=${l.id}`, name: showName(l.title) || 'Lista',
+      kind: 'playlist', id: `pl:${l.id}`, url: `https://www.youtube.com/playlist?list=${l.id}`, name: showName(l.title) || 'Lista',
       thumb: pic(l.thumbnail, VIDEO_PIC_RE), by: showName(l.channel) || null,
     }));
     const shows = [];
     for (let i = 0; i < Math.max(a.length, b.length); i++) shows.push(...[a[i], b[i]].filter(Boolean));
     return res.json({ shows });
   });
+  // v1.13.2: a show's page before following it (a search result opens it): its
+  // episodes, kept a while so that "Seguir" right after needs no new yt-dlp run.
+  const previews = new Map(); // show id -> { at, got }
+  const LINK_ERROR = 'Pega el enlace de un canal o de una lista de YouTube.';
+  const readShowKept = async (show) => {
+    const hit = previews.get(show.id);
+    if (hit && Date.now() - hit.at < EPISODES_MS) return hit.got;
+    if (!await ytSlots.takeWithin(WAIT_MS)) return BUSY;
+    let got;
+    try { got = await readShow(show); } finally { ytSlots.release(); }
+    if (got) {
+      previews.set(show.id, { at: Date.now(), got });
+      if (previews.size > 50) previews.delete(previews.keys().next().value);
+    }
+    return got;
+  };
+  app.get('/api/podcasts/preview', ytLimiter, async (req, res) => {
+    const link = ytdlp.youTubeUrl(text(req.query.url, 2048));
+    const show = link && showOf(link);
+    if (!show) return res.status(400).json({ error: LINK_ERROR });
+    const got = await readShowKept(show);
+    if (got === BUSY) return res.status(429).json(BUSY);
+    if (!got) return res.status(502).json({ error: 'YouTube no respondió.' });
+    return res.json({ show: { id: show.id, url: show.url, name: got.name, thumb: got.thumb }, episodes: got.episodes });
+  });
   app.post('/api/podcasts', ytLimiter, async (req, res) => {
     const link = ytdlp.youTubeUrl(text((req.body || {}).url, 2048));
     const show = link && showOf(link);
-    if (!show) return res.status(400).json({ error: 'Pega el enlace de un canal o de una lista de YouTube.' });
-    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
-    let got;
-    try { got = await readShow(show); } finally { ytSlots.release(); }
+    if (!show) return res.status(400).json({ error: LINK_ERROR });
+    const got = await readShowKept(show);
+    if (got === BUSY) return res.status(429).json(BUSY);
     if (!got) return res.status(502).json({ error: 'YouTube no respondió.' });
     if (!got.episodes.length) return res.status(400).json({ error: 'Ahí no hay episodios.' });
     const saved = podcasts.follow({ ...show, name: got.name, thumb: got.thumb });

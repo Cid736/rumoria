@@ -55,7 +55,7 @@ function Page({ view }) {
     case 'library': return <div className="phone-library"><h1>Tu biblioteca</h1><Sidebar /></div>;
     case 'news': return <NewsPage />;
     case 'podcasts': return <PodcastsPage />;
-    case 'podcast': return <PodcastShowPage id={view.id} />;
+    case 'podcast': return <PodcastShowPage id={view.id} url={view.url} />;
     default: return <Home />;
   }
 }

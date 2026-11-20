@@ -35,6 +35,20 @@ export const usePodcasts = create((set, get) => ({
   progress: {},
   episodes: {}, // show id -> { list, error, loading }
   notes: {},    // video id -> { text, error, loading } (v1.13: asked for when Notas opens)
+  previews: {}, // show id -> { show, list, error, loading } (v1.13.2: a show you don't follow, from a search)
+
+  /** A show's page before following it: its name, cover and newest episodes. */
+  async preview(id, url) {
+    const had = get().previews[id];
+    if (had && (had.loading || had.list)) return;
+    set((s) => ({ previews: { ...s.previews, [id]: { ...had, loading: true, error: null } } }));
+    try {
+      const r = await api.get(urls.podcastPreview(url));
+      set((s) => ({ previews: { ...s.previews, [id]: { show: r.show, list: r.episodes || [], loading: false, error: null } } }));
+    } catch (err) {
+      set((s) => ({ previews: { ...s.previews, [id]: { ...had, loading: false, error: err.message } } }));
+    }
+  },
 
   async load() {
     try {
