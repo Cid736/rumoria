@@ -10,6 +10,8 @@
 // elsewhere it's skipped. The next songs are looked up ahead (how many, by
 // the performance profile), and the song kept from last time starts at its second.
 import { api, desktop, urls } from '../api.js';
+import { isPhone } from '../lib/android.js';
+import { audioQuality } from '../lib/network.js';
 import { fromYouTube, songOf } from '../lib/tracks.js';
 import { useLibrary } from '../store/library.js';
 import { PROFILES, usePerf } from '../store/perf.js';
@@ -19,6 +21,10 @@ import { startSound } from './sound.js';
 
 export const MAX_ATTEMPTS = 3;
 export const STALL_MS = 20_000;
+// v1.13: a phone works YouTube's address out itself (yt-dlp, up to 120 s on its
+// side), on mobile data too: 20 s marked slow songs as broken and, after three,
+// took them out of big lists. It gets longer before a load counts as a failure.
+export const PHONE_STALL_MS = 45_000;
 export const BIG_LIST = 50;
 
 let active = null;
@@ -31,6 +37,8 @@ export function startEngine({
   media = typeof navigator !== 'undefined' ? navigator.mediaSession : null, sound = null,
   // v1.7: how YouTube songs go, for the desktop app (several failing in a row: yt-dlp is updated at once).
   report = desktop && desktop.ytdlp ? desktop.ytdlp.report : () => {},
+  // v1.13: the light audio on mobile data, and more patience on a phone.
+  quality = audioQuality, stallMs = isPhone ? PHONE_STALL_MS : STALL_MS,
 } = {}) {
   audio.preload = 'auto';
   let loadedUid = null; // the song being loaded or played
@@ -48,7 +56,8 @@ export function startEngine({
   // ---- what you listened to (5 s or more counts; 30 s is "a play" on the server) ----
   function flushHeard() {
     if (!heard) return;
-    const song = songOf(heard.track);
+    // An episode isn't music: it keeps its own place (Podcasts), not your listening history.
+    const song = heard.track.episode ? null : songOf(heard.track);
     const secs = Math.round(heard.secs);
     heard = null;
     if (song && secs >= 5) post('/api/history', { song, secs }).catch(() => {});
@@ -99,7 +108,7 @@ export function startEngine({
     stallTimer = setTimeout(() => {
       const s = state();
       if (loadedUid === track.uid && s.wantPlaying && s.status === 'loading') failed(track, 'Esta canción no termina de cargar.');
-    }, STALL_MS);
+    }, stallMs);
   }
 
   async function load(track, attempt = 0) {
@@ -113,12 +122,12 @@ export function startEngine({
     let src = null;
     try {
       if (track.localId) src = urls.local(track.localId);
-      else if (track.yt) src = urls.audio(track.yt, attempt);
+      else if (track.yt) src = urls.audio(track.yt, attempt, quality());
       else if (track.query) {
         const hit = await get(urls.find(track.query, track.duration, track.list, track.n));
         if (run !== loadRun) return;
         state()._resolve(track.uid, { yt: hit.id, key: `yt:${hit.id}`, thumbnail: track.thumbnail || hit.thumbnail || null, duration: track.duration || hit.duration || null });
-        src = urls.audio(hit.id, attempt);
+        src = urls.audio(hit.id, attempt, quality());
       }
     } catch (err) {
       if (run === loadRun) failed(track, err.message || 'No se encontró esta canción.');
@@ -147,8 +156,8 @@ export function startEngine({
       if (t.yt) post(urls.prepare(t.yt)).catch(() => {});
       else if (t.query) {
         get(urls.find(t.query, t.duration, t.list, t.n)).then((hit) => {
+          // The server looks its address up as soon as it finds it (v1.13).
           state()._resolve(t.uid, { yt: hit.id, key: `yt:${hit.id}`, thumbnail: t.thumbnail || hit.thumbnail || null, duration: t.duration || hit.duration || null });
-          return post(urls.prepare(hit.id));
         }).catch(() => {});
       }
     }
@@ -166,6 +175,7 @@ export function startEngine({
       play: () => state().play(), pause: () => state().pause(),
       nexttrack: () => state().next(), previoustrack: () => state().prev(),
       seekto: (d) => state().seek(d.seekTime),
+      seekbackward: (d) => state().skip(-(d.seekOffset || 15)), seekforward: (d) => state().skip(d.seekOffset || 30),
     };
     for (const [k, fn] of Object.entries(handlers)) { try { media.setActionHandler(k, fn); } catch { /* not supported */ } }
   }
@@ -174,7 +184,8 @@ export function startEngine({
   async function keepGoing() {
     const { queue, radio } = state();
     const seed = [...queue.items].reverse().find((x) => x.yt);
-    if (!radio || !seed) return false;
+    // After an episode, no songs "like it".
+    if (!radio || !seed || seed.episode) return false;
     try {
       const r = await get(urls.radio(seed.yt));
       const known = new Set(queue.items.map((x) => x.key));

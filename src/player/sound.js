@@ -82,8 +82,11 @@ export function startSound({ audio, sound = useSound, player = usePlayer, perf =
   function apply() {
     const v = s();
     audio.preservesPitch = v.pitch;
-    audio.defaultPlaybackRate = v.speed;
-    audio.playbackRate = v.speed;
+    // An episode plays at its own speed (the 1× button); songs at Sonido's.
+    const cur = player.getState().current();
+    const rate = cur && cur.episode ? v.podSpeed : v.speed;
+    audio.defaultPlaybackRate = rate;
+    audio.playbackRate = rate;
     if (!nodes && needsGraph(v, perf.getState().profile)) build();
     if (!nodes) return;
     v.gains.forEach((g, i) => { nodes.filters[i].gain.value = g; });
@@ -201,6 +204,9 @@ export function startSound({ audio, sound = useSound, player = usePlayer, perf =
     apply();
   });
   const offPerf = perf.subscribe((v, before) => { if (v.profile !== before.profile) apply(); });
+  // From a song to an episode (or back): the other speed.
+  const isEp = (st) => { const t = st.queue.items[st.queue.index]; return Boolean(t && t.episode); };
+  const offPlayer = player.subscribe((v, before) => { if (isEp(v) !== isEp(before)) apply(); });
   apply();
   armSleep();
 
@@ -209,6 +215,6 @@ export function startSound({ audio, sound = useSound, player = usePlayer, perf =
     bars(out) { if (!nodes) return null; nodes.scope.getByteFrequencyData(out); return out; },
     /** "Al acabar esta canción": the engine asks before going on. */
     sleepAtEnd() { if (s().sleep && s().sleep.end) { sound.getState().setSleep(null); return true; } return false; },
-    stop() { offSound(); offPerf(); clearInterval(measureTimer); clearTimeout(sleepTimer); remember(); if (md && md.removeEventListener) md.removeEventListener('devicechange', onDevices); },
+    stop() { offSound(); offPerf(); offPlayer(); clearInterval(measureTimer); clearTimeout(sleepTimer); remember(); if (md && md.removeEventListener) md.removeEventListener('devicechange', onDevices); },
   };
 }

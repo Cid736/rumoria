@@ -1,0 +1,98 @@
+/* v1.13, Podcasts: the page, a show, and the episode row (as in the Figma
+   design system: EpisodeRow, the show cards, −15 / +30). Rumoria's tokens. */
+
+.podcasts { padding: 76px 24px 24px; background: linear-gradient(180deg, var(--accent-soft) 0, transparent 280px); }
+.pod-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.pod-head h1 { font-size: 32px; font-family: var(--font-display); font-weight: 800; }
+.pod-head .btn, .pod-show-actions .btn { display: inline-flex; align-items: center; gap: 8px; }
+.pod-head-actions { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pod-head .searchbox { flex: 0 1 420px; min-width: 160px; width: auto; }
+.pod-head .btn { flex: none; white-space: nowrap; }
+
+.pod-find { margin-bottom: 28px; }
+.pod-find .searchbox { width: 100%; }
+.pod-find > p { margin: 12px 4px 0; }
+.pod-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; margin-top: 14px; }
+.pod-result { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.pod-result .cover { border-radius: 50%; flex: none; }
+.pod-result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pod-result-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-result-text .muted { font-size: 13px; }
+.pod-following { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
+
+.pod-section { margin-bottom: 32px; }
+.pod-section h2 { font-size: 20px; margin-bottom: 8px; }
+
+/* The shows you follow: square covers, a coral dot when there's something new. */
+.pod-row { position: relative; }
+.pod-grid { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; margin: 0 -8px; padding: 0 8px; }
+.pod-grid::-webkit-scrollbar { display: none; }
+.pod-card { flex: none; width: 166px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 8px; border-radius: var(--radius); transition: background 0.15s; }
+.pod-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-more { position: absolute; right: 0; top: 75px; box-shadow: var(--shadow); }
+.pod-card:hover { background: var(--surface-2); }
+.pod-art { position: relative; display: block; }
+.pod-art .cover { width: 100% !important; height: auto !important; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); }
+.pod-new { position: absolute; top: 8px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--bg); }
+.pod-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Episodes: two columns when there's room (the computer), one on the phone. */
+.pod-eps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); column-gap: 40px; }
+
+/* One episode (EpisodeRow): cover, show, title on two lines, its state, play. */
+.ep-row { display: flex; align-items: center; gap: 12px; padding: 4px 8px; margin: 0 -8px; border-radius: var(--radius-sm); transition: background 0.15s; }
+.ep-row:hover { background: var(--surface-2); }
+.ep-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 6px 0; text-align: left; }
+.ep-cover { flex: none; border-radius: var(--radius-sm); object-fit: cover; }
+.ep-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ep-show { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-title { font-weight: 700; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ep-row.playing .ep-title { color: var(--accent); }
+.ep-done .ep-title { color: var(--muted); }
+.ep-state { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ep-started .ep-state { color: var(--accent); }
+.ep-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.ep-bar { width: 64px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text) 18%, transparent); overflow: hidden; }
+.ep-bar > span { display: block; height: 100%; background: var(--accent); }
+.ep-play { flex: none; opacity: 0.9; }
+.ep-row:hover .ep-play, .ep-row.playing .ep-play { opacity: 1; }
+
+/* An episode's notes (the side panel), and its speed button in the player bar. */
+.ep-notes { display: flex; flex-direction: column; gap: 8px; }
+.ep-notes-title { font-size: 18px; line-height: 1.3; }
+.ep-notes-text { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.55; color: var(--text); }
+.speed-btn { width: auto; min-width: 36px; padding: 0 6px; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.speed-btn.on { color: var(--accent); }
+
+.pod-empty { display: grid; justify-items: center; gap: 4px; max-width: 420px; margin: 48px auto; text-align: center; color: var(--muted); }
+.pod-empty strong { color: var(--text); font-size: 18px; }
+.pod-empty svg { color: var(--accent); margin-bottom: 8px; }
+
+/* A show's own page. */
+.pod-show-head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 28px; }
+.pod-show-cover { flex: none; border-radius: var(--radius); box-shadow: var(--shadow); object-fit: cover; }
+.pod-show-text { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pod-kicker { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.pod-show-text h1 { font-size: clamp(28px, 5cqi, 48px); font-family: var(--font-display); font-weight: 800; line-height: 1.1; }
+.pod-show-actions { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+
+/* −15 / +30 in the player bar: a little bigger than shuffle / repeat. */
+.pb-skip { width: 36px; height: 36px; color: var(--text); }
+
+/* The phone: room at the sides, the cover on top of a show's name. */
+:root[data-device="phone"] .podcasts { padding: 16px var(--gutter) 0; }
+:root[data-device="phone"] .pod-head { margin-bottom: 8px; }
+:root[data-device="phone"] .pod-head h1 { font-size: 28px; }
+:root[data-device="phone"] .pod-head .icon-btn { width: 44px; height: 44px; color: var(--text); }
+:root[data-device="phone"] .pod-head .icon-btn.on { color: var(--accent); }
+:root[data-device="phone"] .pod-find { margin-bottom: 20px; }
+:root[data-device="phone"] .pod-sub { display: none; }
+:root[data-device="phone"] .pod-grid { gap: 12px; margin: 0 calc(-1 * var(--gutter)); padding: 8px var(--gutter); }
+:root[data-device="phone"] .pod-card { width: 104px; padding: 0; }
+:root[data-device="phone"] .pod-art .cover { border-radius: var(--radius-sm); }
+:root[data-device="phone"] .pod-card:hover { background: none; }
+:root[data-device="phone"] .pod-name { font-weight: 400; font-size: 13px; color: var(--muted); }
+:root[data-device="phone"] .ep-cover { width: 64px !important; height: 64px !important; }
+:root[data-device="phone"] .ep-main { padding: 8px 0; }
+:root[data-device="phone"] .pod-show-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+:root[data-device="phone"] .pod-results { grid-template-columns: minmax(0, 1fr); }

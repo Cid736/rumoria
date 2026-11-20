@@ -30,7 +30,7 @@ export const useUi = create((set, get) => ({
   // A view: { name: 'home' | 'search' | 'list' | 'liked' | 'local' | 'mix' | 'browse' | 'radio' | 'discover' | 'news' | 'summary' | 'settings', id?, payload? }
   history: [{ name: 'home' }],
   at: 0,
-  panel: null,          // null | 'queue' | 'lyrics' | 'sound'
+  panel: null,          // null | 'queue' | 'lyrics' | 'sound' | 'notes'
   nowPlaying: false,    // v1.5: the full-screen "Sonando"
   toasts: [],
   menu: null,           // { x, y, items: [{ label, onClick, danger?, sub? }] }

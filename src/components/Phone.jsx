@@ -1,5 +1,5 @@
 // The phone layout (Android app): the page on top, a small player above a bar
-// of four tabs (Inicio, Buscar, Biblioteca, Ajustes); tapping the small player
+// of five tabs (Inicio, Buscar, Podcasts, Biblioteca, Ajustes); tapping the small player
 // opens it big, with the cover, the position and every button, a thumb's size.
 import { useState } from 'react';
 import { formatTime } from '../lib/tracks.js';
@@ -8,11 +8,12 @@ import { usePlayer } from '../store/player.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
 import { Slider } from './PlayerBar.jsx';
-import { ChevronLeft, Close, Gear, Heart, Home, Library, Mic, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
+import { Back15, ChevronLeft, Close, Forward30, Gear, Heart, Home, Library, Mic, Next, Notes, Pause, Play, Podcast, Prev, Queue, Radio, Repeat, RepeatOne, Search, Shuffle, Sliders } from './Icons.jsx';
+import { SleepButton, SpeedButton } from './PodControls.jsx';
 
 // Which tab a page belongs to (the rest belong to the one you came from).
-const TAB_OF = { home: 'home', search: 'search', library: 'library', settings: 'settings', liked: 'library', list: 'library', rules: 'library', local: 'library', summary: 'library', stats: 'library', history: 'library' };
-export const TABS = [['home', 'Inicio', Home], ['search', 'Buscar', Search], ['library', 'Biblioteca', Library], ['settings', 'Ajustes', Gear]];
+const TAB_OF = { home: 'home', search: 'search', podcasts: 'podcasts', podcast: 'podcasts', library: 'library', settings: 'settings', liked: 'library', list: 'library', rules: 'library', local: 'library', summary: 'library', stats: 'library', history: 'library' };
+export const TABS = [['home', 'Inicio', Home], ['search', 'Buscar', Search], ['podcasts', 'Podcasts', Podcast], ['library', 'Biblioteca', Library], ['settings', 'Ajustes', Gear]];
 
 export function TabBar() {
   const view = useUi((s) => s.history[s.at]);
@@ -48,15 +49,18 @@ export function MiniBar() {
       <Cover src={cur.thumbnail} name={cur.title} size={44} />
       <span className="minibar-text">
         <span className="minibar-title">{cur.title}</span>
-        <span className="minibar-artist">{status === 'loading' && want ? 'Cargando…' : cur.artist || '—'}</span>
+        <span className="minibar-artist">{status === 'loading' && want ? 'Cargando…' : cur.episode && duration ? `Quedan ${formatTime(Math.max(0, duration - position))}` : cur.artist || '—'}</span>
       </span>
-      <button type="button" className={`icon-btn minibar-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked} aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
-        onClick={stop(() => useLibrary.getState().setLike(cur, !liked))}><Heart filled={liked} size={22} /></button>
+      {cur.episode
+        ? <button type="button" className="icon-btn minibar-like" aria-label="Adelante 30 segundos" onClick={stop(() => usePlayer.getState().skip(30))}><Forward30 size={24} /></button>
+        : <button type="button" className={`icon-btn minibar-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked} aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
+          onClick={stop(() => useLibrary.getState().setLike(cur, !liked))}><Heart filled={liked} size={22} /></button>}
       <button type="button" className={`icon-btn minibar-play ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'}
         onClick={stop(() => usePlayer.getState().toggle())}>{want ? <Pause size={26} /> : <Play size={26} />}</button>
       {/* v1.12.3: closing it stops the music (and the notification goes with it). */}
       <button type="button" className="icon-btn minibar-close" aria-label="Cerrar el reproductor"
         onClick={stop(() => usePlayer.getState().close())}><Close size={20} /></button>
+      <span className="minibar-track" aria-hidden="true" />
       <span className="minibar-line" style={{ width: `${pct}%` }} aria-hidden="true" />
     </div>
   );
@@ -98,30 +102,46 @@ function PhonePlayerView({ cur }) {
           <span className="pp-title">{cur.title}</span>
           <span className="pp-artist">{cur.artist || '—'}</span>
         </span>
-        <button type="button" className={`icon-btn pp-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked} aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
-          onClick={() => useLibrary.getState().setLike(cur, !liked)}><Heart filled={liked} size={28} /></button>
+        {/* An episode isn't a song for Favoritas (as on the computer). */}
+        {!cur.episode && (
+          <button type="button" className={`icon-btn pp-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked} aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
+            onClick={() => useLibrary.getState().setLike(cur, !liked)}><Heart filled={liked} size={28} /></button>
+        )}
       </div>
       <div className="pp-progress">
         <Slider value={position} max={duration} label="Posición" step={5} format={formatTime} onChange={setDragPos} onCommit={(v) => { setDragPos(null); p.seek(v); }} />
         <div className="pp-times"><span>{formatTime(dragPos ?? position)}</span><span>{duration ? formatTime(duration) : '–:––'}</span></div>
       </div>
       <div className="pp-controls">
-        <button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" onClick={p.toggleShuffle}><Shuffle size={24} /></button>
-        <button type="button" className="icon-btn" aria-label="Anterior" onClick={p.prev}><Prev size={34} /></button>
+        {cur.episode
+          ? <><SpeedButton /><button type="button" className="icon-btn" aria-label="Atrás 15 segundos" onClick={() => p.skip(-15)}><Back15 size={34} /></button></>
+          : <><button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" onClick={p.toggleShuffle}><Shuffle size={24} /></button>
+            <button type="button" className="icon-btn" aria-label="Anterior" onClick={p.prev}><Prev size={34} /></button></>}
         <button type="button" className={`play-btn pp-play ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'} onClick={p.toggle}>
           {want ? <Pause size={32} /> : <Play size={32} />}
         </button>
-        <button type="button" className="icon-btn" aria-label="Siguiente" onClick={() => p.next()}><Next size={34} /></button>
-        <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} onClick={p.cycleRepeat}>
-          {repeat === 'one' ? <RepeatOne size={24} /> : <Repeat size={24} />}
-        </button>
+        {cur.episode
+          ? <><button type="button" className="icon-btn" aria-label="Adelante 30 segundos" onClick={() => p.skip(30)}><Forward30 size={34} /></button><SleepButton size={24} /></>
+          : <><button type="button" className="icon-btn" aria-label="Siguiente" onClick={() => p.next()}><Next size={34} /></button>
+            <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} onClick={p.cycleRepeat}>
+              {repeat === 'one' ? <RepeatOne size={24} /> : <Repeat size={24} />}
+            </button></>}
       </div>
-      <div className="pp-more">
-        <button type="button" className={`pp-chip ${panel === 'lyrics' ? 'on' : ''}`} onClick={() => ui.togglePanel('lyrics')}><Mic size={20} /> Letra</button>
-        <button type="button" className={`pp-chip ${panel === 'queue' ? 'on' : ''}`} onClick={() => ui.togglePanel('queue')}><Queue size={20} /> Cola</button>
-        <button type="button" className={`pp-chip ${radio ? 'on' : ''}`} aria-pressed={radio} onClick={p.toggleRadio}><Radio size={20} /> Parecidas</button>
-        <button type="button" className={`pp-chip ${panel === 'sound' ? 'on' : ''}`} onClick={() => ui.togglePanel('sound')}><Sliders size={20} /> Sonido</button>
-      </div>
+      {cur.episode ? (
+        // v1.13: an episode's own: the show's episodes, its notes, and the sound.
+        <div className="pp-more pp-more-3">
+          <button type="button" className="pp-chip" onClick={() => { ui.setNowPlaying(false); ui.go({ name: 'podcast', id: cur.episode }); }}><Queue size={20} /> Episodios</button>
+          <button type="button" className={`pp-chip ${panel === 'notes' ? 'on' : ''}`} onClick={() => ui.togglePanel('notes')}><Notes size={20} /> Notas</button>
+          <button type="button" className={`pp-chip ${panel === 'sound' ? 'on' : ''}`} onClick={() => ui.togglePanel('sound')}><Sliders size={20} /> Sonido</button>
+        </div>
+      ) : (
+        <div className="pp-more">
+          <button type="button" className={`pp-chip ${panel === 'lyrics' ? 'on' : ''}`} onClick={() => ui.togglePanel('lyrics')}><Mic size={20} /> Letra</button>
+          <button type="button" className={`pp-chip ${panel === 'queue' ? 'on' : ''}`} onClick={() => ui.togglePanel('queue')}><Queue size={20} /> Cola</button>
+          <button type="button" className={`pp-chip ${radio ? 'on' : ''}`} aria-pressed={radio} onClick={p.toggleRadio}><Radio size={20} /> Parecidas</button>
+          <button type="button" className={`pp-chip ${panel === 'sound' ? 'on' : ''}`} onClick={() => ui.togglePanel('sound')}><Sliders size={20} /> Sonido</button>
+        </div>
+      )}
     </section>
   );
 }

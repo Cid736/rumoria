@@ -10,9 +10,10 @@ import Cover from './Cover.jsx';
 import Visualizer from './Visualizer.jsx';
 import { useSound } from '../store/sound.js';
 import { coverAt } from '../store/perf.js';
+import { SleepButton, SpeedButton } from './PodControls.jsx';
 
 const SAFE_IMG = /^https:\/\/i\d?\.ytimg\.com\/[\w\-/.]+(\?[\w\-=&%.]*)?$/;
-import { Expand, Heart, Mic, MiniPlayer, Moon, Next, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Sliders, Volume } from './Icons.jsx';
+import { Back15, Expand, Forward30, Heart, Mic, MiniPlayer, Moon, Next, Notes, Pause, Play, Prev, Queue, Radio, Repeat, RepeatOne, Shuffle, Sliders, Volume } from './Icons.jsx';
 
 /** A bar you can click or drag (position, volume), and move with the arrow keys. */
 export function Slider({ value, max, onChange, onCommit, label, step, format }) {
@@ -80,24 +81,33 @@ export default function PlayerBar() {
               <span className="pb-title" title={cur.title}>{cur.title}</span>
               <span className="pb-artist" title={cur.artist}>{cur.artist || '—'}</span>
             </div>
-            <button type="button" className={`icon-btn pb-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked}
-              aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'} data-tip={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
-              onClick={() => useLibrary.getState().setLike(cur, !liked)}><Heart filled={liked} size={18} /></button>
+            {!cur.episode && (
+              <button type="button" className={`icon-btn pb-like ${liked ? 'on' : ''}`} disabled={!cur.key} aria-pressed={liked}
+                aria-label={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'} data-tip={liked ? 'Quitar de Favoritas' : 'Añadir a Favoritas'}
+                onClick={() => useLibrary.getState().setLike(cur, !liked)}><Heart filled={liked} size={18} /></button>
+            )}
           </>
         ) : <span className="pb-idle">Elige algo que escuchar</span>}
       </div>
 
       <div className="pb-center">
         <div className="pb-controls">
-          <button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" data-tip="Aleatorio (Ctrl+S)" onClick={p.toggleShuffle}><Shuffle size={18} /></button>
+          {/* v1.13: an episode jumps back 15 s and forward 30 s instead of shuffle / repeat. */}
+          {cur && cur.episode
+            ? <><SpeedButton /><button type="button" className="icon-btn pb-skip" aria-label="Atrás 15 segundos" data-tip="Atrás 15 s" onClick={() => p.skip(-15)}><Back15 size={22} /></button></>
+            : <button type="button" className={`icon-btn toggle ${shuffle ? 'on' : ''}`} aria-pressed={shuffle} aria-label="Aleatorio" data-tip="Aleatorio (Ctrl+S)" onClick={p.toggleShuffle}><Shuffle size={18} /></button>}
           <button type="button" className="icon-btn" aria-label="Anterior" data-tip="Anterior (Ctrl+←)" onClick={p.prev} disabled={!cur}><Prev size={20} /></button>
           <button type="button" className={`play-btn ${status === 'loading' && want ? 'loading' : ''}`} aria-label={want ? 'Pausa' : 'Reproducir'} data-tip={want ? 'Pausa (Espacio)' : 'Reproducir (Espacio)'} onClick={p.toggle} disabled={!cur}>
             {want ? <Pause size={20} /> : <Play size={20} />}
           </button>
           <button type="button" className="icon-btn" aria-label="Siguiente" data-tip="Siguiente (Ctrl+→)" onClick={() => p.next()} disabled={!cur}><Next size={20} /></button>
-          <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} data-tip="Repetir (Ctrl+R)" onClick={p.cycleRepeat}>
-            {repeat === 'one' ? <RepeatOne size={18} /> : <Repeat size={18} />}
-          </button>
+          {cur && cur.episode
+            ? <><button type="button" className="icon-btn pb-skip" aria-label="Adelante 30 segundos" data-tip="Adelante 30 s" onClick={() => p.skip(30)}><Forward30 size={22} /></button><SleepButton size={18} /></>
+            : (
+              <button type="button" className={`icon-btn toggle ${repeat !== 'off' ? 'on' : ''}`} aria-label={`Repetir: ${repeat === 'off' ? 'no' : repeat === 'all' ? 'todo' : 'esta canción'}`} data-tip="Repetir (Ctrl+R)" onClick={p.cycleRepeat}>
+                {repeat === 'one' ? <RepeatOne size={18} /> : <Repeat size={18} />}
+              </button>
+            )}
         </div>
         <div className="pb-progress">
           <span className="pb-time">{formatTime(dragPos ?? position)}</span>
@@ -108,9 +118,11 @@ export default function PlayerBar() {
 
       <div className="pb-side">
         <button type="button" className={`icon-btn toggle ${radio ? 'on' : ''}`} aria-pressed={radio} aria-label="Seguir con canciones parecidas" data-tip="Al acabar, seguir con canciones parecidas" onClick={p.toggleRadio}><Radio size={18} /></button>
-        {sleeping && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" data-tip="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
+        {sleeping && !(cur && cur.episode) && <button type="button" className="icon-btn toggle on" aria-label="Temporizador activo: quitarlo" data-tip="Temporizador activo (clic para quitarlo)" onClick={() => useSound.getState().setSleep(null)}><Moon size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'sound' ? 'on' : ''}`} aria-pressed={panel === 'sound'} aria-label="Sonido" data-tip="Sonido: ecualizador, velocidad, temporizador…" onClick={() => useUi.getState().togglePanel('sound')}><Sliders size={18} /></button>
-        <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" data-tip="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>
+        {cur && cur.episode
+          ? <button type="button" className={`icon-btn toggle ${panel === 'notes' ? 'on' : ''}`} aria-pressed={panel === 'notes'} aria-label="Notas del episodio" data-tip="Notas del episodio" onClick={() => useUi.getState().togglePanel('notes')}><Notes size={18} /></button>
+          : <button type="button" className={`icon-btn toggle ${panel === 'lyrics' ? 'on' : ''}`} aria-pressed={panel === 'lyrics'} aria-label="Letra" data-tip="Letra" onClick={() => useUi.getState().togglePanel('lyrics')}><Mic size={18} /></button>}
         <button type="button" className="icon-btn pb-extra" aria-label="Sonando a pantalla completa" data-tip="Sonando a pantalla completa (F11)" onClick={() => useUi.getState().setNowPlaying(true)} disabled={!cur}><Expand size={18} /></button>
         {desktop && desktop.mini && <button type="button" className="icon-btn pb-extra" aria-label="Mini reproductor" data-tip="Mini reproductor (Ctrl+M)" onClick={() => desktop.mini.open()}><MiniPlayer size={18} /></button>}
         <button type="button" className={`icon-btn toggle ${panel === 'queue' ? 'on' : ''}`} aria-pressed={panel === 'queue'} aria-label="Cola" data-tip="Cola" onClick={() => useUi.getState().togglePanel('queue')}><Queue size={18} /></button>

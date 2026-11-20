@@ -28,9 +28,12 @@ export const usePlayer = create((set, get) => ({
   shuffle: () => Boolean(get().queue.original),
 
   /** Plays `tracks` from `start` (a list, search results, a mix…). */
-  playTracks(tracks, start = 0, { shuffle = false } = {}) {
+  /** `resumeAt`: the second the first one starts at (an episode you'd started). */
+  playTracks(tracks, start = 0, { shuffle = false, resumeAt = 0 } = {}) {
     if (!tracks.length) return;
-    set({ queue: startQueue(tracks, start, { shuffle: shuffle || get().shuffle() }), wantPlaying: true, position: 0, duration: 0, error: null });
+    const queue = startQueue(tracks, start, { shuffle: shuffle || get().shuffle() });
+    const cur = queue.items[queue.index];
+    set({ queue, wantPlaying: true, position: resumeAt > 1 ? resumeAt : 0, duration: 0, error: null, resumeAt: resumeAt > 1 && cur ? { uid: cur.uid, t: resumeAt } : null });
   },
   toggle() {
     if (!get().current()) return;
@@ -63,6 +66,8 @@ export const usePlayer = create((set, get) => ({
     const to = Math.max(0, d ? Math.min(d - 0.5, t) : t);
     set({ seekTo: { t: to, nonce: Math.random() }, position: to });
   },
+  /** v1.13: back or forward a few seconds (an episode's −15 / +30). */
+  skip(secs) { if (get().current()) get().seek((get().position || 0) + secs); },
   setVolume(v) {
     const volume = Math.max(0, Math.min(1, Number(v) || 0));
     try { localStorage.setItem(VOLUME_KEY, String(volume)); } catch { /* only for now */ }

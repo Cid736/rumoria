@@ -9,6 +9,7 @@ const KEY = 'rumoria_session';
 const MAX = 500;
 const YT_RE = /^[A-Za-z0-9_-]{11}$/;
 const LIST_RE = /^[a-f0-9]{16}$/;
+const SHOW_RE = /^(ch:(UC[\w-]{22}|@[\w.-]{3,40})|pl:[\w-]{10,64})$/;
 const text = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
 
 /** One song as kept: only what's needed to play it again. */
@@ -21,6 +22,8 @@ export function cleanItem(t) {
   if (typeof t.localId === 'string' && /^[\w-]{1,80}$/.test(t.localId)) out.localId = t.localId;
   if (LIST_RE.test(String(t.list || ''))) { out.list = t.list; if (Number.isInteger(t.n) && t.n >= 0) out.n = t.n; }
   if (Number.isFinite(t.duration) && t.duration > 0 && t.duration < 86400) out.duration = t.duration;
+  // v1.13: an episode remembers its show (it plays on as an episode: −15/+30, its place kept).
+  if (typeof t.episode === 'string' && SHOW_RE.test(t.episode)) out.episode = t.episode;
   if (typeof t.thumbnail === 'string' && /^https:\/\/i\d?\.ytimg\.com\//.test(t.thumbnail) && t.thumbnail.length <= 500) out.thumbnail = t.thumbnail;
   if (!out.yt && !out.query && !out.localId) return null;
   return out;

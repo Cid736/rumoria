@@ -39,6 +39,8 @@ export const Gear = (p) => <Svg {...p}><circle cx="12" cy="12" r="3" /><path d="
 export const Close = (p) => <Svg {...p}><path d="M18 6 6 18M6 6l12 12" /></Svg>;
 export const Radio = (p) => <Svg {...p}><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2" /></Svg>;
 export const Download = (p) => <Svg {...p}><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></Svg>;
+// v1.13: an episode's notes (a page with lines).
+export const Notes = (p) => <Svg {...p}><path d="M6 3h9l4 4v14H6Z" /><path d="M14 3v5h5M9 13h7M9 17h5" /></Svg>;
 export const Note = (p) => <Svg {...p}><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></Svg>;
 export const Languages = (p) => <Svg {...p}><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.4 5.5 6.8M11 5c-.8 3.6-3.2 6.5-7 8" /><path d="m12 21 4.5-10L21 21M13.6 17.5h5.8" /></Svg>;
 export const Chart = (p) => <Svg {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></Svg>;
@@ -46,3 +48,9 @@ export const Alarm = (p) => <Svg {...p}><circle cx="12" cy="13" r="7" /><path d=
 export const Wand = (p) => <Svg {...p}><path d="m3 21 12-12M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M18 2.5v2M17 3.5h2" /></Svg>;
 export const Shield = (p) => <Svg {...p}><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Z" /><path d="m9 12 2 2 4-4" /></Svg>;
 export const Sparkle = (p) => <Svg {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" /></Svg>;
+// v1.13, Podcasts: the show, and jumping back 15 s / forward 30 s inside an episode.
+export const Podcast = (p) => <Svg {...p}><circle cx="12" cy="10" r="2" /><path d="M12 14v7M7.8 14.2a6 6 0 1 1 8.4 0M5 17a10 10 0 1 1 14 0" /></Svg>;
+const SkipLabel = ({ n }) => <text x="12" y="15.6" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, sans-serif">{n}</text>;
+export const Back15 = (p) => <Svg {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><SkipLabel n="15" /></Svg>;
+export const Forward30 = (p) => <Svg {...p}><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /><SkipLabel n="30" /></Svg>;
+export const Check = (p) => <Svg {...p}><path d="m5 12 5 5 9-10" /></Svg>;

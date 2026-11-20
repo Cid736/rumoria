@@ -41,7 +41,8 @@ export const api = {
 
 export const urls = {
   // `attempt` > 0: trying again after a failure (the server looks the address up anew).
-  audio: (id, attempt = 0) => `/api/stream/audio?${qs({ id, fresh: attempt > 0 ? 1 : undefined, a: attempt > 0 ? attempt : undefined })}`,
+  // `quality` 'lite': the light audio, for mobile data (v1.13).
+  audio: (id, attempt = 0, quality = 'normal') => `/api/stream/audio?${qs({ id, fresh: attempt > 0 ? 1 : undefined, a: attempt > 0 ? attempt : undefined, q: quality === 'lite' ? 'lite' : undefined })}`,
   video: (id) => `/api/stream/video?${qs({ id })}`,
   prepare: (id) => `/api/stream/prepare?${qs({ id })}`,
   forget: (id) => `/api/stream/forget?${qs({ id })}`,

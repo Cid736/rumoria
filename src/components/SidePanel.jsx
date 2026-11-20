@@ -7,6 +7,7 @@ import { lineIndex, useLyrics } from '../player/useLyrics.js';
 import { useLyricsExtra } from '../player/useLyricsExtra.js';
 import { chooseExtra, EXTRAS } from '../store/lyrics.js';
 import { usePlayer } from '../store/player.js';
+import { usePodcasts } from '../store/podcasts.js';
 import { useUi } from '../store/ui.js';
 import Cover from './Cover.jsx';
 import SoundPanel from './SoundPanel.jsx';
@@ -102,6 +103,24 @@ export function LyricsModes({ extra, script }) {
   );
 }
 
+/** v1.13: an episode's notes (its YouTube description, asked for when this opens). */
+function NotesPanel() {
+  const cur = usePlayer((s) => s.queue.items[s.queue.index] || null);
+  const yt = cur && cur.episode ? cur.yt : null;
+  const got = usePodcasts((s) => (yt ? s.notes[yt] : null)) || {};
+  useEffect(() => { if (yt) usePodcasts.getState().loadNotes(yt); }, [yt]);
+  if (!yt) return <p className="muted">Las notas son de los episodios de podcast.</p>;
+  return (
+    <div className="ep-notes">
+      <h3 className="ep-notes-title">{cur.title}</h3>
+      {cur.artist && <p className="muted">{cur.artist}</p>}
+      {got.loading && <p className="muted">Buscando las notas…</p>}
+      {got.error && <p className="muted">{got.error}</p>}
+      {typeof got.text === 'string' && (got.text ? <p className="ep-notes-text">{got.text}</p> : <p className="muted">Este episodio no trae notas.</p>)}
+    </div>
+  );
+}
+
 function LyricsPanel() {
   const cur = usePlayer((s) => s.queue.items[s.queue.index] || null);
   const position = usePlayer((s) => s.position);
@@ -149,13 +168,18 @@ function LyricsPanel() {
   return <p className="muted">No se encontró la letra de esta canción.</p>;
 }
 
+const TITLE = { queue: 'Cola', sound: 'Sonido', notes: 'Notas', lyrics: 'Letra' };
+
 export default function SidePanel() {
   const panel = useUi((s) => s.panel);
   if (!panel) return null;
   return (
-    <aside className="sidepanel" aria-label={panel === 'queue' ? 'Cola' : panel === 'sound' ? 'Sonido' : 'Letra'}>
+    <aside className="sidepanel" aria-label={TITLE[panel] || 'Letra'}>
       <button type="button" className="icon-btn panel-close" aria-label="Cerrar" onClick={() => useUi.getState().togglePanel(panel)}><Close size={18} /></button>
-      {panel === 'queue' ? <QueuePanel /> : panel === 'sound' ? (<><h2 className="panel-title">Sonido</h2><SoundPanel /></>) : (<><h2 className="panel-title">Letra</h2><LyricsPanel /></>)}
+      {panel === 'queue' ? <QueuePanel />
+        : panel === 'sound' ? (<><h2 className="panel-title">Sonido</h2><SoundPanel /></>)
+          : panel === 'notes' ? (<><h2 className="panel-title">Notas</h2><NotesPanel /></>)
+            : (<><h2 className="panel-title">Letra</h2><LyricsPanel /></>)}
     </aside>
   );
 }

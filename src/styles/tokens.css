@@ -13,6 +13,8 @@
   --accent-ink: #1a0f0b;
   --accent-soft: rgba(255, 122, 89, 0.16);
   --danger: #ff5c7a;
+  --danger-soft: rgba(255, 92, 122, 0.14);
+  --text-hover: #ffffff;
   --line: rgba(255, 255, 255, 0.08);
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   --head-fade: rgba(21, 19, 29, 0);
@@ -33,6 +35,8 @@
   --accent-ink: #ffffff;
   --accent-soft: rgba(217, 80, 46, 0.12);
   --danger: #c8264a;
+  --danger-soft: rgba(200, 38, 74, 0.1);
+  --text-hover: #2a2638;
   --line: rgba(0, 0, 0, 0.08);
   --shadow: 0 12px 32px rgba(40, 30, 60, 0.18);
   --head-fade: rgba(255, 255, 255, 0);

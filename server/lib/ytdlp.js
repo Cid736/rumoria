@@ -90,6 +90,15 @@ function flatList(target, env, limit) {
   });
 }
 
+/** v1.13: one video's description (a podcast episode's notes), or null when yt-dlp failed. */
+function description(id, env) {
+  return new Promise((resolve) => {
+    if (!ID_RE.test(String(id || ''))) { resolve(null); return; }
+    const args = ['--ignore-config', ...UTF8, '--skip-download', '--no-playlist', '--ies', 'default,-generic', '--no-warnings', '-O', 'description'];
+    run(env, args, `https://www.youtube.com/watch?v=${id}`, { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => resolve(err ? null : String(stdout)));
+  });
+}
+
 /** Free text → up to `n` YouTube results (null when yt-dlp failed). */
 async function search(query, env, n = 15) {
   const q = String(query || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 200);
@@ -105,4 +114,4 @@ function latestEntries(channelUrl, env, n = 15) {
   return flatList(u.toString(), env, n);
 }
 
-module.exports = { run, youTubeUrl, flatList, search, latestEntries, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };
+module.exports = { run, youTubeUrl, flatList, search, latestEntries, description, isUnavailable, GONE_TITLE, isId: (id) => ID_RE.test(String(id || '')) };

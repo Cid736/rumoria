@@ -11,9 +11,12 @@ function hue(text) {
   return h;
 }
 
+// The six brand gradients (coral, violeta, ámbar, ciruela, noche, rosa), as in Figma.
+const PALETTES = [['#ff7a59', '#c2365e'], ['#8b6cff', '#33256e'], ['#ffc46b', '#ff6a4d'], ['#e05cb0', '#4f2a86'], ['#4c6ef5', '#15123a'], ['#ffa8bd', '#ff5c7a']];
+
 export function gradientOf(name) {
-  const h = hue(name);
-  return `linear-gradient(135deg, hsl(${h} 70% 55%), hsl(${(h + 50) % 360} 65% 32%))`;
+  const [a, b] = PALETTES[hue(name) % PALETTES.length];
+  return `linear-gradient(135deg, ${a}, ${b})`;
 }
 
 export default function Cover({ src, thumbs, name, size = 48, round = false, liked = false, className = '' }) {

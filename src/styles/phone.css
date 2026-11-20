@@ -4,7 +4,7 @@
 
 :root[data-device="phone"] {
   --tabbar-h: 64px;
-  --minibar-h: 64px;
+  --minibar-h: 72px;
   --player-h: 0px;
   --gutter: 16px;
   -webkit-tap-highlight-color: transparent;
@@ -27,10 +27,13 @@
 :root[data-device="phone"] .searchbox { flex: 1; min-width: 0; max-width: none; }
 :root[data-device="phone"] .searchbox input { font-size: 16px; padding-block: 10px; }
 
-.tabbar { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabbar-h); background: var(--surface); border-top: 1px solid var(--line); }
-.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.tab.on { color: var(--text); }
+.tabbar { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); height: var(--tabbar-h); background: var(--surface); border-top: 1px solid var(--line); }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.tab.on { color: var(--text); font-weight: 700; }
 .tab.on svg { color: var(--accent); }
+/* The tab you're on: a pill behind its icon (Figma: Tab, Activo). */
+.tab .tab-icon { padding: 2px 16px; border-radius: 999px; transition: background 0.15s; }
+.tab.on .tab-icon { background: color-mix(in srgb, var(--text) 7%, transparent); }
 
 .minibar { position: relative; flex: none; display: flex; align-items: center; gap: 12px; height: var(--minibar-h); margin: 0 8px 6px; padding: 0 6px 0 10px; border-radius: var(--radius-sm); background: var(--surface-3); overflow: hidden; cursor: pointer; }
 .minibar .cover { border-radius: 6px; flex: none; }
@@ -42,7 +45,9 @@
 .minibar-like.on { color: var(--accent); }
 .minibar-play.loading { animation: pulse 1.2s ease-in-out infinite; }
 .minibar .minibar-close { width: 36px; color: var(--muted); }
-.minibar-line { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+.minibar .cover { width: 48px !important; height: 48px !important; }
+.minibar-track { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--text) 18%, transparent); }
+.minibar-line { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
 /* ---- the big player ---- */
@@ -74,8 +79,11 @@
 .pp-controls .icon-btn.toggle.on { color: var(--accent); }
 .pp-play { width: 72px !important; height: 72px !important; flex: none; }
 .pp-more { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.pp-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 12px; font-weight: 600; }
+.pp-more-3 { grid-template-columns: repeat(3, 1fr); }
+.pp-chip { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 12px; font-weight: 600; }
 .pp-chip.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.pp-controls .speed-btn { font-size: 16px; font-weight: 700; }
+.pp-controls .speed-btn.on { color: var(--accent); }
 
 /* ---- lyrics, queue, sound: a whole screen over everything ---- */
 :root[data-device="phone"] .sidepanel { position: fixed; inset: 0; z-index: 45; border-radius: 0; padding: 16px var(--gutter) 32px; background: var(--bg); animation: sheet-up 0.2s var(--ease); }
@@ -88,7 +96,7 @@
 .phone-library .sidebar { gap: 12px; }
 .phone-library .side-card { background: none; padding: 0; border-radius: 0; }
 .phone-library .side-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.phone-library .side-nav .nav-btn:nth-child(-n + 2) { display: none; }
+.phone-library .side-nav .nav-btn:nth-child(-n + 3) { display: none; }
 .phone-library .side-nav .nav-btn { flex-direction: column; justify-content: center; gap: 6px; height: auto; padding: 12px 6px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 13px; text-align: center; }
 .phone-library .side-library { overflow: visible; }
 .phone-library .side-scroll { overflow: visible; max-height: none; margin: 0; padding: 0; }
@@ -108,7 +116,7 @@
 :root[data-device="phone"] .shelf-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 :root[data-device="phone"] .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 :root[data-device="phone"] .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-:root[data-device="phone"] .tracks-row { min-height: 60px; }
+:root[data-device="phone"] .tracks-row { min-height: 64px; }
 /* Touch: the buttons that only showed on hover are always there. */
 :root[data-device="phone"] .tracks-row .row-actions,
 :root[data-device="phone"] .tracks-row .row-more { opacity: 1; visibility: visible; }
@@ -141,7 +149,7 @@
 :root[data-device="phone"] .tile-play { display: none; }
 /* Song rows: cover, name and ⋯ (a tap plays, a long press or ⋯ for more). */
 :root[data-device="phone"] .tracks-head { display: none; }
-:root[data-device="phone"] .tracks-row, :root[data-device="phone"] .tracks-row.with-added { grid-template-columns: minmax(0, 1fr) auto; padding: 6px 0; gap: 8px; }
+:root[data-device="phone"] .tracks-row, :root[data-device="phone"] .tracks-row.with-added { grid-template-columns: minmax(0, 1fr) auto; padding: 8px 0; gap: 8px; }
 :root[data-device="phone"] .tracks-row .t-n, :root[data-device="phone"] .tracks-row .t-added, :root[data-device="phone"] .tracks-row .t-time { display: none; }
 :root[data-device="phone"] .tracks-row .cover { width: 48px !important; height: 48px !important; }
 :root[data-device="phone"] .t-name { font-size: 15px; }

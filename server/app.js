@@ -19,6 +19,7 @@ const { StreamLists, pickVideo, ID_RE: LIST_ID_RE, AUTO_EVERY } = require('./lib
 const { ListenLog } = require('./lib/listenlog');
 const { Likes } = require('./lib/likes');
 const { News } = require('./lib/news');
+const { Podcasts, showOf, showName, cleanEpisode, cleanNotes, SHOW_RE } = require('./lib/podcasts');
 const { LocalMusic } = require('./lib/localmusic');
 const { Browse, findSongs, CATEGORIES } = require('./lib/browse');
 const { Curator, EVERY_DAYS, artistsByCategory, scoreGenres } = require('./lib/curator');
@@ -93,7 +94,7 @@ const shortError = (err, fallback) => (err && err.message && err.message.length 
  */
 function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, background = true, deps = {} }) {
   if (!TOKEN_RE.test(String(token || ''))) throw new Error('Se necesita un secreto de 64 caracteres hexadecimales.');
-  const yt = { search: ytdlp.search, flatList: ytdlp.flatList, latestEntries: ytdlp.latestEntries, ...deps };
+  const yt = { search: ytdlp.search, flatList: ytdlp.flatList, latestEntries: ytdlp.latestEntries, description: ytdlp.description, ...deps };
   const stream = deps.stream || streamLib;
   const lyricsFinder = deps.findLyrics || findLyrics;
   const readImport = deps.readImport || importlist.readImport;
@@ -109,7 +110,10 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   const browse = new Browse(path.join(dataDir, 'browse-cache.json'));
   const curator = new Curator(path.join(dataDir, 'curator.json'));
   const prefs = new Prefs(path.join(dataDir, 'prefs.json'));
+  // v1.13: the YouTube addresses (never the sound) survive a restart, until they expire.
+  if (typeof stream.persist === 'function') stream.persist(path.join(dataDir, 'stream-cache.json'));
   const hidden = new Hidden(path.join(dataDir, 'hidden.json'));
+  const podcasts = new Podcasts(path.join(dataDir, 'podcasts.json'));
   const ruleLists = new RuleLists(path.join(dataDir, 'rule-lists.json'));
   const translations = new TranslationCache(path.join(dataDir, 'translations.json'));
   // v1.10, Sincronizar: what goes to the cloud (encrypted) and comes back merged. "Para ti" stays per device.
@@ -202,7 +206,9 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   };
   const relay = (kind) => async (req, res) => {
     const fresh = req.query.fresh === '1' && allowFresh(`${kind}:${req.query.id}`);
-    try { await stream.pipe(req.query.id, ytEnv(), req, res, { kind, fresh }); } catch (err) { if (!res.headersSent) res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); else res.destroy(); }
+    // `q=lite`: a phone on mobile data asks for the light audio (v1.13).
+    const quality = kind === 'audio' && req.query.q === 'lite' ? 'lite' : 'normal';
+    try { await stream.pipe(req.query.id, ytEnv(), req, res, { kind, fresh, quality }); } catch (err) { if (!res.headersSent) res.status(502).json({ error: shortError(err, 'YouTube no respondió.') }); else res.destroy(); }
   };
   app.get('/api/stream/audio', fileLimiter, needId, relay('audio'));
   app.get('/api/stream/video', fileLimiter, needId, relay('video'));
@@ -267,7 +273,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     try {
       const r = await yt.search(q, ytEnv(), 20);
       if (!r) return res.status(502).json({ error: 'YouTube no respondió.' });
-      res.json({ results: r.filter((e) => stream.isId(e.id)).map(({ id, title, channel, duration, thumbnail }) => ({ id, title, channel, duration, thumbnail })) });
+      res.json({ results: r.filter((e) => stream.isId(e.id)).map(({ id, title, channel, channelUrl, duration, thumbnail }) => ({ id, title, channel, channelUrl, duration, thumbnail })) });
     } finally { ytSlots.release(); }
   });
   app.get('/api/find', ytLimiter, async (req, res) => {
@@ -283,6 +289,8 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
       found.set(key, hit);
       if (found.size > 2000) found.delete(found.keys().next().value);
     }
+    // Its address straight away: the player asks for the sound a moment later (v1.13).
+    if (typeof stream.prepare === 'function') stream.prepare(hit.id, ytEnv());
     const n = Number(req.query.n);
     if (LIST_ID_RE.test(String(req.query.list || '')) && Number.isInteger(n)) lists.remember(String(req.query.list), n, hit, q);
     return res.json({ id: hit.id, title: hit.title, channel: hit.channel, duration: hit.duration, thumbnail: hit.thumbnail });
@@ -550,6 +558,79 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
   // ---- news of your artists ----
   app.get('/api/news', (req, res) => res.json({ news: hidden.filter(news.list()) }));
 
+  // ---- v1.13, Podcasts: channels and playlists you follow, and where you left each episode ----
+  const EPISODES_MS = 20 * 60_000;
+  const episodesCache = new Map(); // show id -> { at, episodes }
+  const readShow = async (show) => {
+    const data = show.id.startsWith('pl:') ? await yt.flatList(show.url, ytEnv(), 30) : await yt.latestEntries(show.url, ytEnv(), 30);
+    if (!data || !Array.isArray(data.entries)) return null;
+    const episodes = data.entries.map(cleanEpisode).filter(Boolean);
+    const firstChannel = (data.entries.find((e) => e && e.channel) || {}).channel;
+    return { name: showName(data.title) || showName(firstChannel) || 'Podcast', thumb: episodes[0] ? episodes[0].thumbnail : null, episodes };
+  };
+  app.get('/api/podcasts', (req, res) => res.json(podcasts.list()));
+  app.post('/api/podcasts', ytLimiter, async (req, res) => {
+    const link = ytdlp.youTubeUrl(text((req.body || {}).url, 2048));
+    const show = link && showOf(link);
+    if (!show) return res.status(400).json({ error: 'Pega el enlace de un canal o de una lista de YouTube.' });
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
+    let got;
+    try { got = await readShow(show); } finally { ytSlots.release(); }
+    if (!got) return res.status(502).json({ error: 'YouTube no respondió.' });
+    if (!got.episodes.length) return res.status(400).json({ error: 'Ahí no hay episodios.' });
+    const saved = podcasts.follow({ ...show, name: got.name, thumb: got.thumb });
+    if (!saved) return res.status(400).json({ error: 'No se pudo seguir.' });
+    episodesCache.set(saved.id, { at: Date.now(), episodes: got.episodes });
+    return res.json({ show: saved, episodes: got.episodes });
+  });
+  const showFor = (req, res) => {
+    const id = String(req.params.id || '');
+    const show = SHOW_RE.test(id) ? podcasts.get(id) : null;
+    if (!show) res.status(404).json({ error: 'No sigues ese podcast.' });
+    return show;
+  };
+  app.get('/api/podcasts/:id/episodes', ytLimiter, async (req, res) => {
+    const show = showFor(req, res);
+    if (!show) return;
+    const hit = episodesCache.get(show.id);
+    if (hit && Date.now() - hit.at < EPISODES_MS) { res.json({ episodes: hit.episodes }); return; }
+    if (!await ytSlots.takeWithin(WAIT_MS)) { res.status(429).json(BUSY); return; }
+    let got;
+    try { got = await readShow(show); } finally { ytSlots.release(); }
+    if (!got) { if (hit) res.json({ episodes: hit.episodes }); else res.status(502).json({ error: 'YouTube no respondió.' }); return; }
+    episodesCache.set(show.id, { at: Date.now(), episodes: got.episodes });
+    // Its cover follows its newest episode.
+    if (got.thumb && got.thumb !== show.thumb) podcasts.follow({ ...show, thumb: got.thumb });
+    res.json({ episodes: got.episodes });
+  });
+  app.delete('/api/podcasts/:id', writeLimiter, (req, res) => {
+    const show = showFor(req, res);
+    if (!show) return;
+    episodesCache.delete(show.id);
+    res.json({ ok: podcasts.unfollow(show.id) });
+  });
+  app.post('/api/podcasts/progress', writeLimiter, (req, res) => {
+    const b = req.body || {};
+    const kept = podcasts.setProgress(String(b.yt || ''), { t: b.t, d: b.d, done: b.done === true, title: b.title, show: b.show, thumb: b.thumb });
+    return kept ? res.json(kept) : res.status(400).json({ error: 'Eso no es un episodio.' });
+  });
+  // v1.13: an episode's notes (its description), asked for when Notas opens; the last 200 kept here.
+  const notesCache = new Map();
+  app.get('/api/podcasts/notes/:yt', ytLimiter, async (req, res) => {
+    const id = String(req.params.yt || '');
+    if (!ytdlp.isId(id)) return res.status(400).json({ error: 'Eso no es un episodio.' });
+    if (notesCache.has(id)) return res.json({ notes: notesCache.get(id) });
+    if (!await ytSlots.takeWithin(WAIT_MS)) return res.status(429).json(BUSY);
+    let raw;
+    try { raw = await yt.description(id, ytEnv()); } finally { ytSlots.release(); }
+    if (raw === null) return res.status(502).json({ error: 'YouTube no respondió.' });
+    const notes = cleanNotes(raw);
+    notesCache.set(id, notes);
+    if (notesCache.size > 200) notesCache.delete(notesCache.keys().next().value);
+    return res.json({ notes });
+  });
+  app.post('/api/podcasts/progress/remove', writeLimiter, (req, res) => res.json({ ok: podcasts.forgetProgress(String((req.body || {}).yt || '')) }));
+
   // ---- your own music folder ----
   app.get('/api/local', (req, res) => res.json({ folder: Boolean(local.root), songs: local.list() }));
   app.post('/api/local/rescan', writeLimiter, (req, res) => res.json({ folder: Boolean(local.root), songs: local.scan() }));
@@ -678,7 +759,7 @@ function createApp({ token, dataDir, ytEnv, musicDir = null, staticDir = null, b
     setGame(on) { gaming = on === true; cloudSync.pause(gaming); },
     gaming: () => gaming,
     stop() { timers.forEach((t) => clearTimeout(t)); cloudSync.stop(); },
-    _state: { lists, history, likes, news, local, browse, curator, hidden, ruleLists, prefs, cloudSync },
+    _state: { lists, history, likes, news, podcasts, local, browse, curator, hidden, ruleLists, prefs, cloudSync },
     _run: { fillAutoLists, curate, warmBrowse },
   };
 }

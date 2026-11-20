@@ -13,11 +13,17 @@ export const PRESETS = {
   pop: ['Pop', [-1, 2, 4, 2, -1]], classical: ['Clásica', [3, 1, -1, 1, 3]], electronic: ['Electrónica', [5, 3, 0, 2, 4]], night: ['Noche (suave)', [-4, -1, 1, 1, -2]],
 };
 export const SPEEDS = [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+// v1.13: episodes keep their own speed (a podcast at 1.5× doesn't speed up the songs).
+export const POD_SPEEDS = [1, 1.25, 1.5, 1.75, 2, 0.75];
+/** The next episode speed after this one (the 1× button cycles through them). */
+export const nextPodSpeed = (v) => POD_SPEEDS[(POD_SPEEDS.indexOf(v) + 1) % POD_SPEEDS.length] || 1;
+/** "1,5×". */
+export const speedLabel = (v) => `${String(v).replace('.', ',')}×`;
 export const FADES = [0, 2, 4, 6, 10];
 export const SLEEPS = [[15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 hora'], [90, '1 h 30'], ['end', 'Al acabar esta canción']];
 
 export const DEFAULT_SOUND = {
-  preset: 'flat', gains: [0, 0, 0, 0, 0], mine: [], level: false, speed: 1, pitch: true, karaoke: false, fade: 0,
+  preset: 'flat', gains: [0, 0, 0, 0, 0], mine: [], level: false, speed: 1, podSpeed: 1, pitch: true, karaoke: false, fade: 0,
   sinkId: '', unplugPause: true, visualizer: true, resume: true, autoplay: false,
 };
 
@@ -30,7 +36,7 @@ export function cleanSound(raw) {
   const preset = Object.hasOwn(PRESETS, r.preset) || r.preset === 'custom' || (typeof r.preset === 'string' && mine.some((p) => `mine:${p.name}` === r.preset)) ? r.preset : 'flat';
   return {
     preset, gains: okGains(r.gains) ? r.gains.map(Number) : [0, 0, 0, 0, 0], mine,
-    level: r.level === true, speed: SPEEDS.includes(r.speed) ? r.speed : 1, pitch: r.pitch !== false, karaoke: r.karaoke === true,
+    level: r.level === true, speed: SPEEDS.includes(r.speed) ? r.speed : 1, podSpeed: SPEEDS.includes(r.podSpeed) ? r.podSpeed : 1, pitch: r.pitch !== false, karaoke: r.karaoke === true,
     fade: FADES.includes(r.fade) ? r.fade : 0, sinkId: typeof r.sinkId === 'string' && r.sinkId.length <= 200 ? r.sinkId : '',
     unplugPause: r.unplugPause !== false, visualizer: r.visualizer !== false, resume: r.resume !== false, autoplay: r.autoplay === true,
   };

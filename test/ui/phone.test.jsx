@@ -35,10 +35,10 @@ describe('the phone layout', () => {
     expect(plain.HERE).toBe('este ordenador');
   });
 
-  it('tabs: four, the current one marked; a tab starts over (nothing to go back to)', async () => {
+  it('tabs: five (Podcasts in the middle), the current one marked; a tab starts over (nothing to go back to)', async () => {
     const { useUi, phone } = await load();
     render(<phone.TabBar />);
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Inicio', 'Buscar', 'Biblioteca', 'Ajustes']);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Inicio', 'Buscar', 'Podcasts', 'Biblioteca', 'Ajustes']);
     act(() => useUi.getState().go({ name: 'list', id: 'x' }));
     expect(screen.getByRole('button', { name: 'Biblioteca' })).toHaveAttribute('aria-current', 'page');
     fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }));
@@ -214,5 +214,40 @@ describe('a new version, quietly', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sistema/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Instalar' }));
     expect(bridge.sent).toContainEqual({ t: 'install' });
+  });
+});
+
+describe('the phone, v1.13 design', () => {
+  const episode = { uid: 'e1', yt: 'aaaaaaaaaaa', title: 'Cómo suena una ciudad', artist: 'Ondas Lentas', episode: 'ch:@ondaslentas', duration: 2400 };
+
+  it('the big player of an episode: speed, −15, +30, timer, and Episodios / Notas / Sonido', async () => {
+    const { usePlayer, useUi, phone } = await load();
+    const SidePanel = (await import('../../src/components/SidePanel.jsx')).default;
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ notes: 'Hoy hablamos del ruido.' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    usePlayer.getState().playTracks([episode]);
+    useUi.setState({ nowPlaying: true });
+    render(<><phone.PhonePlayer /><SidePanel /></>);
+    expect(screen.getByRole('button', { name: 'Velocidad: 1×. Cambiarla' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Temporizador' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Letra/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Añadir a Favoritas' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Notas/ }));
+    expect(useUi.getState().panel).toBe('notes');
+    expect(await screen.findByText('Hoy hablamos del ruido.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Episodios/ }));
+    expect(useUi.getState().nowPlaying).toBe(false);
+    expect(useUi.getState().history[useUi.getState().at]).toEqual({ name: 'podcast', id: 'ch:@ondaslentas' });
+  });
+
+  it('Podcasts: a magnifier and a "+" in the head, the box only after the magnifier', async () => {
+    await load();
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ shows: [{ id: 'ch:@ondaslentas', name: 'Ondas Lentas', url: 'https://www.youtube.com/@ondaslentas', thumb: null, at: 0 }], progress: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const PodcastsPage = (await import('../../src/views/Podcasts.jsx')).default;
+    render(<PodcastsPage />);
+    await screen.findByText('Tus podcasts');
+    expect(screen.getByRole('button', { name: 'Seguir por enlace' })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Buscar podcasts' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar podcasts' }));
+    expect(screen.getByRole('searchbox', { name: 'Buscar podcasts' })).toBeInTheDocument();
   });
 });

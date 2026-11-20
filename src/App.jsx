@@ -32,6 +32,7 @@ import History from './views/History.jsx';
 import Stats from './views/Stats.jsx';
 import { OnThisDayPage } from './views/OnThisDay.jsx';
 import { BrowsePage, DiscoverPage, RadioPage, TodayPage } from './views/Discover.jsx';
+import PodcastsPage, { PodcastShowPage } from './views/Podcasts.jsx';
 
 function Page({ view }) {
   switch (view.name) {
@@ -53,6 +54,8 @@ function Page({ view }) {
     // The phone's Biblioteca tab: your lists (on a computer they're always on the left).
     case 'library': return <div className="phone-library"><h1>Tu biblioteca</h1><Sidebar /></div>;
     case 'news': return <NewsPage />;
+    case 'podcasts': return <PodcastsPage />;
+    case 'podcast': return <PodcastShowPage id={view.id} />;
     default: return <Home />;
   }
 }

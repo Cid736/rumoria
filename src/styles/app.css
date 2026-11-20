@@ -58,7 +58,14 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.02e
 .btn-ghost { border: 1px solid var(--subtle); }
 .btn-ghost:hover:not(:disabled) { border-color: var(--text); }
 .btn-light { background: var(--text); color: var(--surface); }
+.btn-light:hover:not(:disabled) { background: var(--text-hover); }
 .btn-danger { border: 1px solid var(--danger); color: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-soft); }
+.btn-ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.btn:disabled { opacity: 0.4; }
+/* Sizes (Figma: Button S / M / L) and an icon on the left. */
+.btn-large { padding: 12px 24px; font-size: 16px; }
+.btn:has(> svg) { display: inline-flex; align-items: center; gap: 8px; }
 .big-play, .play-btn, .card-play, .tile-play { display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); transition: transform 0.15s var(--ease), background 0.15s; }
 .big-play { width: 56px; height: 56px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
 .big-play:hover:not(:disabled), .card-play:hover, .tile-play:hover { transform: scale(1.06); background: var(--accent-strong); }
